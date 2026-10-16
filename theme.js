@@ -149,35 +149,17 @@ const PLAN_SUBJECTS = ['Samhällskunskap', 'Svenska', 'Matematik', 'Biologi', 'F
 const PLAN_GRADES = ['4', '5', '6', '7', '8', '9'];
 
 // ── Uppläggsregister ──
-// Vilka upplägg som finns (lossi-plans = lista med id). Saknas listan
-// gäller de tre demo-uppläggen. Innehållet i varje upplägg ligger som
-// tidigare i lossi-plan-<id>; demo-uppläggen som inte sparats än får
-// titel/ämne/årskurs från DEMO_PLANS.
+// Vilka upplägg som finns och deras innehåll hämtas via LossiData (data.js).
+// Demo-uppläggen som inte sparats än får titel/ämne/årskurs från DEMO_PLANS.
 const DEMO_PLANS = {
   '1': { title: 'Demokrati – grunderna och processerna', subject: 'Samhällskunskap', grade: '7–9' },
   '2': { title: 'Källkritik i det digitala samhället', subject: 'Samhällskunskap', grade: '9' },
   '3': { title: 'Fotosyntes – från molekyl till ekosystem', subject: 'Biologi', grade: '7' },
 };
 
-function getPlanIds() {
-  try {
-    const ids = JSON.parse(localStorage.getItem('lossi-plans'));
-    if (Array.isArray(ids) && ids.length) return ids.map(String);
-  } catch (e) {}
-  return Object.keys(DEMO_PLANS);
-}
-
-function readPlanState(id) {
-  try {
-    return JSON.parse(localStorage.getItem('lossi-plan-' + id)) || null;
-  } catch (e) {
-    return null;
-  }
-}
-
 // Det som listor (aside, översikt) behöver veta om ett upplägg
-function getPlanSummary(id) {
-  const state = readPlanState(id) || {};
+function getPlanSummary(id, state) {
+  state = state || {};
   const demo = DEMO_PLANS[id] || {};
   return {
     id,
@@ -189,8 +171,9 @@ function getPlanSummary(id) {
 }
 
 // Senast skapade först
-function getPlanSummaries() {
-  return getPlanIds().slice().reverse().map(getPlanSummary);
+async function getPlanSummaries() {
+  const plans = await LossiData.listPlans();
+  return plans.reverse().map(p => getPlanSummary(p.id, p.state));
 }
 
 function escapeHTML(text) {
@@ -217,7 +200,10 @@ function renderAppShell(options = {}) {
   if (header) header.innerHTML = buildTopbarHTML(options.active);
 
   const aside = document.querySelector('aside.app-aside');
-  if (aside) aside.innerHTML = buildAsideHTML(options.currentPlanId);
+  if (aside) {
+    aside.innerHTML = buildAsideHTML();
+    renderAsidePlans(options.currentPlanId);
+  }
 
   if (!document.getElementById('createPlanModal')) {
     document.body.insertAdjacentHTML('beforeend', buildCreatePlanModalHTML());
@@ -293,15 +279,7 @@ function buildTopbarHTML(active) {
   </div>`;
 }
 
-function buildAsideHTML(currentPlanId) {
-  const plans = getPlanSummaries();
-  const visiblePlans = plans.slice(0, ASIDE_PLAN_LIMIT);
-  // Det öppna upplägget ska alltid synas i listan, även om det är äldre
-  if (currentPlanId && !visiblePlans.some(p => p.id === String(currentPlanId))) {
-    const current = plans.find(p => p.id === String(currentPlanId));
-    if (current) visiblePlans[visiblePlans.length - 1] = current;
-  }
-
+function buildAsideHTML() {
   let inviteDismissed = false;
   try { inviteDismissed = localStorage.getItem('lossi-invite-dismissed') === 'true'; } catch (e) {}
 
@@ -324,11 +302,7 @@ function buildAsideHTML(currentPlanId) {
 
     <div class="aside-group">
       <div class="aside-label">Upplägg</div>
-      ${visiblePlans.map(p => `
-        <a href="upplag.html?id=${p.id}" class="aside-item${p.id === String(currentPlanId) ? ' active' : ''}" data-aside-plan="${p.id}" title="${escapeHTML(p.title)}">
-          <span class="aside-plan-icon">${planAvatarImgHTML(p.avatar)}</span>
-          <span class="aside-item-text">${escapeHTML(p.title)}</span>
-        </a>`).join('')}
+      <div class="aside-plan-list"></div>
       <a href="index.html" class="aside-item aside-more">
         <i data-lucide="ellipsis"></i>
         <span class="aside-item-text">Mer</span>
@@ -361,6 +335,25 @@ function buildAsideHTML(currentPlanId) {
 }
 
 // Uppdatera ett uppläggs titel/bild i asiden utan att bygga om allt
+// Upplägg-listan i asiden fylls i när datan hämtats (renderAppShell väntar inte)
+async function renderAsidePlans(currentPlanId) {
+  const plans = await getPlanSummaries();
+  const visiblePlans = plans.slice(0, ASIDE_PLAN_LIMIT);
+  // Det öppna upplägget ska alltid synas i listan, även om det är äldre
+  if (currentPlanId && !visiblePlans.some(p => p.id === String(currentPlanId))) {
+    const current = plans.find(p => p.id === String(currentPlanId));
+    if (current) visiblePlans[visiblePlans.length - 1] = current;
+  }
+
+  const list = document.querySelector('.aside-plan-list');
+  if (!list) return;
+  list.innerHTML = visiblePlans.map(p => `
+    <a href="upplag.html?id=${p.id}" class="aside-item${p.id === String(currentPlanId) ? ' active' : ''}" data-aside-plan="${p.id}" title="${escapeHTML(p.title)}">
+      <span class="aside-plan-icon">${planAvatarImgHTML(p.avatar)}</span>
+      <span class="aside-item-text">${escapeHTML(p.title)}</span>
+    </a>`).join('');
+}
+
 function updateAsidePlan(id, { title, avatar } = {}) {
   const item = document.querySelector(`[data-aside-plan="${id}"]`);
   if (!item) return;
@@ -488,7 +481,7 @@ function closeCreatePlanModal() {
   document.getElementById('createPlanModal').classList.remove('open');
 }
 
-function createPlan() {
+async function createPlan() {
   const nameInput = document.getElementById('createPlanName');
   const title = nameInput.value.trim();
   if (!title) {
@@ -497,8 +490,6 @@ function createPlan() {
     return;
   }
 
-  const ids = getPlanIds();
-  const id = String(Math.max(0, ...ids.map(n => parseInt(n, 10) || 0)) + 1);
   const avatar = document.querySelector('#createPlanAvatarPicker .avatar-picker-btn.selected')?.dataset.avatar
     || PLAN_AVATARS[0].id;
 
@@ -518,11 +509,11 @@ function createPlan() {
     createdAt: new Date().toISOString(),
   };
 
+  let id;
   try {
-    localStorage.setItem('lossi-plan-' + id, JSON.stringify(state));
-    localStorage.setItem('lossi-plans', JSON.stringify([...ids, id]));
+    id = await LossiData.createPlan(state);
   } catch (e) {
-    alert('Kunde inte spara upplägget i webbläsaren.');
+    alert('Kunde inte spara upplägget.');
     return;
   }
 

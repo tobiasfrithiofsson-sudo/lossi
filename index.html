@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="theme.css" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script src="theme.js"></script>
+  <script src="data.js"></script>
 </head>
 <body>
 
@@ -94,10 +95,10 @@
   syncThemeIcons();
 
   // ── Upplägg-listan: alla upplägg i registret, senast skapade först ──
-  function renderPlanList() {
+  function renderPlanList(plans) {
     const list = document.getElementById('planList');
     list.querySelectorAll('.plan-row').forEach(r => r.remove());
-    const rows = getPlanSummaries().map(p => {
+    const rows = plans.map(p => {
       const gradeDisplay = p.grade ? 'Åk ' + p.grade : '';
       const meta = [p.subject, gradeDisplay].filter(Boolean).join(' · ');
       return `
@@ -114,9 +115,9 @@
   }
 
   // Kommande-korten är fortfarande demo, men visar uppläggets aktuella titel och bild
-  function syncUpcomingCards() {
+  function syncUpcomingCards(plans) {
     document.querySelectorAll('.upcoming-card[data-plan-id]').forEach(el => {
-      const p = getPlanSummary(el.dataset.planId);
+      const p = plans.find(plan => plan.id === el.dataset.planId) || getPlanSummary(el.dataset.planId);
       el.querySelector('.upcoming-card-title').textContent = p.title;
       renderPlanAvatar(el, p.avatar);
     });
@@ -150,8 +151,10 @@
     gradeSelect.value = grades.includes(currentGrade) ? currentGrade : '';
   }
 
-  renderPlanList();
-  syncUpcomingCards();
+  getPlanSummaries().then(plans => {
+    renderPlanList(plans);
+    syncUpcomingCards(plans);
+  });
 
   function toggleSection(id) {
     document.getElementById(id).classList.toggle('collapsed');

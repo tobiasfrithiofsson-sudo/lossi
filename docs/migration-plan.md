@@ -6,7 +6,7 @@ Working checklist. Start every session by reading this file, picking the next un
 - [x] Step 0: Plan into repo
 - [x] Step 1: Git + GitHub (private repo `tobiasfrithiofsson-sudo/lossi`)
 - [x] Step 2: Deploy today's app to Cloudflare (live: https://lossi.tobias-frithiofsson.workers.dev/)
-- [ ] Step 3: Introduce `data.js` (still localStorage)
+- [x] Step 3: Introduce `data.js` (still localStorage)
 - [ ] Step 4: Supabase project + table
 - [ ] Step 5: Login (`auth.js`, magic link)
 - [ ] Step 6: Switch `data.js` to Supabase
@@ -24,12 +24,12 @@ Why not the alternatives: Neon (needs our own API layer), PocketBase (no free al
 
 Free-tier catch: Supabase pauses projects after 7 days without traffic. Data is kept; step 7 adds a weekly ping.
 
-## Persistence touch points (before step 3)
-- `upplag.html` `saveState` / `loadState`: plan state under `lossi-plan-<id>`
-- `theme.js` `getPlanIds` / `getPlanSummary`: registry `lossi-plans`
-- `theme.js` avatar fallback: `lossi-plan-avatar-<id>`
-- `theme.js` create-plan dialog: writes new plan + registry
-- UI prefs (`lossi-theme`, `lossi-invite-dismissed`) stay in localStorage.
+## Persistence (after step 3)
+All plan data goes through `LossiData` in `data.js`: `listPlans()` → `[{ id, state }]` oldest first, `loadPlan(id)`, `savePlan(id, state)`, `createPlan(state)` → id. All async. Step 6 only rewrites the inside of `data.js`.
+- `upplag.html`: `boot()` at the end of the script loads the plan, then runs `applyState`, `recalcLessonTimes` and `initAllSortables`. `saveState()` does nothing until `planLoaded` is true, so demo content can't overwrite a plan that is still loading.
+- `theme.js`: `getPlanSummaries()` is async. The aside plan list is filled afterwards by `renderAsidePlans()`. `createPlan()` is async.
+- Stays in localStorage on purpose (UI/browser-local, not plan data): `lossi-theme`, `lossi-invite-dismissed`, and the random fallback avatar `lossi-plan-avatar-<id>` (only used when a plan has no saved avatar; in step 6, seed demo plans with an avatar so it's rarely needed). `clearSiteCache` still wipes local `lossi-*` keys, which is fine: in step 6 that's only a local cache.
+- **Step 6 watch-out:** `saveState` also runs on `beforeunload`. A network save may not finish when the page closes, so use debounced autosave while editing (and/or `fetch` with `keepalive`).
 
 ## Steps
 

@@ -14,6 +14,7 @@
   <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
   <script src="https://unpkg.com/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="theme.js"></script>
+  <script src="data.js"></script>
 </head>
 <body class="edit-mode">
 
@@ -948,14 +949,18 @@
   const params = new URLSearchParams(window.location.search);
   const planId = params.get('id');
 
-  renderAppShell({ active: 'plans', currentPlanId: planId || '1' });
+  const planKey = planId || '1';
+
+  renderAppShell({ active: 'plans', currentPlanId: planKey });
   lucide.createIcons();
   syncThemeIcons();
 
-  // ── Lokal lagring (localStorage) ──
-  // Sparar och läser tillbaka hela upplägget per plan-id, i webbläsaren.
-  // Delas inte mellan enheter/personer, men överlever omladdning av sidan.
-  const STORAGE_KEY = 'lossi-plan-' + (planId || '1');
+  // ── Lagring ──
+  // Hela upplägget sparas och läses som ett state-objekt per plan-id via
+  // LossiData (data.js). Sidan startas av boot() längst ner i skriptet.
+  // Inget sparas förrän upplägget lästs in, annars kunde sidans demo-innehåll
+  // skriva över det sparade upplägget.
+  let planLoaded = false;
 
   const ACTIVITY_TYPES = {
     'Diskussion':  { iconClass: 'icon-discussion', icon: 'message-square' },
@@ -1159,12 +1164,13 @@
     const id = resolvePlanAvatarId(planId, avatarId);
     el.dataset.avatar = id;
     el.innerHTML = planAvatarImgHTML(id);
-    updateAsidePlan(planId || '1', { avatar: id });
+    updateAsidePlan(planKey, { avatar: id });
   }
 
   renderPlanIcon(null);
 
   function saveState() {
+    if (!planLoaded) return;
     const state = {
       title: document.getElementById('planTitle').textContent.trim(),
       description: document.querySelector('.idea-text').innerHTML,
@@ -1179,29 +1185,11 @@
       criteriaHTML: document.getElementById('criteriaList').innerHTML,
       structureHTML: document.getElementById('structureList').innerHTML,
     };
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (e) {
-      console.warn('Kunde inte spara upplägget lokalt:', e);
-    }
+    LossiData.savePlan(planKey, state).catch(e => console.warn('Kunde inte spara upplägget:', e));
   }
 
-  function loadState() {
-    let raw;
-    try {
-      raw = localStorage.getItem(STORAGE_KEY);
-    } catch (e) {
-      return;
-    }
-    if (!raw) return;
-
-    let state;
-    try {
-      state = JSON.parse(raw);
-    } catch (e) {
-      return;
-    }
-
+  // Fyller sidan med ett sparat upplägg
+  function applyState(state) {
     document.getElementById('planTitle').textContent = state.title;
     document.querySelector('.idea-text').innerHTML = state.description;
     renderClassTag(state.klass || '');
@@ -1229,10 +1217,6 @@
     document.getElementById('criteriaList').innerHTML = state.criteriaHTML || '';
     document.getElementById('structureList').innerHTML = state.structureHTML;
   }
-
-  loadState();
-  document.title = document.getElementById('planTitle').textContent.trim() + ' | Lossi';
-  window.addEventListener('beforeunload', saveState);
 
   function toggleSection(id) {
     document.getElementById(id).classList.toggle('collapsed');
@@ -2073,7 +2057,7 @@
     });
   }
 
-  // Körs vid sidladdning (även efter loadState(), som byter ut hela
+  // Körs vid sidladdning (efter applyState(), som byter ut hela
   // strukturens innerHTML och därmed skapar nya .lesson-activities-noder
   // som behöver initieras på nytt). Nya lektioner som läggs till efteråt
   // initierar sin egen lista direkt i addWeek().
@@ -2119,9 +2103,6 @@
     syncLessonStatusTitle(row);
     saveState();
   });
-
-  recalcLessonTimes();
-  initAllSortables();
 
   function addWeek() {
     const lessonNumber = document.querySelectorAll('#structureList .lesson-group').length + 1;
@@ -2202,10 +2183,26 @@
   // Håll asiden och webbläsarfliken i synk med titeln
   document.getElementById('planTitle').addEventListener('input', function () {
     const title = this.textContent.trim();
-    updateAsidePlan(planId || '1', { title });
+    updateAsidePlan(planKey, { title });
     document.title = (title || 'Namnlöst upplägg') + ' | Lossi';
   });
   document.getElementById('planTitle').addEventListener('blur', saveState);
+
+  // ── Start: läs in upplägget och initiera sidan ──
+  // Demo-upplägg som aldrig sparats behåller sidans inbyggda innehåll.
+  (async function boot() {
+    try {
+      const state = await LossiData.loadPlan(planKey);
+      if (state) applyState(state);
+    } catch (e) {
+      console.warn('Kunde inte läsa upplägget:', e);
+    }
+    document.title = document.getElementById('planTitle').textContent.trim() + ' | Lossi';
+    recalcLessonTimes();
+    initAllSortables();
+    planLoaded = true;
+    window.addEventListener('beforeunload', saveState);
+  })();
 </script>
 </body>
 </html>

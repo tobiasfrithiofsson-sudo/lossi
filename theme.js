@@ -57,34 +57,13 @@ document.addEventListener('click', e => {
   }
 });
 
-// ── Rensa sparad data och cache ──
-// Tar bort allt Lossi sparat lokalt (upplägg, tema, sidopanelens läge),
-// hämtar om sajtens egna filer förbi webbläsarens cache och laddar om.
-async function clearSiteCache() {
-  if (!confirm('Rensa all sparad data för Lossi i den här webbläsaren?\n\nÄndringar du gjort i upplägg försvinner och sidan laddas om.')) return;
-
-  // Upplägg-sidan sparar sig själv vid beforeunload. Stäng av det, annars
-  // skrivs den gamla datan tillbaka direkt efter att den rensats.
-  if (typeof saveState === 'function') window.removeEventListener('beforeunload', saveState);
-
-  try {
-    Object.keys(localStorage).filter(k => k.startsWith('lossi-')).forEach(k => localStorage.removeItem(k));
-    sessionStorage.clear();
-  } catch (e) {}
-
-  try {
-    if ('caches' in window) await Promise.all((await caches.keys()).map(k => caches.delete(k)));
-    if (navigator.serviceWorker) await Promise.all((await navigator.serviceWorker.getRegistrations()).map(r => r.unregister()));
-  } catch (e) {}
-
-  // Tvinga fram färska kopior av sidan och dess egna css/js i HTTP-cachen
-  // (CDN-bibliotek hoppas över, de rörs inte av lokala ändringar).
-  const urls = [location.href, ...[...document.querySelectorAll('link[rel="stylesheet"][href], script[src]')]
-    .map(el => el.href || el.src)
-    .filter(u => new URL(u, location.href).origin === location.origin)];
-  await Promise.all(urls.map(u => fetch(u, { cache: 'reload' }).catch(() => {})));
-
-  location.reload();
+// ── Logga ut ──
+// Spara först: åtkomsttoken försvinner vid utloggningen, och sidbytet efteråt
+// hinner annars inte skicka ändringar som väntar på att sparas.
+function logOut() {
+  if (typeof saveState === 'function') saveState();
+  if (typeof LossiData !== 'undefined') LossiData.flushOnLeave();
+  LossiAuth.signOut();
 }
 
 // ── Uppläggsavatarer ──
@@ -150,7 +129,8 @@ const PLAN_GRADES = ['4', '5', '6', '7', '8', '9'];
 
 // ── Uppläggsregister ──
 // Vilka upplägg som finns och deras innehåll hämtas via LossiData (data.js).
-// Demo-uppläggen som inte sparats än får titel/ämne/årskurs från DEMO_PLANS.
+// DEMO_PLANS är demo-uppläggen som nya lärare får (data.js lägger in dem);
+// nyckeln följer med som state.demoKey så att Kommande-korten hittar dem.
 const DEMO_PLANS = {
   '1': { title: 'Demokrati – grunderna och processerna', subject: 'Samhällskunskap', grade: '7–9' },
   '2': { title: 'Källkritik i det digitala samhället', subject: 'Samhällskunskap', grade: '9' },
@@ -160,9 +140,10 @@ const DEMO_PLANS = {
 // Det som listor (aside, översikt) behöver veta om ett upplägg
 function getPlanSummary(id, state) {
   state = state || {};
-  const demo = DEMO_PLANS[id] || {};
+  const demo = DEMO_PLANS[state.demoKey] || {};
   return {
     id,
+    demoKey: state.demoKey || null,
     title: state.title || demo.title || 'Namnlöst upplägg',
     subject: state.subject || demo.subject || '',
     grade: state.grade || demo.grade || '',
@@ -202,7 +183,7 @@ function renderAppShell(options = {}) {
   const aside = document.querySelector('aside.app-aside');
   if (aside) {
     aside.innerHTML = buildAsideHTML();
-    renderAsidePlans(options.currentPlanId);
+    renderAsidePlans(options.currentPlanId).catch(e => console.warn('Kunde inte hämta upplägg till sidopanelen:', e));
   }
 
   if (!document.getElementById('createPlanModal')) {
@@ -269,12 +250,8 @@ function buildTopbarHTML(active) {
           <span class="user-menu-account-email" id="userMenuEmail"></span>
         </div>
         <button class="user-menu-item" id="themeMenuItem" onclick="toggleTheme()"></button>
-        <button class="user-menu-item" onclick="clearSiteCache()">
-          <i data-lucide="eraser"></i>
-          Rensa sparad data
-        </button>
         <div class="user-menu-sep"></div>
-        <button class="user-menu-item" onclick="LossiAuth.signOut()">
+        <button class="user-menu-item" onclick="logOut()">
           <i data-lucide="log-out"></i>
           Logga ut
         </button>

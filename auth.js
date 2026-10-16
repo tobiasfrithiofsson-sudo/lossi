@@ -54,12 +54,19 @@ const LossiAuth = (() => {
     return user;
   }
 
+  // Senaste åtkomsttoken, för anrop som måste göras utan att vänta (data.js när sidan stängs)
+  let currentToken = null;
+  function accessToken() {
+    return currentToken;
+  }
+
   // Loggas man ut i en annan flik ska den här fliken inte fortsätta visa sidan
-  client.auth.onAuthStateChange(event => {
+  client.auth.onAuthStateChange((event, session) => {
+    currentToken = session?.access_token || null;
     if (event === 'SIGNED_OUT' && document.documentElement.dataset.authRequired !== undefined) {
       window.location.replace('login.html');
     }
   });
 
-  return { client, getUser, signIn, signOut, requireUser, safeNext };
+  return { client, getUser, signIn, signOut, requireUser, safeNext, accessToken };
 })();

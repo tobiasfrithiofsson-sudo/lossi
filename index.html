@@ -35,13 +35,13 @@
     <div class="upcoming-panel-label">Kommande</div>
     <div class="upcoming-list">
 
-      <div class="upcoming-card" data-plan-id="1" onclick="window.location='upplag.html?id=1'">
+      <div class="upcoming-card" data-demo-key="1">
         <div class="upcoming-card-icon plan-icon-image"></div>
         <div class="upcoming-card-title">Demokrati – grunderna och processerna</div>
         <div class="upcoming-card-step">Steg 4</div>
       </div>
 
-      <div class="upcoming-card" data-plan-id="2" onclick="window.location='upplag.html?id=2'">
+      <div class="upcoming-card" data-demo-key="2">
         <div class="upcoming-card-icon plan-icon-image"></div>
         <div class="upcoming-card-title">Källkritik i det digitala samhället</div>
         <div class="upcoming-card-step">Steg 2</div>
@@ -118,10 +118,16 @@
     filterPlans();
   }
 
-  // Kommande-korten är fortfarande demo, men visar uppläggets aktuella titel och bild
+  // Kommande-korten är fortfarande demo: de pekar på lärarens demo-upplägg
+  // (via demoKey) och visar dess aktuella titel och bild. Finns inget sådant
+  // upplägg längre döljs kortet.
   function syncUpcomingCards(plans) {
-    document.querySelectorAll('.upcoming-card[data-plan-id]').forEach(el => {
-      const p = plans.find(plan => plan.id === el.dataset.planId) || getPlanSummary(el.dataset.planId);
+    document.querySelectorAll('.upcoming-card[data-demo-key]').forEach(el => {
+      const p = plans.find(plan => plan.demoKey === el.dataset.demoKey);
+      el.hidden = !p;
+      if (!p) return;
+      el.dataset.planId = p.id;
+      el.onclick = () => { window.location = 'upplag.html?id=' + p.id; };
       el.querySelector('.upcoming-card-title').textContent = p.title;
       renderPlanAvatar(el, p.avatar);
     });
@@ -158,6 +164,11 @@
   getPlanSummaries().then(plans => {
     renderPlanList(plans);
     syncUpcomingCards(plans);
+  }).catch(e => {
+    console.warn('Kunde inte hämta upplägg:', e);
+    const empty = document.getElementById('planListEmpty');
+    empty.textContent = 'Kunde inte hämta dina upplägg. Ladda om sidan för att försöka igen.';
+    empty.style.display = 'flex';
   });
 
   function toggleSection(id) {

@@ -462,6 +462,29 @@ body.activity-panel-resizing .page-frame {
 
 .user-menu-dropdown.open { display: block; }
 
+/* Sparstatus i upplag.html (visas bara när sparningen dröjer eller misslyckas) */
+.save-status {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 12px);
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border-radius: var(--radius-full);
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 500;
+}
+
+.save-status.is-visible { opacity: 1; transform: translate(-50%, 0); }
+.save-status.is-error { background: #C2413B; color: #fff; }
+
 /* Skyddade sidor döljs tills LossiAuth.requireUser() vet att man är inloggad */
 .auth-pending body { visibility: hidden; }
 

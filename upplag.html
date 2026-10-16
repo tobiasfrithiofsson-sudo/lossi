@@ -952,7 +952,7 @@
   const params = new URLSearchParams(window.location.search);
   const planId = params.get('id');
 
-  const planKey = planId || '1';
+  const planKey = planId || '';
 
   LossiAuth.requireUser().then(showSignedInUser);
   renderAppShell({ active: 'plans', currentPlanId: planKey });
@@ -965,6 +965,7 @@
   // Inget sparas förrän upplägget lästs in, annars kunde sidans demo-innehåll
   // skriva över det sparade upplägget.
   let planLoaded = false;
+  let planDemoKey = null; // följer med när ett demo-upplägg sparas (Kommande-korten hittar det)
 
   const ACTIVITY_TYPES = {
     'Diskussion':  { iconClass: 'icon-discussion', icon: 'message-square' },
@@ -1189,6 +1190,7 @@
       criteriaHTML: document.getElementById('criteriaList').innerHTML,
       structureHTML: document.getElementById('structureList').innerHTML,
     };
+    if (planDemoKey) state.demoKey = planDemoKey;
     LossiData.savePlan(planKey, state).catch(e => console.warn('Kunde inte spara upplägget:', e));
   }
 
@@ -2192,15 +2194,61 @@
   });
   document.getElementById('planTitle').addEventListener('blur', saveState);
 
+  // Demo-upplägg som aldrig redigerats har bara titel/ämne/årskurs/avatar;
+  // resten är sidans inbyggda innehåll.
+  function applyDemoState(state) {
+    document.getElementById('planTitle').textContent = state.title;
+    document.getElementById('detailSubject').textContent = state.subject;
+    document.getElementById('detailGrade').textContent = state.grade;
+    renderPlanIcon(state.avatar);
+    updateAsidePlan(planKey, { title: state.title });
+  }
+
+  // Liten statusrad när sparningen går långsamt eller misslyckas
+  function showSaveStatus(status) {
+    let el = document.getElementById('saveStatus');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'saveStatus';
+      el.className = 'save-status';
+      el.setAttribute('role', 'status');
+      document.body.appendChild(el);
+    }
+    clearTimeout(showSaveStatus.timer);
+    if (status === 'error') {
+      el.textContent = 'Kunde inte spara. Kontrollera uppkopplingen – vi försöker igen vid nästa ändring.';
+      el.className = 'save-status is-error is-visible';
+    } else if (status === 'saving') {
+      // Visas bara om sparningen dröjer
+      showSaveStatus.timer = setTimeout(() => {
+        el.textContent = 'Sparar…';
+        el.className = 'save-status is-visible';
+      }, 1500);
+    } else {
+      el.className = 'save-status';
+    }
+  }
+
+  LossiData.onSaveStatus(showSaveStatus);
+
   // ── Start: läs in upplägget och initiera sidan ──
-  // Demo-upplägg som aldrig sparats behåller sidans inbyggda innehåll.
   (async function boot() {
+    let state;
     try {
-      const state = await LossiData.loadPlan(planKey);
-      if (state) applyState(state);
+      state = await LossiData.loadPlan(planKey);
     } catch (e) {
       console.warn('Kunde inte läsa upplägget:', e);
+      alert('Kunde inte hämta upplägget. Kontrollera uppkopplingen och ladda om sidan.');
+      return;
     }
+    // Finns inte (eller tillhör ett annat konto): tillbaka till översikten
+    if (!state) {
+      window.location.replace('index.html');
+      return;
+    }
+    planDemoKey = state.demoKey || null;
+    if (state.demo) applyDemoState(state);
+    else applyState(state);
     document.title = document.getElementById('planTitle').textContent.trim() + ' | Lossi';
     recalcLessonTimes();
     initAllSortables();

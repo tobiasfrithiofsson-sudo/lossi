@@ -165,7 +165,7 @@ function escapeHTML(text) {
 // Byggs här så att index.html och upplag.html delar exakt samma innehåll.
 // Sidan anropar renderAppShell() först i sitt script, före lucide.createIcons().
 // Projekt, kommande händelser och team är platshållare tills de tjänsterna finns.
-const APP_PROJECT = { name: 'Amerikanska skolan' };
+const APP_PROJECT = { name: 'Sandlådan' };
 const APP_EVENTS = [
   { title: 'Samhällsekonomi', time: '10:00–11:00' },
   { title: 'Matematik', time: '11:00–12:00' },

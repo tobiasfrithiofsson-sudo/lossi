@@ -62,6 +62,10 @@ Done 2026-10-16. `login.html` + `login.css` (landing-page style, dark mode, mobi
 
 ### Step 6: Switch `data.js` to Supabase (1 session, needs 5)
 Swap the localStorage implementation for Supabase queries, with debounced autosave and seeded demo plans (`DEMO_PLANS`) for new users.
+Also (decided 2026-10-16):
+- Remove "Rensa sparad data" from the user menu (`clearSiteCache` in `theme.js`). After this step it would only clear local settings, and the name would mislead testers.
+- Add `supabase/reset.sql` with ready-to-run lines: delete one user's plans by email (keeps the account), and delete all plans. Users with no plans get the demo plans again at next login, so deleting rows = "start over with demo".
+- Admin path for now is the Supabase dashboard: Authentication → Users → Delete user also removes their plans (`on delete cascade`). An in-app admin page needs a server-side secret key and waits for the framework rewrite.
 *Done when:* a plan made on one device shows up on another, a second user (private window) can't see it, and rows appear in the table editor.
 
 ### Step 7: Keep-alive + invite testers (30–60 min)

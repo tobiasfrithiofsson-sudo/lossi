@@ -1,0 +1,118 @@
+:root {
+  /* ── Primary ── */
+  --color-primary:           #2966ce;
+  --color-primary-dark:      #1d4c9e;
+  --color-primary-light:     #2966ce11;
+  --color-primary-tint:      #95b9f6;
+  --color-primary-rgb:       226, 75, 74;
+
+  /* ── Text ── */
+  --color-text-primary:      #2C2C2A;
+  --color-text-secondary:    #5F5E5A;
+  --color-text-tertiary:     #888780;
+
+  /* ── Background ── */
+  --color-bg-primary:        #FFFFFF;
+  --color-bg-secondary:      #FFFFFF;
+  --color-bg-hover:          #F5F4F1;
+  --color-bg-aside:          #F9F7F7;
+
+  /* ── Border ── */
+  --color-border:            rgba(0,0,0,0.15);
+
+  /* ── Hero ── */
+  --color-hero-bg-start:     #1a1a2e;
+  --color-hero-bg-mid:       #16213e;
+  --color-hero-bg-end:       #0f3460;
+  --color-hero-glow-accent:  rgba(99,102,241,0.2);
+
+  /* ── White overlays (for use on dark backgrounds) ── */
+  --color-overlay-sm:        rgba(255,255,255,0.08);
+  --color-overlay-md:        rgba(255,255,255,0.15);
+  --color-overlay-icon:      rgba(255,255,255,0.5);
+  --color-overlay-text-muted: rgba(255,255,255,0.45);
+  --color-overlay-lg:        rgba(255,255,255,0.9);
+  --color-overlay-xl:        rgba(255,255,255,0.92);
+
+  /* ── Subject palette (card header gradients) ── */
+  --color-subject-1-a:  #667eea;
+  --color-subject-1-b:  #764ba2;
+  --color-subject-2-a:  #f093fb;
+  --color-subject-2-b:  #f5576c;
+  --color-subject-3-a:  #4facfe;
+  --color-subject-3-b:  #00f2fe;
+  --color-subject-4-a:  #43e97b;
+  --color-subject-4-b:  #38f9d7;
+  --color-subject-5-a:  #fa709a;
+  --color-subject-5-b:  #fee140;
+  --color-subject-6-a:  #a18cd1;
+  --color-subject-6-b:  #fbc2eb;
+  --color-subject-7-a:  #11998e;
+  --color-subject-7-b:  #38ef7d;
+  --color-subject-8-a:  #f7971e;
+  --color-subject-8-b:  #ffd200;
+  --color-subject-9-a:  #c471ed;
+  --color-subject-9-b:  #12c2e9;
+
+  /* ── Avatar palette ── */
+  --color-avatar-1:              #6366f1;
+  --color-avatar-2:              #ec4899;
+  --color-avatar-3:              #0ea5e9;
+  --color-avatar-4:              #10b981;
+  --color-avatar-5:              #f59e0b;
+  --color-avatar-6:              #8b5cf6;
+  --color-avatar-gradient-end:   #f97316;
+
+  /* ── Shadow ── */
+  --shadow-card: 0 12px 32px rgba(0,0,0,0.09);
+
+  /* ── Opacity ── */
+  --opacity-disabled: 0.5;
+  --opacity-hover:    0.05;
+
+  /* ── Typography ── */
+  --font-family-base: Inter, system-ui, sans-serif;
+  --font-size-xs:   11px;
+  --font-size-sm:   12px;
+  --font-size-base: 13px;
+  --font-size-md:   14px;
+  --font-size-lg:   16px;
+  --font-size-xl:   18px;
+  --font-size-2xl:  22px;
+
+  /* ── Spacing ── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+
+  /* ── Radii ── */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-full: 998px;
+}
+
+[data-theme="dark"] {
+  --color-primary:           #3b82f6;
+  --color-primary-dark:      #1b4ca1;
+  --color-primary-light:     #2966ce2d;
+  --color-primary-tint:      #2966ce1b;
+
+  --color-text-primary:      #EEECEA;
+  --color-text-secondary:    #9A9890;
+  --color-text-tertiary:     #625E57;
+
+  --color-bg-primary:        #1C1C1A;
+  --color-bg-secondary:      #141413;
+  --color-bg-hover:          #252522;
+  --color-bg-aside:          #222222;
+
+  --color-border:            rgba(255, 255, 255, 0.09);
+
+  --shadow-card:             0 12px 32px rgba(0, 0, 0, 0.4);
+}

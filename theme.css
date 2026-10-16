@@ -1,0 +1,23 @@
+.theme-toggle {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-tertiary);
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
+}

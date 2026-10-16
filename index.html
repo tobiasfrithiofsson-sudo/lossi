@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lossi – Pedagogiska upplägg för lärare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="theme.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="theme.js"></script>
+</head>
+<body>
+
+<!-- ── App topbar (byggs av renderAppShell i theme.js) ── -->
+<header class="app-topbar"></header>
+
+<div class="app-body">
+
+<!-- ── Sidopanel: projekt, händelser, upplägg, team (byggs av renderAppShell i theme.js) ── -->
+<aside class="app-aside"></aside>
+
+<!-- ── Main ── -->
+<main>
+
+  <!-- Kommande: nästa steg i upplägg som är på gång -->
+  <div class="upcoming-panel">
+    <div class="upcoming-panel-label">Kommande</div>
+    <div class="upcoming-list">
+
+      <div class="upcoming-card" data-plan-id="1" onclick="window.location='upplag.html?id=1'">
+        <div class="upcoming-card-icon plan-icon-image"></div>
+        <div class="upcoming-card-title">Demokrati – grunderna och processerna</div>
+        <div class="upcoming-card-step">Steg 4</div>
+      </div>
+
+      <div class="upcoming-card" data-plan-id="2" onclick="window.location='upplag.html?id=2'">
+        <div class="upcoming-card-icon plan-icon-image"></div>
+        <div class="upcoming-card-title">Källkritik i det digitala samhället</div>
+        <div class="upcoming-card-step">Steg 2</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Upplägg: alla sparade/skapade upplägg, samlade för överblick -->
+  <div class="plan-section" id="sec-plans">
+    <div class="section-head" onclick="toggleSection('sec-plans')">
+      <button class="chevron-btn" tabindex="-1">
+        <i data-lucide="chevron-down"></i>
+      </button>
+      <h2>Upplägg</h2>
+    </div>
+    <div class="section-body">
+
+      <div class="filter-bar">
+        <div class="filter-select">
+          <i data-lucide="book-open"></i>
+          <select id="filterSubject" onchange="filterPlans()">
+            <option value="">Alla ämnen</option>
+            <option value="Samhällskunskap">Samhällskunskap</option>
+            <option value="Biologi">Biologi</option>
+          </select>
+        </div>
+        <div class="filter-select">
+          <i data-lucide="users"></i>
+          <select id="filterGrade" onchange="filterPlans()">
+            <option value="">Alla årskurser</option>
+            <option value="Åk 7">Åk 7</option>
+            <option value="Åk 9">Åk 9</option>
+            <option value="Åk 7–9">Åk 7–9</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="plan-list" id="planList">
+        <!-- Raderna byggs av renderPlanList() från uppläggsregistret i theme.js -->
+
+        <div class="plan-list-empty" id="planListEmpty">Inga upplägg matchar filtret.</div>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+</div><!-- /app-body -->
+
+<script>
+  renderAppShell({ active: 'plans' });
+  lucide.createIcons();
+  syncThemeIcons();
+
+  // ── Upplägg-listan: alla upplägg i registret, senast skapade först ──
+  function renderPlanList() {
+    const list = document.getElementById('planList');
+    list.querySelectorAll('.plan-row').forEach(r => r.remove());
+    const rows = getPlanSummaries().map(p => {
+      const gradeDisplay = p.grade ? 'Åk ' + p.grade : '';
+      const meta = [p.subject, gradeDisplay].filter(Boolean).join(' · ');
+      return `
+        <div class="plan-row" data-plan-id="${p.id}" data-subject="${escapeHTML(p.subject)}" data-grade="${escapeHTML(gradeDisplay)}" onclick="window.location='upplag.html?id=${p.id}'">
+          <div class="plan-row-icon plan-icon-image">${planAvatarImgHTML(p.avatar)}</div>
+          <span class="plan-row-title">${escapeHTML(p.title)}</span>
+          <span class="plan-row-meta">${escapeHTML(meta)}</span>
+          <div class="plan-row-avatar" title="Tobias Frithiofsson"><img src="avatar.png" alt="Tobias Frithiofsson" /></div>
+        </div>`;
+    }).join('');
+    document.getElementById('planListEmpty').insertAdjacentHTML('beforebegin', rows);
+    rebuildFilterOptions();
+    filterPlans();
+  }
+
+  // Kommande-korten är fortfarande demo, men visar uppläggets aktuella titel och bild
+  function syncUpcomingCards() {
+    document.querySelectorAll('.upcoming-card[data-plan-id]').forEach(el => {
+      const p = getPlanSummary(el.dataset.planId);
+      el.querySelector('.upcoming-card-title').textContent = p.title;
+      renderPlanAvatar(el, p.avatar);
+    });
+  }
+
+  // Samma avatar som upplägget visar i upplag.html (delad lista i theme.js)
+  function renderPlanAvatar(el, savedId) {
+    const iconEl = el.querySelector('.upcoming-card-icon, .plan-row-icon');
+    if (!iconEl) return;
+    const baseClass = iconEl.classList.contains('upcoming-card-icon') ? 'upcoming-card-icon' : 'plan-row-icon';
+    iconEl.className = baseClass + ' plan-icon-image';
+    iconEl.innerHTML = planAvatarImgHTML(resolvePlanAvatarId(el.dataset.planId, savedId));
+  }
+
+  // Filtren ska alltid spegla de ämnen/årskurser som faktiskt finns, inte en hårdkodad lista
+  function rebuildFilterOptions() {
+    const rows = Array.from(document.querySelectorAll('.plan-row'));
+    const subjects = [...new Set(rows.map(r => r.dataset.subject).filter(Boolean))];
+    const grades = [...new Set(rows.map(r => r.dataset.grade).filter(Boolean))];
+
+    const subjectSelect = document.getElementById('filterSubject');
+    const currentSubject = subjectSelect.value;
+    subjectSelect.innerHTML = '<option value="">Alla ämnen</option>' +
+      subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+    subjectSelect.value = subjects.includes(currentSubject) ? currentSubject : '';
+
+    const gradeSelect = document.getElementById('filterGrade');
+    const currentGrade = gradeSelect.value;
+    gradeSelect.innerHTML = '<option value="">Alla årskurser</option>' +
+      grades.map(g => `<option value="${g}">${g}</option>`).join('');
+    gradeSelect.value = grades.includes(currentGrade) ? currentGrade : '';
+  }
+
+  renderPlanList();
+  syncUpcomingCards();
+
+  function toggleSection(id) {
+    document.getElementById(id).classList.toggle('collapsed');
+  }
+
+  function filterPlans() {
+    const subject = document.getElementById('filterSubject').value;
+    const grade = document.getElementById('filterGrade').value;
+    const rows = document.querySelectorAll('.plan-row');
+    let visibleCount = 0;
+    rows.forEach(row => {
+      const matchesSubject = !subject || row.dataset.subject === subject;
+      const matchesGrade = !grade || row.dataset.grade === grade;
+      const visible = matchesSubject && matchesGrade;
+      row.style.display = visible ? '' : 'none';
+      if (visible) visibleCount++;
+    });
+    document.getElementById('planListEmpty').style.display = visibleCount === 0 ? 'flex' : 'none';
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,2504 @@
+/* ============================================================
+   Lossi – styles.css
+   Komponentbaserade stilar. Importerar tokens från tokens.css.
+   ============================================================ */
+
+/* ── Reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root { --sidebar-w: 280px; --activity-panel-current-w: 0px; }
+
+body {
+  font-family: var(--font-family-base);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+
+/* Global app topbar — logo + account, sticky above everything on
+   every page except landing.html */
+.app-topbar {
+  flex-shrink: 0;
+  height: 56px;
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.app-topbar-start {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.app-topbar-end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Row below the app topbar: sidebar + page content */
+.app-body {
+  display: flex;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Sidebar shell */
+aside {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--color-bg-aside);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 56px; /* sits right below the app topbar */
+  height: calc(100vh - 56px);
+  overflow: hidden;
+}
+
+/* Index: main is a direct child of .app-body */
+.app-body > main {
+  flex: 1;
+  min-width: 0;
+  padding: 48px 48px 64px;
+}
+
+/* Upplag: main lives inside .page-frame */
+.page-frame {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  transition: padding-right 0.2s ease;
+}
+
+/* While the activity panel is open, reserve space matching its current
+   width so the topbar + page content scale down and reflow next to it
+   instead of being covered by it. Kept in sync live (incl. while
+   dragging the resize handle) via --activity-panel-current-w. */
+body.activity-panel-open .page-frame {
+  padding-right: var(--activity-panel-current-w, 0px);
+}
+
+body.activity-panel-resizing .page-frame {
+  transition: none;
+}
+
+/* Body row: main content + right-hand detail panel */
+.page-body {
+  display: flex;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+}
+
+.page-body > main {
+  flex: 1;
+  min-width: 0;
+  padding: 24px 40px 80px;
+  width: 100%;
+}
+
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logo-mark {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.logo-mark img { width: 100%; height: 100%; display: block; }
+
+.logo-text {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  color: var(--color-text-primary);
+}
+
+/* Sidopanelens innehåll: projekt, kommande händelser, upplägg, team.
+   Markupen byggs av buildAsideHTML() i theme.js. */
+.aside-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 12px 16px;
+}
+
+.aside-project {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  margin-bottom: 24px;
+  font-size: var(--font-size-lg);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.aside-project-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--color-avatar-6);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.aside-project-icon svg { width: 18px; height: 18px; }
+
+.aside-group + .aside-group { margin-top: 20px; }
+
+.aside-label {
+  font-size: var(--font-size-base);
+  color: var(--color-text-tertiary);
+  padding: 0 8px;
+  margin-bottom: 4px;
+}
+
+.aside-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.aside-item:hover { background: var(--color-bg-hover); }
+.aside-item.active { background: var(--color-bg-hover); font-weight: 600; }
+.aside-item.is-placeholder { cursor: default; }
+.aside-item.is-placeholder:hover { background: none; }
+
+.aside-item-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aside-item-meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.aside-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.aside-plan-icon { width: 22px; height: 22px; flex-shrink: 0; }
+.aside-plan-icon img { width: 100%; height: 100%; display: block; }
+
+.aside-more { color: var(--color-text-tertiary); }
+.aside-more svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* "Bjud in kollegor": kort längst ner i sidopanelen, går att dölja */
+.aside-invite {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 12px 12px;
+  padding: 12px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.aside-invite-icon { width: 18px; height: 18px; flex-shrink: 0; color: var(--color-text-secondary); margin-top: 1px; }
+.aside-invite-text { flex: 1; min-width: 0; }
+.aside-invite-title { font-size: var(--font-size-base); font-weight: 500; color: var(--color-text-primary); }
+.aside-invite-sub { font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-top: 2px; }
+
+.aside-invite-close {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  border-radius: var(--radius-xs);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.aside-invite-close:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.aside-invite-close svg { width: 14px; height: 14px; }
+
+
+/* ============================================================
+   TOPNAV  (Upplägg, Material, Skapa i app-topbaren)
+   ============================================================ */
+
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: var(--space-4);
+}
+
+.topnav-link {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.topnav-link:hover { background: var(--color-bg-hover); }
+.topnav-link.active { color: var(--color-primary); }
+
+.topnav-create {
+  margin-left: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.topnav-create:hover { background: var(--color-primary-dark); }
+
+
+/* ============================================================
+   USER BADGE
+   ============================================================ */
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 8px 4px 4px;
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+}
+
+.user-badge:hover { background: var(--color-bg-secondary); }
+
+.user-avatar-sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-subject-1-a), var(--color-subject-1-b));
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-bg-primary);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.user-avatar-sm img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-badge span { font-size: var(--font-size-base); font-weight: 500; }
+.user-badge svg { width: 12px; height: 12px; color: var(--color-text-tertiary); }
+
+/* ============================================================
+   APP SWITCHER (platshållare för Lossi-familjen)
+   ============================================================ */
+
+.app-switcher { position: relative; }
+
+.app-switcher-btn,
+.cache-clear-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-secondary);
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.app-switcher-btn:hover,
+.cache-clear-btn:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.app-switcher-btn svg,
+.cache-clear-btn svg { width: 20px; height: 20px; }
+
+.app-switcher-popover {
+  display: none;
+  position: fixed;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  min-width: 220px;
+  z-index: 200;
+  overflow: hidden;
+  padding: 6px;
+}
+
+.app-switcher-popover.open { display: block; }
+
+.app-switcher-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-tertiary);
+  padding: 8px 10px 6px;
+}
+
+.app-switcher-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.app-switcher-item:hover { background: var(--color-bg-hover); }
+
+.app-switcher-item.active { background: var(--color-bg-hover); }
+
+.app-switcher-item.is-disabled { cursor: default; color: var(--color-text-secondary); }
+.app-switcher-item.is-disabled:hover { background: none; }
+.app-switcher-item.is-disabled .app-switcher-icon { opacity: var(--opacity-disabled); }
+
+.app-switcher-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.app-switcher-icon svg { width: 15px; height: 15px; }
+
+.app-icon-lossi    { background: var(--color-primary); }
+.app-icon-calendar { background: var(--color-avatar-6); }
+.app-icon-grades   { background: var(--color-avatar-5); }
+.app-icon-contact  { background: var(--color-avatar-2); }
+
+.app-switcher-name { flex: 1; font-size: var(--font-size-base); font-weight: 500; }
+
+.app-switcher-soon {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-hover);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+
+/* User menu dropdown */
+.user-menu { position: relative; }
+
+.user-menu-dropdown {
+  display: none;
+  position: fixed;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  min-width: 160px;
+  z-index: 200;
+  overflow: hidden;
+}
+
+.user-menu-dropdown.open { display: block; }
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  background: none;
+  border: none;
+  width: 100%;
+  font-family: inherit;
+}
+
+.user-menu-item:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.user-menu-item svg { width: 14px; height: 14px; flex-shrink: 0; }
+.user-menu-sep { height: 1px; background: var(--color-border); margin: 4px 0; }
+
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-primary);
+  color: var(--color-bg-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 18px;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-primary svg { width: 14px; height: 14px; }
+
+.btn-primary:hover { background: var(--color-primary-dark); }
+
+.btn-ghost {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-ghost svg { width: 14px; height: 14px; }
+
+.btn-ghost:hover { border-color: var(--color-text-secondary); color: var(--color-text-primary); }
+
+.btn-danger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  color: #dc2626;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.btn-danger:hover { border-color: #dc2626; background: #fee2e2; }
+.btn-danger svg { width: 14px; height: 14px; }
+
+.btn-danger-solid {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 18px;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-danger-solid:hover { background: #b91c1c; }
+.btn-danger-solid svg { width: 14px; height: 14px; }
+
+.browse-btn {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 5px 12px;
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  transition: border-color 0.15s;
+}
+
+.browse-btn:hover { border-color: var(--color-text-secondary); }
+
+/* Add row — dashed "add new item" button */
+.add-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 11px var(--space-4);
+  background: var(--color-bg-primary);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  margin-top: 4px;
+}
+
+.add-row:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.add-row svg { width: 14px; height: 14px; }
+
+
+/* ============================================================
+   FORM FIELDS
+   ============================================================ */
+
+.field-group { display: flex; flex-direction: column; gap: 6px; }
+
+.field-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.field-input {
+  width: 100%;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 9px var(--space-3);
+  font-size: var(--font-size-md);
+  font-family: inherit;
+  color: var(--color-text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.field-input:focus { border-color: var(--color-primary); }
+.field-input.is-invalid { border-color: #dc2626; }
+
+.field-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px var(--space-3);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.field-select:focus-within { border-color: var(--color-primary); }
+
+.field-select-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.field-select-icon svg { width: 11px; height: 11px; }
+
+.field-select select {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: var(--font-size-md);
+  font-family: inherit;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.field-textarea {
+  width: 100%;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 9px var(--space-3);
+  font-size: var(--font-size-md);
+  font-family: inherit;
+  color: var(--color-text-primary);
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.field-textarea:focus { border-color: var(--color-primary); }
+
+/* Rich text editor */
+.editor-wrap {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.editor-wrap:focus-within { border-color: var(--color-primary); }
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+}
+
+.toolbar-btn {
+  background: none;
+  border: none;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  transition: background 0.12s;
+}
+
+.toolbar-btn:hover { background: var(--color-border); color: var(--color-text-primary); }
+.toolbar-btn svg { width: 13px; height: 13px; }
+.toolbar-sep { width: 1px; height: 16px; background: var(--color-border); margin: 0 2px; }
+
+.editor-body {
+  padding: 10px var(--space-3);
+  min-height: 140px;
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.editor-body:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-tertiary);
+}
+
+/* Time input */
+.time-input-wrap { display: flex; align-items: center; gap: 8px; }
+
+.time-input {
+  width: 90px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 9px var(--space-3);
+  font-size: var(--font-size-md);
+  font-family: inherit;
+  color: var(--color-text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.time-input:focus { border-color: var(--color-primary); }
+.time-label { font-size: var(--font-size-base); color: var(--color-text-tertiary); }
+
+.form-actions { display: flex; gap: var(--space-2); padding-top: 4px; }
+
+
+/* ============================================================
+   FILE COMPONENTS
+   ============================================================ */
+
+.file-drop {
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.file-drop:hover { border-color: var(--color-primary); background: var(--color-primary-light); }
+
+.file-drop-text {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.file-drop-text svg { width: 15px; height: 15px; color: var(--color-text-tertiary); }
+
+/* Inline file chip (small, used within activity rows) */
+.file-chip-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  padding: 2px 8px;
+}
+
+.file-chip-sm svg { width: 11px; height: 11px; }
+
+/* File chip (used in attached-files lists) */
+.attached-files { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 3px 10px 3px 8px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.file-chip svg { width: 12px; height: 12px; }
+
+/* File card (used in files section grid) */
+.files-grid { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+
+.file-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.file-card:hover { border-color: var(--color-text-secondary); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+.file-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  display: grid;
+  place-items: center;
+}
+
+.file-card-icon svg { width: 16px; height: 16px; color: var(--color-text-secondary); }
+.file-card-name { font-weight: 500; }
+.file-card-size { font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
+
+
+/* ============================================================
+   PLAN PAGE — header, meta, sections
+   ============================================================ */
+
+.plan-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+  outline: none;
+}
+
+/* Uppläggshuvud: avatar + titel till vänster, status/dela/exportera till höger */
+/* På smala skärmar (aside + Detaljer tar plats) hamnar knapparna på egen rad */
+.plan-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4) var(--space-6);
+  padding: 40px 40px 8px;
+}
+
+.plan-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1 1 360px;
+  min-width: 0;
+}
+
+.plan-title-row .plan-title { min-width: 0; overflow-wrap: anywhere; }
+
+/* Avataren är en knapp: klick öppnar bildväljaren */
+.plan-title-icon {
+  width: 48px;
+  height: 48px;
+  border: none;
+  padding: 0;
+  background: none;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.plan-title-icon:hover { transform: translateY(-1px); }
+
+.avatar-popover { width: 300px; }
+.avatar-popover .avatar-picker { padding: 6px 14px 14px; }
+
+.plan-title-icon svg { width: 20px; height: 20px; }
+
+/* Avatarbilderna (Upplagg avatar/) har egen bakgrund och rundade hörn */
+.plan-icon-image { border-radius: 0; }
+.plan-icon-image img { width: 100%; height: 100%; display: block; }
+
+/* Status, dela och exportera, till höger i uppläggshuvudet */
+.plan-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.popover-wrap { position: relative; }
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.icon-btn:hover { border-color: var(--color-text-secondary); color: var(--color-text-primary); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+/* Status pill button + its color variants */
+.status-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.status-btn:hover { filter: brightness(0.94); }
+.status-btn svg { width: 13px; height: 13px; }
+
+.status-started  { background: #3b82f6; }
+.status-finished { background: #16a34a; }
+.status-upcoming { background: #6b7280; }
+
+/* Share popover: email input + send */
+.share-popover-body {
+  width: 260px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.share-popover-row { display: flex; gap: 8px; }
+.share-popover-row .field-input { flex: 1; }
+.share-popover-row .btn-primary { padding: 9px 14px; white-space: nowrap; }
+
+.plan-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  flex-wrap: wrap;
+}
+
+.author-chip { display: flex; align-items: center; gap: 8px; }
+
+.author-chip-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-subject-2-a), var(--color-subject-2-b));
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-bg-primary);
+  overflow: hidden;
+}
+
+.author-chip-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.author-chip span { font-weight: 500; color: var(--color-text-primary); }
+
+.meta-stat { display: flex; align-items: center; gap: 5px; }
+.meta-stat svg { width: 14px; height: 14px; }
+
+/* Collapsible section */
+.plan-section { margin-bottom: 8px; }
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-head h2 {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.chevron-btn {
+  background: var(--color-bg-hover);
+  border: none;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-primary);
+  transition: transform 0.2s, background 0.15s;
+}
+
+.chevron-btn:hover { background: var(--color-border); }
+
+.chevron-btn svg { width: 16px; height: 16px; stroke-width: 2.5; }
+
+.plan-section.collapsed .chevron-btn { transform: rotate(-90deg); }
+.plan-section.collapsed .section-body { display: none; }
+
+.section-body { padding-bottom: 8px; padding-left: 16px; }
+
+/* "Add" icon button in a section head, opening a choice popover */
+.section-head-actions { margin-left: auto; position: relative; }
+
+.section-add-btn {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.section-add-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.section-add-btn svg { width: 14px; height: 14px; stroke-width: 2.5; }
+
+/* Generic popover menu (add-buttons, etc.) */
+.menu-popover {
+  display: none;
+  position: fixed;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  min-width: 180px;
+  z-index: 200;
+  overflow: hidden;
+}
+
+.menu-popover.open { display: block; }
+
+/* Optional small header inside a .menu-popover, e.g. "Klasskatalog" */
+.menu-popover-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-tertiary);
+  padding: 10px 14px 4px;
+}
+
+.menu-popover-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  background: none;
+  border: none;
+  width: 100%;
+  font-family: inherit;
+}
+
+.menu-popover-item:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.menu-popover-item svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* ============================================================
+   INLINE EDITABLE
+   Content that reads as plain text/content until you hover it (a
+   subtle tint signals "this is editable"), then turns into an
+   actual editable field on focus. Two variants:
+
+   .inline-editable-rich  — hover reveals a formatting toolbar +
+     separate Spara/Avbryt actions once active (e.g. Pedagogisk idé).
+     Structure: <div class="inline-editable-rich">
+                  <div class="inline-editable-toolbar">…</div>
+                  <div class="inline-editable-body" contenteditable>…</div>
+                </div>
+                <div class="inline-editable-actions">…Spara/Avbryt…</div>
+
+   .inline-editable-plain — just the content itself becomes editable
+     in place, no toolbar/actions (e.g. rubriker, etiketter). Put the
+     class directly on the editable element: autosaves on blur.
+
+   A component's own instance class (e.g. .plan-title) keeps its own
+   typography/box styling; these classes only add the affordance.
+   ============================================================ */
+
+.inline-editable-rich {
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+body.edit-mode .inline-editable-rich:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+body.edit-mode .inline-editable-rich.active {
+  border-color: var(--color-border);
+  background: var(--color-bg-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.07);
+}
+
+.inline-editable-toolbar {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+body.edit-mode .inline-editable-rich.active .inline-editable-toolbar {
+  display: flex;
+}
+
+.inline-editable-actions {
+  display: none;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+}
+
+body.edit-mode .inline-editable-rich.active + .inline-editable-actions {
+  display: flex;
+}
+
+.inline-editable-body {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  line-height: 1.65;
+  outline: none;
+  padding: var(--space-3);
+}
+
+.inline-editable-body:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-tertiary);
+}
+
+/* Plain variant: highlight grows via box-shadow spread rather than
+   padding, so the affordance doesn't shift surrounding layout. */
+.inline-editable-plain {
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+body.edit-mode .inline-editable-plain:hover,
+body.edit-mode .inline-editable-plain:focus {
+  background: var(--color-bg-secondary);
+  box-shadow: 0 0 0 6px var(--color-bg-secondary);
+}
+
+
+/* ============================================================
+   DETAIL PANEL  (right-hand info panel on upplag page)
+   ============================================================ */
+
+.detail-panel {
+  width: 420px;
+  flex-shrink: 0;
+  padding: 24px 40px 80px;
+  position: sticky;
+  top: 56px; /* below the app topbar */
+  align-self: flex-start;
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+}
+
+/* Its info (subject, grade, creator, dates) matters less than the
+   activity being edited, so make room for that instead while it's open. */
+body.activity-panel-open .detail-panel {
+  display: none;
+}
+
+/* Reuse .plan-section/.section-head/.section-body for collapsible groups */
+.detail-panel .plan-section:first-child { margin-top: 0; }
+
+.detail-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.subject-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: #fff;
+  padding: 3px 11px;
+  border-radius: var(--radius-full);
+}
+
+
+/* ============================================================
+   GOALS
+   ============================================================ */
+
+.goals-list {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.goal-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  background: var(--color-bg-primary);
+  font-size: var(--font-size-md);
+  transition: background 0.15s;
+  position: relative;
+}
+
+.goal-item + .goal-item { border-top: 1px solid var(--color-border); }
+
+.goal-item:hover { background: var(--color-bg-hover); }
+
+.goal-check {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.goal-check svg { width: 20px; height: 20px; color: #22c55e; }
+.goal-check-criteria svg { color: #7c3aed; }
+
+/* Tom lista (t.ex. Betygskriterier i ett nytt upplägg) visar en ledtråd */
+.goals-list:empty::before {
+  content: attr(data-empty);
+  display: block;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-md);
+  color: var(--color-text-tertiary);
+}
+
+.goal-text { flex: 1; outline: none; }
+
+.goal-delete {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--color-text-primary);
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
+}
+
+.goal-delete svg { width: 20px; height: 20px; }
+
+body.edit-mode .goal-item:hover .goal-delete { display: grid; place-items: center; }
+.goal-delete:hover { background: var(--color-bg-secondary); color: var(--color-text-primary); }
+
+
+/* ============================================================
+   TIMELINE & ACTIVITIES
+   ============================================================ */
+
+.week-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  position: relative;
+  padding: 4px 0;
+  margin: 4px 0 8px;
+}
+
+.week-row:first-child { margin-top: 0; }
+
+.week-pill {
+  display: inline-flex;
+  background: var(--color-bg-hover);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  padding: 4px 12px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.week-pill:hover { background: var(--color-border); }
+
+.week-pill:focus {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.15);
+}
+
+/* Lektionstid: en pill som fungerar som week-pill (klicka för att skriva
+   direkt i den), fast bara för minuter. Visar en varningsvariant med
+   triangel när lektionens aktiviteter tillsammans överstiger den. */
+.lesson-time-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  background: var(--color-bg-hover);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 4px 12px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  transition: background 0.15s, color 0.15s;
+}
+
+.lesson-time-pill:focus-within {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.15);
+}
+
+.lesson-time-pill-icon { display: none; }
+.lesson-time-pill-icon svg { width: 13px; height: 13px; display: block; }
+.lesson-time-pill.over .lesson-time-pill-icon { display: inline-flex; }
+
+.lesson-time-pill-value { outline: none; min-width: 7px; cursor: text; }
+.lesson-time-pill-value:empty::before { content: attr(data-placeholder); color: var(--color-text-tertiary); }
+
+.lesson-time-pill.over { background: #fee2e2; color: #dc2626; }
+[data-theme="dark"] .lesson-time-pill.over { background: rgba(220, 38, 38, 0.18); color: #f87171; }
+
+/* Läsläge: värdet syns men går inte att redigera */
+body.read-mode .lesson-time-pill-value { pointer-events: none; }
+
+/* Lesson status: mark a lesson (week-row) as done */
+.lesson-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.lesson-status-btn:hover { background: var(--color-bg-hover); }
+
+.lesson-status-btn svg { width: 16px; height: 16px; display: block; }
+
+.lesson-status-btn .ls-on,
+.lesson-status-btn .ls-label { display: none; }
+
+.week-row.done .lesson-status-btn { color: #16a34a; }
+.week-row.done .lesson-status-btn .ls-off { display: none; }
+.week-row.done .lesson-status-btn .ls-on { display: inline-flex; }
+.week-row.done .lesson-status-btn .ls-label { display: inline; }
+
+.activities-list { display: flex; flex-direction: column; }
+
+/* En lektion (week-row + dess aktiviteter) hålls ihop som en enhet, så att
+   att dra i lektionens handtag flyttar hela gruppen i ett svep. */
+.lesson-group { margin-bottom: 4px; }
+.lesson-activities { display: flex; flex-direction: column; }
+
+/* SortableJS-tillstånd under drag. Hålls medvetet återhållsamt — ingen
+   skugga eller rotation, bara en tonad platshållare där objektet landar
+   och en mjuk highlight på det som faktiskt flyttas. */
+.sortable-ghost { opacity: 0.35; }
+.sortable-chosen > .activity-row,
+.sortable-chosen > .week-row { background: var(--color-bg-hover); }
+
+.activity-wrapper {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-primary);
+  margin-bottom: 4px;
+}
+
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 12px var(--space-4);
+  cursor: pointer;
+  position: relative;
+}
+
+/* Hover tint: keeps the row's own background color and layers a
+   subtle currentColor overlay on top via opacity, so it adapts
+   automatically to light/dark theme without a separate hover color. */
+.activity-row::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+
+.activity-row:hover::after { opacity: var(--opacity-hover); }
+
+.drag-handle {
+  position: absolute;
+  left: -28px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-text-tertiary);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.drag-handle span { display: flex; gap: 2px; }
+
+.drag-handle span i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  display: block;
+}
+
+/* Ikon-only (typnamnet ligger som tooltip via title-attributet istället
+   för text i raden, se .activity-row i upplag.html) */
+.activity-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.activity-icon svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+.activity-title {
+  flex: 1;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+}
+
+/* Samma pill-språk som week-pill/lesson-time-pill, men inte redigerbar här
+   — tiden ändras i aktivitetens formulär (fältet "Tidsåtgång"). */
+.activity-time {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-full);
+  padding: 4px 12px;
+  flex-shrink: 0;
+}
+
+/* "Fler alternativ"-knapp (ersätter den gamla chevronen) — syns bara i
+   redigeringsläge, precis som chevronen gjorde. */
+.activity-more-btn {
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  display: none;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.activity-more-btn:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.activity-more-btn svg { width: 15px; height: 15px; }
+body.edit-mode .activity-more-btn { display: grid; }
+
+.menu-popover-item-danger { color: #dc2626; }
+.menu-popover-item-danger:hover { background: #fee2e2; color: #dc2626; }
+[data-theme="dark"] .menu-popover-item-danger:hover { background: rgba(220, 38, 38, 0.18); }
+
+/* Highlight the row whose activity is currently open in the side panel */
+.activity-wrapper.active { border-color: var(--color-primary); }
+.activity-wrapper.active .activity-row { background: var(--color-primary-light); }
+
+/* Edit form and read view: live inside the activity panel while open
+   (see ACTIVITY PANEL below), hidden here in their "parked" spot on
+   the activity row itself. */
+.activity-form {
+  display: none;
+  padding: var(--space-4);
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Expanded read view */
+.activity-read {
+  display: none;
+  padding: var(--space-4);
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.read-field { display: flex; flex-direction: row; align-items: center; gap: var(--space-3); }
+
+.read-field-label {
+  flex: 0 0 140px;
+  font-size: var(--font-size-md);
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+  /*letter-spacing: 0.05em;*/
+}
+
+.read-field-value { flex: 1; font-size: var(--font-size-md); color: var(--color-text-primary); }
+
+/* Klass: inline-edit som öppnar en dropdown (klasskatalogen) istället för
+   att skriva fritext. Vald klass visas som en borttagbar tagg. */
+.class-picker-trigger {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  border-radius: var(--radius-full);
+}
+
+.class-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: background 0.15s;
+}
+
+.class-picker-trigger:hover .class-tag { background: var(--color-border); }
+.class-picker-trigger:hover .class-tag.is-empty { background: var(--color-bg-hover); }
+
+.class-tag.is-empty {
+  background: var(--color-bg-hover);
+  color: var(--color-text-tertiary);
+  font-weight: 500;
+  padding: 3px 10px;
+}
+
+.class-tag-remove {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.class-tag-remove:hover { background: rgba(0,0,0,0.1); opacity: 1; }
+.class-tag-remove svg { width: 11px; height: 11px; display: block; }
+
+/* Activity icon color variants */
+.icon-discussion { background: #f2eefe; color: #7c3aed; }
+.icon-review     { background: #fef3c7; color: #d97706; }
+.icon-activity   { background: #eaf2fe; color: #3b82f6; }
+.icon-exit       { background: #fee2e2; color: #dc2626; }
+.icon-reading    { background: #ccfbf1; color: #0d9488; }
+
+/* In dark mode the light-mode pastels (near-white) would glow against
+   the dark background, so swap to a low-opacity tint of the same hue
+   with a lighter foreground — same recipe tokens.css uses for
+   --color-primary-light in dark mode. */
+[data-theme="dark"] .icon-discussion { background: rgba(124, 58, 237, 0.18); color: #a78bfa; }
+[data-theme="dark"] .icon-review     { background: rgba(217, 119, 6, 0.18);  color: #fbbf24; }
+[data-theme="dark"] .icon-activity   { background: rgba(59, 130, 246, 0.18); color: #60a5fa; }
+[data-theme="dark"] .icon-exit       { background: rgba(220, 38, 38, 0.18);  color: #f87171; }
+[data-theme="dark"] .icon-reading    { background: rgba(13, 148, 136, 0.18); color: #2dd4bf; }
+
+
+/* ============================================================
+   ACTIVITY PANEL
+   Slide-in editor for a single activity. Opens on top of the plan
+   page (which stays visible/scrollable to its left) so the user
+   keeps an overview of the whole upplägg while working on one
+   activity. Resizable by dragging its left edge; expandable to a
+   full-width focus view.
+   ============================================================ */
+
+:root { --activity-panel-w: 480px; }
+
+.activity-panel {
+  position: fixed;
+  top: 56px; /* below the app topbar */
+  bottom: 0;
+  right: 0;
+  width: var(--activity-panel-w);
+  min-width: 360px;
+  max-width: calc(100vw - 80px);
+  background: var(--color-bg-primary);
+  border-left: 1px solid var(--color-border);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+}
+
+.activity-panel.open { transform: translateX(0); }
+
+/* No transition while actively dragging the resize handle */
+.activity-panel.resizing { transition: none; }
+
+.activity-panel.fullscreen {
+  left: 0;
+  width: auto !important;
+  max-width: none;
+}
+
+.activity-panel-resize-handle {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  cursor: col-resize;
+  z-index: 1;
+}
+
+.activity-panel-resize-handle::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-primary);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.activity-panel-resize-handle:hover::after,
+.activity-panel.resizing .activity-panel-resize-handle::after {
+  opacity: 1;
+}
+
+.activity-panel.fullscreen .activity-panel-resize-handle { display: none; }
+
+.activity-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.activity-panel-header-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.activity-panel-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+}
+
+.activity-panel-icon svg { width: 15px; height: 15px; }
+
+.activity-panel-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activity-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.activity-panel-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.activity-panel-body .activity-form,
+.activity-panel-body .activity-read { display: flex; }
+
+
+/* ============================================================
+   THOUGHTS  (Tankar)
+   ============================================================ */
+
+.thoughts-section { display: flex; flex-direction: column; gap: 6px; }
+
+.thought-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.thought-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px var(--space-4);
+  background: var(--color-bg-secondary);
+  cursor: pointer;
+}
+
+.thought-head-title { font-size: var(--font-size-base); font-weight: 600; }
+.thought-head svg { width: 13px; height: 13px; color: var(--color-text-tertiary); transition: transform 0.2s; }
+.thought-card.open .thought-head svg { transform: rotate(180deg); }
+
+.thought-body {
+  display: none;
+  padding: var(--space-4);
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  line-height: 1.65;
+}
+
+.thought-card.open .thought-body { display: block; }
+.thought-body ul { padding-left: 18px; margin: 6px 0; }
+.thought-body li { margin-bottom: 4px; }
+
+.thought-body blockquote {
+  border-left: 3px solid var(--color-border);
+  padding-left: 12px;
+  margin: 8px 0;
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+
+/* ============================================================
+   INDEX — Hero
+   ============================================================ */
+
+.hero {
+  background: linear-gradient(135deg, var(--color-hero-bg-start) 0%, var(--color-hero-bg-mid) 60%, var(--color-hero-bg-end) 100%);
+  border-radius: var(--radius-lg);
+  padding: 56px 52px;
+  margin-bottom: var(--space-10);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(var(--color-primary-rgb), 0.35) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: -80px;
+  left: 30%;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, var(--color-hero-glow-accent) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(var(--color-primary-rgb), 0.18);
+  color: var(--color-primary-tint);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.35);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  padding: var(--space-1) var(--space-3);
+  margin-bottom: 20px;
+  letter-spacing: 0.02em;
+}
+
+.hero-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary-tint);
+}
+
+.hero h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-bg-primary);
+  line-height: 1.25;
+  letter-spacing: -0.5px;
+  max-width: 540px;
+  margin-bottom: var(--space-8);
+  position: relative;
+}
+
+.hero h1 span { color: var(--color-primary-tint); }
+
+
+/* ============================================================
+   INDEX — Search bar (hero)
+   ============================================================ */
+
+.search-bar {
+  display: flex;
+  max-width: 520px;
+  background: var(--color-overlay-sm);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--color-overlay-md);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.search-bar svg {
+  position: absolute;
+  left: var(--space-4);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--color-overlay-icon);
+}
+
+.search-bar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 14px var(--space-4) 14px 48px;
+  font-size: var(--font-size-md);
+  color: var(--color-bg-primary);
+  font-family: inherit;
+}
+
+.search-bar input::placeholder { color: var(--color-overlay-text-muted); }
+
+.search-bar button {
+  background: var(--color-primary);
+  color: var(--color-bg-primary);
+  border: none;
+  padding: 0 22px;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.search-bar button:hover { background: var(--color-primary-dark); }
+
+
+/* ============================================================
+   INDEX — Section header (with "Visa alla" link)
+   ============================================================ */
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.section-header h2 {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.section-header a {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.section-header a:hover { text-decoration: underline; }
+
+
+/* ============================================================
+   INDEX — Filter pills
+   ============================================================ */
+
+.filters {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-pill:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+.filter-pill.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-bg-primary);
+}
+
+
+/* ============================================================
+   INDEX — Grid & Cards
+   ============================================================ */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: transform 0.18s, box-shadow 0.18s;
+  cursor: pointer;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card);
+}
+
+.card-header {
+  height: 130px;
+  display: flex;
+  align-items: flex-end;
+  padding: var(--space-4);
+  position: relative;
+}
+
+.card-subject {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--color-overlay-xl);
+  padding: var(--space-1) 10px;
+  border-radius: var(--radius-full);
+}
+
+.card-save {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 30px;
+  height: 30px;
+  background: var(--color-overlay-lg);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s;
+}
+
+.card-save:hover { background: var(--color-bg-primary); }
+.card-save svg { width: 15px; height: 15px; color: var(--color-text-secondary); }
+
+.card-body { padding: var(--space-4) 18px 18px; }
+
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-bottom: var(--space-2);
+  letter-spacing: -0.1px;
+}
+
+.card-desc {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  margin-bottom: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.card-meta span { display: flex; align-items: center; gap: var(--space-1); }
+.card-meta svg { width: 13px; height: 13px; }
+
+.card-author { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+
+.author-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-bg-primary);
+  flex-shrink: 0;
+}
+
+/* Subject gradient palette */
+.g1 { background: linear-gradient(135deg, var(--color-subject-1-a) 0%, var(--color-subject-1-b) 100%); }
+.g2 { background: linear-gradient(135deg, var(--color-subject-2-a) 0%, var(--color-subject-2-b) 100%); }
+.g3 { background: linear-gradient(135deg, var(--color-subject-3-a) 0%, var(--color-subject-3-b) 100%); }
+.g4 { background: linear-gradient(135deg, var(--color-subject-4-a) 0%, var(--color-subject-4-b) 100%); }
+.g5 { background: linear-gradient(135deg, var(--color-subject-5-a) 0%, var(--color-subject-5-b) 100%); }
+.g6 { background: linear-gradient(135deg, var(--color-subject-6-a) 0%, var(--color-subject-6-b) 100%); }
+.g7 { background: linear-gradient(135deg, var(--color-subject-7-a) 0%, var(--color-subject-7-b) 100%); }
+.g8 { background: linear-gradient(135deg, var(--color-subject-8-a) 0%, var(--color-subject-8-b) 100%); }
+.g9 { background: linear-gradient(135deg, var(--color-subject-9-a) 0%, var(--color-subject-9-b) 100%); }
+
+/* Avatar palette */
+.a1 { background: var(--color-avatar-1); }
+.a2 { background: var(--color-avatar-2); }
+.a3 { background: var(--color-avatar-3); }
+.a4 { background: var(--color-avatar-4); }
+.a5 { background: var(--color-avatar-5); }
+.a6 { background: var(--color-avatar-6); }
+
+
+/* ============================================================
+   INDEX — Översikt (Kommande + Upplägg)
+   ============================================================ */
+
+/* Icon-square color variants, shared by upcoming-cards and plan-rows */
+.plan-icon.c-purple { background: #f2eefe; color: #7c3aed; }
+.plan-icon.c-blue   { background: #eaf2fe; color: #3b82f6; }
+.plan-icon.c-amber  { background: #fef3c7; color: #d97706; }
+.plan-icon.c-red    { background: #fee2e2; color: #dc2626; }
+.plan-icon.c-teal   { background: #ccfbf1; color: #0d9488; }
+
+/* "Kommande" panel */
+.upcoming-panel {
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.upcoming-panel-label {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-4);
+}
+
+.upcoming-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.upcoming-card {
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  padding: var(--space-4);
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.upcoming-card:hover {
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+.upcoming-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--space-4);
+  flex-shrink: 0;
+}
+
+.upcoming-card-icon svg { width: 16px; height: 16px; }
+
+.upcoming-card-title {
+  flex: 1;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+}
+
+.upcoming-card-step {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-3);
+}
+
+/* "Upplägg" list */
+.plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.plan-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  padding: 12px var(--space-4);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.plan-row:hover { background: var(--color-bg-hover); }
+
+.plan-row-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.plan-row-icon svg { width: 14px; height: 14px; }
+
+.plan-row-title {
+  flex: 1;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.plan-row-meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.plan-row-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-bg-primary);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.plan-row-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.plan-list-empty {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  color: var(--color-text-tertiary);
+}
+
+/* Filter bar (Ämne / Årskurs) above the plan list */
+.filter-bar {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+/* Visuellt samma komponent som .btn-ghost (se rad ~551), fast en div som
+   omsluter en riktig <select> istället för en <button> — en <select> kan
+   inte ligga inuti en <button>. */
+.filter-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.filter-select:hover { border-color: var(--color-text-secondary); }
+.filter-select:focus-within { border-color: var(--color-primary); }
+.filter-select svg { width: 14px; height: 14px; color: var(--color-text-tertiary); flex-shrink: 0; }
+
+.filter-select select {
+  background: none;
+  border: none;
+  outline: none;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.filter-select:hover select { color: var(--color-text-primary); }
+
+
+/* ============================================================
+   MODE SWITCHING  (edit-mode / read-mode body classes)
+   ============================================================ */
+
+body.read-mode .edit-only { display: none !important; }
+body.edit-mode .read-only { display: none !important; }
+
+body.read-mode [contenteditable] { pointer-events: none; }
+
+body.edit-mode .activity-row:hover .drag-handle { opacity: 1; }
+body.edit-mode .goal-item:hover .drag-handle { opacity: 1; }
+body.edit-mode .week-row:hover .drag-handle { opacity: 1; }
+body.edit-mode .goal-item:hover .goal-delete { display: grid; place-items: center; }
+
+
+/* ============================================================
+   MODAL  (Redigera upplägg)
+   ============================================================ */
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 500;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal {
+  width: 800px;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+}
+
+.modal-sm { width: 420px; }
+.modal-md { width: 560px; }
+
+.modal-body p {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.modal-body p strong { color: var(--color-text-primary); }
+
+/* Stilväljare i "Föreslå lektion"-modalen */
+.style-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: var(--space-4);
+}
+
+.style-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.style-option:hover { border-color: var(--color-primary); background: var(--color-primary-light); }
+
+.style-option-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.style-option-icon svg { width: 15px; height: 15px; }
+
+.style-option-text { display: flex; flex-direction: column; gap: 2px; }
+.style-option-title { font-size: var(--font-size-md); font-weight: 600; color: var(--color-text-primary); }
+.style-option-desc { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header h3 { font-size: var(--font-size-lg); font-weight: 700; }
+
+.modal-close {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.modal-close:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.modal-close svg { width: 16px; height: 16px; }
+
+.modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Label to the left of its field, same pattern as .read-field/.read-field-label */
+.modal-body .field-group {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.modal-body .field-label {
+  flex: 0 0 120px;
+  padding-top: 9px;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  text-align: right;
+  color: var(--color-text-tertiary);
+}
+
+.modal-body .field-group-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Uppläggsavatar: ett urval av färdiga ikon+färg-koncept */
+.avatar-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.avatar-picker-btn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: outline-color 0.15s, transform 0.15s;
+}
+
+.avatar-picker-btn:hover { transform: translateY(-1px); }
+.avatar-picker-btn svg { width: 16px; height: 16px; }
+.avatar-picker-btn-image { padding: 0; background: none; border-radius: 0; }
+.avatar-picker-btn-image img { width: 100%; height: 100%; display: block; }
+
+.avatar-picker-btn.selected { outline-color: var(--color-text-primary); }

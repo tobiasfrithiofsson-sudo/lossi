@@ -1,0 +1,2211 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upplägg | Lossi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="theme.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+  <script src="https://unpkg.com/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="theme.js"></script>
+</head>
+<body class="edit-mode">
+
+<!-- ── App topbar (byggs av renderAppShell i theme.js) ── -->
+<header class="app-topbar"></header>
+
+<div class="app-body">
+
+<!-- ── Sidopanel: projekt, händelser, upplägg, team (byggs av renderAppShell i theme.js) ── -->
+<aside class="app-aside"></aside>
+
+<!-- ── Page frame ── -->
+<div class="page-frame">
+
+
+  <!-- Uppläggshuvud över hela bredden (innehåll + Detaljer): avatar + titel till vänster, status/dela/exportera till höger -->
+  <div class="plan-header">
+    <div class="plan-title-row">
+      <div class="popover-wrap" onclick="event.stopPropagation()">
+        <button type="button" class="plan-title-icon plan-icon-image" id="planIcon" onclick="togglePlanAvatarPopover()" title="Byt bild"></button>
+        <div class="menu-popover avatar-popover" id="planAvatarPopover">
+          <div class="menu-popover-label">Uppläggsavatar</div>
+          <div class="avatar-picker"></div>
+        </div>
+      </div>
+      <h1 class="plan-title inline-editable-plain" contenteditable="true" id="planTitle">Demokrati – grunderna och processerna</h1>
+    </div>
+
+    <div class="plan-actions">
+      <div class="popover-wrap" onclick="event.stopPropagation()">
+        <button class="status-btn status-started" id="statusBtn" onclick="toggleAppPopover(this)">
+          <span id="statusLabel">Påbörjad</span>
+          <i data-lucide="chevron-down"></i>
+        </button>
+        <div class="menu-popover" id="statusMenu">
+          <button class="menu-popover-item" onclick="setStatus('started', 'Påbörjad')">Påbörjad</button>
+          <button class="menu-popover-item" onclick="setStatus('finished', 'Avslutad')">Avslutad</button>
+          <button class="menu-popover-item" onclick="setStatus('upcoming', 'Kommande')">Kommande</button>
+        </div>
+      </div>
+      <div class="popover-wrap" onclick="event.stopPropagation()">
+        <button class="icon-btn" onclick="toggleAppPopover(this)" title="Dela">
+          <i data-lucide="share-2"></i>
+        </button>
+        <div class="menu-popover" id="shareMenu">
+          <div class="share-popover-body">
+            <label class="field-label">Skicka till e-postadress</label>
+            <div class="share-popover-row">
+              <input class="field-input" type="email" id="shareEmailInput" placeholder="namn@skola.se" />
+              <button class="btn-primary" onclick="sendShareEmail()">Skicka</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="popover-wrap" onclick="event.stopPropagation()">
+        <button class="btn-ghost" onclick="toggleAppPopover(this)">
+          <i data-lucide="download"></i>
+          Exportera
+          <i data-lucide="chevron-down"></i>
+        </button>
+        <div class="menu-popover" id="exportMenu">
+          <button class="menu-popover-item" onclick="exportPlan('word')">
+            <i data-lucide="file-text"></i>
+            Ladda ner som Word
+          </button>
+          <button class="menu-popover-item" onclick="exportPlan('pptx')">
+            <i data-lucide="presentation"></i>
+            Ladda ner som PowerPoint
+          </button>
+          <button class="menu-popover-item" onclick="exportPlan('print')">
+            <i data-lucide="printer"></i>
+            Skriv ut
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Body: main content + right-hand detail panel -->
+  <div class="page-body">
+
+  <!-- Main -->
+  <main>
+
+    <!-- ── Section: Pedagogisk idé ── -->
+    <div class="plan-section" id="sec-idea">
+      <div class="section-head" onclick="toggleSection('sec-idea')">
+        <button class="chevron-btn" tabindex="-1">
+          <i data-lucide="chevron-down"></i>
+        </button>
+        <h2>Pedagogisk idé</h2>
+      </div>
+      <div class="section-body">
+        <div class="idea-editor inline-editable-rich">
+          <div class="inline-editable-toolbar">
+            <button class="toolbar-btn" title="Stycke">T</button>
+            <button class="toolbar-btn" title="Fet" style="font-weight:800;">B</button>
+            <div class="toolbar-sep"></div>
+            <button class="toolbar-btn" title="Lista"><i data-lucide="list"></i></button>
+            <button class="toolbar-btn" title="Citat"><i data-lucide="quote"></i></button>
+          </div>
+          <div class="idea-text inline-editable-body" contenteditable="true" data-placeholder="Beskriv den pedagogiska idén bakom upplägget">Upplägget syftar till att ge eleverna en stabil grund i vad demokrati är, hur demokratiska processer fungerar i praktiken och vilka utmaningar demokratin står inför idag. Undervisningen rör sig från begrepp och historisk kontext till tillämpning och reflektion.</div>
+        </div>
+        <div class="inline-editable-actions">
+          <button class="btn-primary" onclick="saveIdeaText()">Spara</button>
+          <button class="btn-ghost" onclick="cancelIdeaText()">Avbryt</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section: Centralt innehåll (sparas som goalsHTML, hette tidigare Lärandemål) ── -->
+    <div class="plan-section" id="sec-goals">
+      <div class="section-head" onclick="toggleSection('sec-goals')">
+        <button class="chevron-btn" tabindex="-1">
+          <i data-lucide="chevron-down"></i>
+        </button>
+        <h2>Centralt innehåll</h2>
+        <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
+          <button class="section-add-btn" onclick="addGoal('goalsList')" title="Lägg till centralt innehåll">
+            <i data-lucide="plus"></i>
+          </button>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="goals-list" id="goalsList" data-empty="Vilket centralt innehåll ger upplägget eleverna möjlighet att arbeta med?">
+          <div class="goal-item">
+            <div class="drag-handle edit-only" title="Dra för att ändra ordning">
+              <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
+            </div>
+            <div class="goal-check">
+              <i data-lucide="square-check"></i>
+            </div>
+            <div class="goal-text" contenteditable="true">Förstå grundläggande principer för demokrati och diktatur</div>
+            <button class="goal-delete" onclick="deleteGoal(this)" title="Ta bort"><i data-lucide="x"></i></button>
+          </div>
+          <div class="goal-item">
+            <div class="drag-handle edit-only" title="Dra för att ändra ordning">
+              <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
+            </div>
+            <div class="goal-check">
+              <i data-lucide="square-check"></i>
+            </div>
+            <div class="goal-text" contenteditable="true">Förklara hur demokratiska beslut fattas i Sverige</div>
+            <button class="goal-delete" onclick="deleteGoal(this)" title="Ta bort"><i data-lucide="x"></i></button>
+          </div>
+          <div class="goal-item">
+            <div class="drag-handle edit-only" title="Dra för att ändra ordning">
+              <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
+            </div>
+            <div class="goal-check">
+              <i data-lucide="square-check"></i>
+            </div>
+            <div class="goal-text" contenteditable="true">Resonera kring medborgarens roll och ansvar i en demokrati</div>
+            <button class="goal-delete" onclick="deleteGoal(this)" title="Ta bort"><i data-lucide="x"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section: Betygskriterier ──
+         Fristående från Centralt innehåll. Bedömningen är samlad över hela
+         kursen, så här anges vilka delar av betygskriterierna upplägget ger
+         eleven chans att visa, inte vad som krävs för E, C eller A. -->
+    <div class="plan-section" id="sec-criteria">
+      <div class="section-head" onclick="toggleSection('sec-criteria')">
+        <button class="chevron-btn" tabindex="-1">
+          <i data-lucide="chevron-down"></i>
+        </button>
+        <h2>Betygskriterier</h2>
+        <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
+          <button class="section-add-btn" onclick="addGoal('criteriaList')" title="Lägg till betygskriterium">
+            <i data-lucide="plus"></i>
+          </button>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="goals-list" id="criteriaList" data-empty="Vilka delar av betygskriterierna ger upplägget eleven chans att visa?"></div>
+      </div>
+    </div>
+
+    <!-- ── Section: Struktur och tidslinje ── -->
+    <div class="plan-section" id="sec-structure">
+      <div class="section-head" onclick="toggleSection('sec-structure')">
+        <button class="chevron-btn" tabindex="-1">
+          <i data-lucide="chevron-down"></i>
+        </button>
+        <h2>Struktur och tidslinje</h2>
+        <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
+          <button class="section-add-btn" onclick="toggleAppPopover(this)" title="Lägg till">
+            <i data-lucide="plus"></i>
+          </button>
+          <div class="menu-popover" id="structureAddMenu">
+            <button class="menu-popover-item" onclick="handleStructureAdd('suggest')">
+              <i data-lucide="sparkles"></i>
+              Föreslå lektion
+            </button>
+            <button class="menu-popover-item" onclick="handleStructureAdd('activity')">
+              <i data-lucide="message-square-plus"></i>
+              Ny aktivitet
+            </button>
+            <button class="menu-popover-item" onclick="handleStructureAdd('week')">
+              <i data-lucide="calendar-plus"></i>
+              Ny lektion
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="activities-list" id="structureList">
+
+          <!-- Lesson 1 -->
+          <div class="lesson-group">
+          <!-- Week 1 -->
+          <div class="week-row">
+            <div class="drag-handle edit-only" title="Dra för att flytta lektionen">
+              <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
+            </div>
+            <div class="week-pill" contenteditable="true">Lektion 1: Begrepp och grundidéer</div>
+          </div>
+          <div class="lesson-activities">
+
+          <!-- Activity 1: Introduktionsdiskussion -->
+          <div class="activity-wrapper" id="act1">
+            <div class="activity-row" onclick="toggleActivity('act1')">
+              <div class="drag-handle edit-only" title="Dra för att ändra ordning">
+                <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
+              </div>
+              <div class="activity-icon icon-discussion" title="Diskussion">
+                <i data-lucide="message-square"></i>
+              </div>
+              <span class="activity-title">Introduktionsdiskussion: "Vad betyder demokrati för dig?"</span>
+              <span class="activity-time">20 min</span>
+              <div class="popover-wrap" onclick="event.stopPropagation()">
+                <button class="activity-more-btn" onclick="toggleAppPopover(this)" title="Fler alternativ">
+                  <i data-lucide="ellipsis"></i>
+                </button>
+                <div class="menu-popover">
+                  <button class="menu-popover-item" onclick="openActivity('act1')">
+                    <i data-lucide="pencil"></i>
+                    Ändra
+                  </button>
+                  <button class="menu-popover-item" onclick="duplicateActivity('act1')">
+                    <i data-lucide="copy"></i>
+                    Duplicera
+                  </button>
+                  <button class="menu-popover-item menu-popover-item-danger" onclick="confirmDeleteActivity('act1')">
+                    <i data-lucide="trash-2"></i>
+                    Ta bort
+                  </button>
+                </div>
+              </div>
+            </div>
+            <!-- Edit form -->
+            <div class="activity-form">
+              <div class="field-group">
+                <label class="field-label">Gruppering</label>
+                <div class="field-select">
+                  <div class="field-select-icon icon-discussion">
+                    <i data-lucide="message-square"></i>
+                  </div>
+                  <select>
+                    <option selected>Diskussion</option>
+                    <option>Genomgång</option>
+                    <option>Aktivitet</option>
+                    <option>Exit ticket</option>
+                    <option>Läsning</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Beskrivning</label>
+                <div class="inline-editable-rich">
+                  <div class="inline-editable-toolbar">
+                    <button class="toolbar-btn" title="Stycke">T</button>
+                    <button class="toolbar-btn" title="Fet" style="font-weight:800;">B</button>
+                    <div class="toolbar-sep"></div>
+                    <button class="toolbar-btn" title="Lista">
+                      <i data-lucide="list"></i>
+                    </button>
+                    <button class="toolbar-btn" title="Citat">
+                      <i data-lucide="quote"></i>
+                    </button>
+                    <button class="toolbar-btn" title="Mer">···</button>
+                  </div>
+                  <div class="inline-editable-body" contenteditable="true" data-placeholder="Glöm inte bort vad som är viktigt"></div>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Tidsåtgång</label>
+                <div class="time-input-wrap">
+                  <input class="time-input" type="number" value="20" min="0" />
+                  <span class="time-label">min</span>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Filer</label>
+                <div class="file-drop">
+                  <div class="file-drop-text">
+                    <i data-lucide="paperclip"></i>
+                    Släpp filer att bifoga eller
+                    <button class="browse-btn">Bläddra</button>
+                  </div>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-danger" onclick="confirmDeleteActivity('act1')" style="margin-right:auto;">
+                  <i data-lucide="trash-2"></i>
+                  Ta bort
+                </button>
+                <button class="btn-primary" onclick="saveActivity('act1')">Spara</button>
+                <button class="btn-ghost" onclick="closeActivity('act1')">Avbryt</button>
+              </div>
+            </div>
+            <!-- Read view -->
+            <div class="activity-read">
+              <div class="read-field">
+                <span class="read-field-label">Typ</span>
+                <span class="read-field-value">Diskussion</span>
+              </div>
+              <div class="read-field">
+                <span class="read-field-label">Tid</span>
+                <span class="read-field-value">20 min</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity 2: Demokrati vs Diktatur -->
+          <div class="activity-wrapper" id="act2">
+            <div class="activity-row" onclick="toggleActivity('act2')">
+              <div class="drag-handle edit-only">
+                <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
+              </div>
+              <div class="activity-icon icon-reading" title="Läsning">
+                <i data-lucide="book-open"></i>
+              </div>
+              <span class="activity-title">Demokrati vs Diktatur</span>
+              <span class="activity-time">20 min</span>
+              <div class="popover-wrap" onclick="event.stopPropagation()">
+                <button class="activity-more-btn" onclick="toggleAppPopover(this)" title="Fler alternativ">
+                  <i data-lucide="ellipsis"></i>
+                </button>
+                <div class="menu-popover">
+                  <button class="menu-popover-item" onclick="openActivity('act2')">
+                    <i data-lucide="pencil"></i>
+                    Ändra
+                  </button>
+                  <button class="menu-popover-item" onclick="duplicateActivity('act2')">
+                    <i data-lucide="copy"></i>
+                    Duplicera
+                  </button>
+                  <button class="menu-popover-item menu-popover-item-danger" onclick="confirmDeleteActivity('act2')">
+                    <i data-lucide="trash-2"></i>
+                    Ta bort
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="activity-form">
+              <div class="field-group">
+                <label class="field-label">Sammanfattning</label>
+                <input class="field-input" type="text" value="Demokrati vs Diktatur" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Gruppering</label>
+                <div class="field-select">
+                  <div class="field-select-icon icon-reading">
+                    <i data-lucide="book-open"></i>
+                  </div>
+                  <select>
+                    <option>Diskussion</option>
+                    <option>Genomgång</option>
+                    <option>Aktivitet</option>
+                    <option>Exit ticket</option>
+                    <option selected>Läsning</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Beskrivning</label>
+                <div class="inline-editable-rich">
+                  <div class="inline-editable-toolbar">
+                    <button class="toolbar-btn">T</button>
+                    <button class="toolbar-btn" style="font-weight:800;">B</button>
+                    <div class="toolbar-sep"></div>
+                    <button class="toolbar-btn">
+                      <i data-lucide="list"></i>
+                    </button>
+                    <button class="toolbar-btn">
+                      <i data-lucide="quote"></i>
+                    </button>
+                    <button class="toolbar-btn">···</button>
+                  </div>
+                  <div class="inline-editable-body" contenteditable="true" data-placeholder="Glöm inte bort vad som är viktigt">Jämförelse av demokrati och diktatur som styrelseskick.</div>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Tidsåtgång</label>
+                <div class="time-input-wrap">
+                  <input class="time-input" type="number" value="20" min="0" />
+                  <span class="time-label">min</span>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Filer</label>
+                <div class="file-drop" style="margin-bottom:8px;">
+                  <div class="file-drop-text">
+                    <i data-lucide="paperclip"></i>
+                    Släpp filer att bifoga eller
+                    <button class="browse-btn">Bläddra</button>
+                  </div>
+                </div>
+                <div class="attached-files">
+                  <div class="file-chip">
+                    <i data-lucide="file"></i>
+                    Begreppskarta.png
+                  </div>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Tankar</label>
+                <div class="thoughts-section">
+                  <div class="thought-card open" onclick="toggleThought(this)">
+                    <div class="thought-head">
+                      <span class="thought-head-title">Syftet med aktiviteten</span>
+                      <i data-lucide="chevron-down"></i>
+                    </div>
+                    <div class="thought-body">
+                      Här vill jag få syn på elevernas förförståelse och hur brett de tänker kring demokrati. Det är inte viktigt att svaren är "rätt", utan hur de resonerar och vilka begrepp de spontant använder.
+                    </div>
+                  </div>
+                  <div class="thought-card open" onclick="toggleThought(this)">
+                    <div class="thought-head">
+                      <span class="thought-head-title">Vad jag förväntar mig tidigt i momentet</span>
+                      <i data-lucide="chevron-down"></i>
+                    </div>
+                    <div class="thought-body">
+                      I början av momentet räcker det om eleverna:
+                      <ul>
+                        <li>kopplar demokrati till att rösta</li>
+                        <li>nämner frihet, åsikter eller rättigheter på ett vardagligt sätt</li>
+                        <li>ger exempel utan att använda ämnesbegrepp korrekt</li>
+                      </ul>
+                      Exempel på elevssvar i början:
+                      <blockquote>"Demokrati är när man får rösta och säga vad man tycker."</blockquote>
+                      <blockquote>"Det är när folket bestämmer, typ."</blockquote>
+                      Detta ser jag som en helt rimlig startpunkt.
+                    </div>
+                  </div>
+                </div>
+                <div class="add-row" onclick="" style="margin-top:6px;">
+                  <i data-lucide="plus"></i>
+                  Lägg till tanke
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-danger" onclick="confirmDeleteActivity('act2')" style="margin-right:auto;">
+                  <i data-lucide="trash-2"></i>
+                  Ta bort
+                </button>
+                <button class="btn-primary" onclick="saveActivity('act2')">Spara</button>
+                <button class="btn-ghost" onclick="closeActivity('act2')">Avbryt</button>
+              </div>
+            </div>
+            <div class="activity-read">
+              <div class="read-field">
+                <span class="read-field-label">Typ</span>
+                <span class="read-field-value">Läsning</span>
+              </div>
+              <div class="read-field">
+                <span class="read-field-label">Beskrivning</span>
+                <span class="read-field-value">Jämförelse av demokrati och diktatur som styrelseskick.</span>
+              </div>
+              <div class="read-field">
+                <span class="read-field-label">Tid</span>
+                <span class="read-field-value">20 min</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity 3: Genomgång -->
+          <div class="activity-wrapper" id="act3">
+            <div class="activity-row" onclick="toggleActivity('act3')">
+              <div class="drag-handle edit-only">
+                <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
+              </div>
+              <div class="activity-icon icon-review" title="Genomgång">
+                <i data-lucide="monitor"></i>
+              </div>
+              <span class="activity-title">Genomgång: demokrati vs diktatur, historiska exempel</span>
+              <span class="activity-time">15 min</span>
+              <div class="popover-wrap" onclick="event.stopPropagation()">
+                <button class="activity-more-btn" onclick="toggleAppPopover(this)" title="Fler alternativ">
+                  <i data-lucide="ellipsis"></i>
+                </button>
+                <div class="menu-popover">
+                  <button class="menu-popover-item" onclick="openActivity('act3')">
+                    <i data-lucide="pencil"></i>
+                    Ändra
+                  </button>
+                  <button class="menu-popover-item" onclick="duplicateActivity('act3')">
+                    <i data-lucide="copy"></i>
+                    Duplicera
+                  </button>
+                  <button class="menu-popover-item menu-popover-item-danger" onclick="confirmDeleteActivity('act3')">
+                    <i data-lucide="trash-2"></i>
+                    Ta bort
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="activity-form">
+              <div class="field-group">
+                <label class="field-label">Sammanfattning</label>
+                <input class="field-input" type="text" value="Genomgång: demokrati vs diktatur, historiska exempel" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Gruppering</label>
+                <div class="field-select">
+                  <div class="field-select-icon icon-review">
+                    <i data-lucide="monitor"></i>
+                  </div>
+                  <select>
+                    <option>Diskussion</option>
+                    <option selected>Genomgång</option>
+                    <option>Aktivitet</option>
+                    <option>Exit ticket</option>
+                    <option>Läsning</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Tidsåtgång</label>
+                <div class="time-input-wrap">
+                  <input class="time-input" type="number" value="15" min="0" />
+                  <span class="time-label">min</span>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-danger" onclick="confirmDeleteActivity('act3')" style="margin-right:auto;">
+                  <i data-lucide="trash-2"></i>
+                  Ta bort
+                </button>
+                <button class="btn-primary" onclick="saveActivity('act3')">Spara</button>
+                <button class="btn-ghost" onclick="closeActivity('act3')">Avbryt</button>
+              </div>
+            </div>
+            <div class="activity-read">
+              <div class="read-field">
+                <span class="read-field-label">Typ</span><span class="read-field-value">Genomgång</span>
+              </div>
+              <div class="read-field">
+                <span class="read-field-label">Tid</span><span class="read-field-value">15 min</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity 4: Aktivitet med fil -->
+          <div class="activity-wrapper" id="act4">
+            <div class="activity-row" onclick="toggleActivity('act4')">
+              <div class="drag-handle edit-only">
+                <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
+              </div>
+              <div class="activity-icon icon-activity" title="Aktivitet">
+                <i data-lucide="star"></i>
+              </div>
+              <span class="activity-title">Aktivitet: begreppskarta i par</span>
+              <div class="file-chip-sm">
+                <i data-lucide="file"></i>
+                Begreppskarta.png
+              </div>
+              <span class="activity-time">30 min</span>
+              <div class="popover-wrap" onclick="event.stopPropagation()">
+                <button class="activity-more-btn" onclick="toggleAppPopover(this)" title="Fler alternativ">
+                  <i data-lucide="ellipsis"></i>
+                </button>
+                <div class="menu-popover">
+                  <button class="menu-popover-item" onclick="openActivity('act4')">
+                    <i data-lucide="pencil"></i>
+                    Ändra
+                  </button>
+                  <button class="menu-popover-item" onclick="duplicateActivity('act4')">
+                    <i data-lucide="copy"></i>
+                    Duplicera
+                  </button>
+                  <button class="menu-popover-item menu-popover-item-danger" onclick="confirmDeleteActivity('act4')">
+                    <i data-lucide="trash-2"></i>
+                    Ta bort
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="activity-form">
+              <div class="field-group">
+                <label class="field-label">Sammanfattning</label>
+                <input class="field-input" type="text" value="Aktivitet: begreppskarta i par" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Gruppering</label>
+                <div class="field-select">
+                  <div class="field-select-icon icon-activity">
+                    <i data-lucide="star"></i>
+                  </div>
+                  <select>
+                    <option>Diskussion</option>
+                    <option>Genomgång</option>
+                    <option selected>Aktivitet</option>
+                    <option>Exit ticket</option>
+                    <option>Läsning</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Tidsåtgång</label>
+                <div class="time-input-wrap">
+                  <input class="time-input" type="number" value="30" min="0" />
+                  <span class="time-label">min</span>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Filer</label>
+                <div class="attached-files">
+                  <div class="file-chip">
+                    <i data-lucide="file"></i>
+                    Begreppskarta.png
+                  </div>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-danger" onclick="confirmDeleteActivity('act4')" style="margin-right:auto;">
+                  <i data-lucide="trash-2"></i>
+                  Ta bort
+                </button>
+                <button class="btn-primary" onclick="saveActivity('act4')">Spara</button>
+                <button class="btn-ghost" onclick="closeActivity('act4')">Avbryt</button>
+              </div>
+            </div>
+            <div class="activity-read">
+              <div class="read-field">
+                <span class="read-field-label">Typ</span><span class="read-field-value">Aktivitet</span>
+              </div>
+              <div class="read-field">
+                <span class="read-field-label">Tid</span><span class="read-field-value">30 min</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity 5: Exit ticket -->
+          <div class="activity-wrapper" id="act5">
+            <div class="activity-row" onclick="toggleActivity('act5')">
+              <div class="drag-handle edit-only">
+                <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
+              </div>
+              <div class="activity-icon icon-exit" title="Exit ticket">
+                <i data-lucide="check-square"></i>
+              </div>
+              <span class="activity-title">Exit ticket: ett begrepp + en fråga</span>
+              <span class="activity-time">5 min</span>
+              <div class="popover-wrap" onclick="event.stopPropagation()">
+                <button class="activity-more-btn" onclick="toggleAppPopover(this)" title="Fler alternativ">
+                  <i data-lucide="ellipsis"></i>
+                </button>
+                <div class="menu-popover">
+                  <button class="menu-popover-item" onclick="openActivity('act5')">
+                    <i data-lucide="pencil"></i>
+                    Ändra
+                  </button>
+                  <button class="menu-popover-item" onclick="duplicateActivity('act5')">
+                    <i data-lucide="copy"></i>
+                    Duplicera
+                  </button>
+                  <button class="menu-popover-item menu-popover-item-danger" onclick="confirmDeleteActivity('act5')">
+                    <i data-lucide="trash-2"></i>
+                    Ta bort
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="activity-form">
+              <div class="field-group">
+                <label class="field-label">Sammanfattning</label>
+                <input class="field-input" type="text" value="Exit ticket: ett begrepp + en fråga" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Gruppering</label>
+                <div class="field-select">
+                  <div class="field-select-icon icon-exit">
+                    <i data-lucide="check-square"></i>
+                  </div>
+                  <select>
+                    <option>Diskussion</option>
+                    <option>Genomgång</option>
+                    <option>Aktivitet</option>
+                    <option selected>Exit ticket</option>
+                    <option>Läsning</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Tidsåtgång</label>
+                <div class="time-input-wrap">
+                  <input class="time-input" type="number" value="5" min="0" />
+                  <span class="time-label">min</span>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-danger" onclick="confirmDeleteActivity('act5')" style="margin-right:auto;">
+                  <i data-lucide="trash-2"></i>
+                  Ta bort
+                </button>
+                <button class="btn-primary" onclick="saveActivity('act5')">Spara</button>
+                <button class="btn-ghost" onclick="closeActivity('act5')">Avbryt</button>
+              </div>
+            </div>
+            <div class="activity-read">
+              <div class="read-field">
+                <span class="read-field-label">Typ</span><span class="read-field-value">Exit ticket</span>
+              </div>
+              <div class="read-field">
+                <span class="read-field-label">Tid</span><span class="read-field-value">5 min</span>
+              </div>
+            </div>
+          </div>
+
+          </div><!-- /lesson-activities -->
+          </div><!-- /lesson-group -->
+
+        </div><!-- /activities-list -->
+
+      </div>
+    </div>
+
+    <!-- ── Section: Filer ── -->
+    <div class="plan-section" id="sec-files">
+      <div class="section-head" onclick="toggleSection('sec-files')">
+        <button class="chevron-btn" tabindex="-1">
+          <i data-lucide="chevron-down"></i>
+        </button>
+        <h2>Filer</h2>
+      </div>
+      <div class="section-body">
+        <div class="files-grid" style="margin-bottom: 12px;">
+          <div class="file-card">
+            <div class="file-card-icon">
+              <i data-lucide="file"></i>
+            </div>
+            <div>
+              <div class="file-card-name">Begreppskarta.png</div>
+              <div class="file-card-size">148 KB</div>
+            </div>
+          </div>
+          <div class="file-card">
+            <div class="file-card-icon">
+              <i data-lucide="file-text"></i>
+            </div>
+            <div>
+              <div class="file-card-name">Lektionsplan v1.pdf</div>
+              <div class="file-card-size">92 KB</div>
+            </div>
+          </div>
+        </div>
+        <div class="file-drop edit-only">
+          <div class="file-drop-text">
+            <i data-lucide="paperclip"></i>
+            Släpp filer här eller
+            <button class="browse-btn">Bläddra</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Right panel: info om upplägget ── -->
+  <div class="detail-panel">
+
+    <div class="plan-section" id="sec-panel-details">
+      <div class="section-head" onclick="toggleSection('sec-panel-details')">
+        <button class="chevron-btn" tabindex="-1">
+          <i data-lucide="chevron-down"></i>
+        </button>
+        <h2>Detaljer</h2>
+      </div>
+      <div class="section-body">
+        <div class="detail-fields">
+          <div class="read-field">
+            <span class="read-field-label">Klass</span>
+            <div class="popover-wrap" onclick="event.stopPropagation()">
+              <div class="class-picker-trigger" id="classPickerTrigger" onclick="toggleAppPopover(this)" title="Välj klass">
+                <span class="class-tag is-empty">Ej tilldelad</span>
+              </div>
+              <div class="menu-popover" id="classMenu">
+                <div class="menu-popover-label">Klasskatalog</div>
+                <button type="button" class="menu-popover-item" onclick="selectClass('SA26A')">SA26A</button>
+                <button type="button" class="menu-popover-item" onclick="selectClass('SA26B')">SA26B</button>
+                <button type="button" class="menu-popover-item" onclick="selectClass('NA26A')">NA26A</button>
+                <button type="button" class="menu-popover-item" onclick="selectClass('EK26B')">EK26B</button>
+              </div>
+            </div>
+          </div>
+          <div class="read-field">
+            <span class="read-field-label">Ämne</span>
+            <div class="popover-wrap" onclick="event.stopPropagation()">
+              <div class="class-picker-trigger" onclick="toggleAppPopover(this)" title="Välj ämne">
+                <span class="class-tag" id="detailSubject">Samhällskunskap</span>
+              </div>
+              <div class="menu-popover" id="subjectMenu"></div>
+            </div>
+          </div>
+          <div class="read-field">
+            <span class="read-field-label">Årskurs</span>
+            <div class="popover-wrap" onclick="event.stopPropagation()">
+              <div class="class-picker-trigger" onclick="toggleAppPopover(this)" title="Välj årskurs">
+                <span class="class-tag" id="detailGrade">7</span>
+              </div>
+              <div class="menu-popover" id="gradeMenu"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="plan-section" id="sec-panel-people">
+      <div class="section-head" onclick="toggleSection('sec-panel-people')">
+        <button class="chevron-btn" tabindex="-1">
+          <i data-lucide="chevron-down"></i>
+        </button>
+        <h2>Personer</h2>
+      </div>
+      <div class="section-body">
+        <div class="detail-fields">
+          <div class="read-field">
+            <span class="read-field-label">Skapare</span>
+            <span class="read-field-value">
+              <div class="author-chip">
+                <div class="author-chip-avatar"><img src="avatar.png" alt="Tobias Frithiofsson" /></div>
+                <span>Tobias Frithiofsson</span>
+              </div>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="plan-section" id="sec-panel-dates">
+      <div class="section-head" onclick="toggleSection('sec-panel-dates')">
+        <button class="chevron-btn" tabindex="-1">
+          <i data-lucide="chevron-down"></i>
+        </button>
+        <h2>Datum</h2>
+      </div>
+      <div class="section-body">
+        <div class="detail-fields">
+          <div class="read-field">
+            <span class="read-field-label">Skapad</span>
+            <span class="read-field-value" id="detailCreated">18 feb 2025</span>
+          </div>
+          <div class="read-field">
+            <span class="read-field-label">Senast uppdaterad</span>
+            <span class="read-field-value">3 aug 2025</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div><!-- /page-body -->
+</div><!-- /page-frame -->
+
+</div><!-- /app-body -->
+
+<!-- ── Activity panel: redigera/läs en aktivitet ── -->
+<div class="activity-panel" id="activityPanel">
+  <div class="activity-panel-resize-handle" id="activityPanelResizeHandle"></div>
+  <div class="activity-panel-header">
+    <div class="activity-panel-header-main">
+      <div class="activity-panel-icon" id="activityPanelIcon"></div>
+      <span class="activity-panel-title inline-editable-plain" id="activityPanelTitle" contenteditable="true">Aktivitet</span>
+    </div>
+    <div class="activity-panel-header-actions">
+      <button class="icon-btn" id="activityPanelExpandBtn" onclick="toggleActivityPanelFullscreen()" title="Expandera till helskärm">
+        <i data-lucide="maximize-2"></i>
+      </button>
+      <button class="icon-btn" onclick="closeActivityPanel()" title="Stäng">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+  </div>
+  <div class="activity-panel-body" id="activityPanelBody"></div>
+</div>
+
+<!-- ── Modal: Ta bort aktivitet (bekräftelse) ── -->
+<div class="modal-overlay" id="deleteActivityModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Ta bort aktivitet?</h3>
+      <button class="modal-close" onclick="closeDeleteActivityModal()">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Är du säker på att du vill ta bort <strong id="deleteActivityName">den här aktiviteten</strong>? Det går inte att ångra.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeDeleteActivityModal()">Avbryt</button>
+      <button class="btn-danger-solid" onclick="deleteActivityConfirmed()">
+        <i data-lucide="trash-2"></i>
+        Ta bort
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Föreslå lektion (pedagogisk stil) ── -->
+<div class="modal-overlay" id="suggestLessonModal">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <h3>Föreslå lektion</h3>
+      <button class="modal-close" onclick="closeSuggestLessonModal()">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Välj en pedagogisk stil. Du får en ny lektion med ett förslag på aktiviteter i den formen, som du sedan fyller i och ändrar efter behov.</p>
+      <div class="style-picker" id="stylePicker"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Read plan ID from URL
+  const params = new URLSearchParams(window.location.search);
+  const planId = params.get('id');
+
+  renderAppShell({ active: 'plans', currentPlanId: planId || '1' });
+  lucide.createIcons();
+  syncThemeIcons();
+
+  // ── Lokal lagring (localStorage) ──
+  // Sparar och läser tillbaka hela upplägget per plan-id, i webbläsaren.
+  // Delas inte mellan enheter/personer, men överlever omladdning av sidan.
+  const STORAGE_KEY = 'lossi-plan-' + (planId || '1');
+
+  const ACTIVITY_TYPES = {
+    'Diskussion':  { iconClass: 'icon-discussion', icon: 'message-square' },
+    'Genomgång':   { iconClass: 'icon-review',      icon: 'monitor' },
+    'Aktivitet':   { iconClass: 'icon-activity',    icon: 'star' },
+    'Exit ticket': { iconClass: 'icon-exit',        icon: 'check-square' },
+    'Läsning':     { iconClass: 'icon-reading',     icon: 'book-open' },
+  };
+
+  // ── Lektionsförslag (pedagogiska stilar) ──
+  // Platshållare/mallar, inget AI-anrop. Varje stil ger en ny lektion med
+  // ett skelett av aktiviteter i den formen — titlarna är vägledande
+  // prompts, inte färdigt innehåll, samma princip som PowerPoint-exportens
+  // tomma rutor. Ett naturligt nästa steg (inte byggt här) är en knapp som
+  // sätter ihop en kopierbar AI-prompt av ämne + mål + vald stil, så
+  // läraren kan ta den till sin egen AI-tjänst för att få ett utkast.
+  const LESSON_STYLES = {
+    direkt: {
+      label: 'Lärarledd genomgång',
+      desc: 'Läraren förklarar och visar, eleverna övar.',
+      icon: 'presentation',
+      activities: [
+        { type: 'Genomgång', title: 'Introducera begreppen', time: 15,
+          desc: 'Gå igenom de nya begreppen, gärna med en bild eller ett exempel per begrepp. Håll det kort. Avsluta med att fråga ett par elever att förklara ett begrepp med egna ord, som en temperaturkoll innan ni går vidare.' },
+        { type: 'Aktivitet', title: 'Övning enskilt eller i par', time: 20,
+          desc: 'Eleverna övar på begreppen i en uppgift, till exempel ett arbetsblad kopplat till läroboken. Cirkulera och hjälp de som fastnar. Håll uppgiften kort nog att de flesta hinner klart.' },
+        { type: 'Exit ticket', title: 'Vad var svårast?', time: 5,
+          desc: 'Eleverna skriver vilket begrepp som kändes svårast att förstå. Använd svaren för att veta var nästa lektion bör börja.' },
+      ],
+    },
+    undersokande: {
+      label: 'Undersökande lärande',
+      desc: 'Eleverna utforskar en fråga innan den besvaras.',
+      icon: 'search',
+      activities: [
+        { type: 'Diskussion', title: 'Öppningsfråga att utforska', time: 10,
+          desc: 'Ställ en öppen fråga kopplad till dagens ämne utan att ge svaret. Låt eleverna fundera och gissa i par innan ni delar i helklass. Målet är att väcka nyfikenhet, inte att komma fram till rätt svar än.' },
+        { type: 'Aktivitet', title: 'Utforska i grupp', time: 20,
+          desc: 'I smågrupper undersöker eleverna frågan med hjälp av material du förberett, till exempel texter, bilder eller ett kort klipp. Ge dem en konkret uppgift att lösa eller något att anteckna medan de utforskar.' },
+        { type: 'Diskussion', title: 'Dela upptäckter', time: 15,
+          desc: 'Grupperna delar vad de kommit fram till. Fyll i begreppen och sammanfatta tillsammans, utifrån det eleverna själva hittat snarare än att presentera svaret rakt av.' },
+      ],
+    },
+    kooperativt: {
+      label: 'Kooperativt lärande',
+      desc: 'Par- eller gruppuppgift i centrum.',
+      icon: 'users',
+      activities: [
+        { type: 'Genomgång', title: 'Kort ramverk för uppgiften', time: 10,
+          desc: 'Förklara kort vad gruppuppgiften går ut på och vilka roller eller ansvar som finns i gruppen. Håll det kort, det mesta av lärandet ska ske i grupparbetet, inte i genomgången.' },
+        { type: 'Aktivitet', title: 'Grupparbete', time: 25,
+          desc: 'Eleverna arbetar i grupper om 3–4 med en gemensam uppgift. Gå runt och lyssna snarare än att styra, och notera vilka grupper som kan behöva extra stöd inför redovisningen.' },
+        { type: 'Diskussion', title: 'Redovisning i helklass', time: 15,
+          desc: 'Varje grupp delar kort vad de kommit fram till, en eller två minuter per grupp räcker. Avsluta med att knyta ihop vad som var gemensamt mellan gruppernas svar.' },
+      ],
+    },
+    flippat: {
+      label: 'Flippat klassrum',
+      desc: 'Eleverna har tagit del av material innan lektionen.',
+      icon: 'video',
+      activities: [
+        { type: 'Exit ticket', title: 'Check: har alla tagit del av materialet?', time: 5,
+          desc: 'En snabb koll, till exempel tre frågor, för att se vilka som tagit del av materialet innan lektionen och vad de redan förstår. Använd resultatet för att veta om du behöver sammanfatta grunderna innan ni går vidare.' },
+        { type: 'Aktivitet', title: 'Tillämpning av materialet', time: 25,
+          desc: 'Eftersom grunderna redan är genomgångna hemma, lägg lektionstiden på att tillämpa dem i en uppgift eller ett problem. Det här är lektionens tyngdpunkt.' },
+        { type: 'Diskussion', title: 'Frågor och fördjupning', time: 20,
+          desc: 'Samla de frågor som dök upp under tillämpningen och gå igenom dem tillsammans. Fördjupa i det som visade sig vara svårast, snarare än att följa ett fast manus.' },
+      ],
+    },
+    problembaserat: {
+      label: 'Problembaserat lärande',
+      desc: 'Ett verklighetsnära case driver lektionen.',
+      icon: 'puzzle',
+      activities: [
+        { type: 'Diskussion', title: 'Presentera caset', time: 10,
+          desc: 'Introducera ett verklighetsnära problem eller scenario kopplat till ämnet. Beskriv situationen utan att ge lösningen, och låt eleverna ställa klargörande frågor.' },
+        { type: 'Aktivitet', title: 'Arbeta med problemet', time: 30,
+          desc: 'I grupper analyserar eleverna problemet och arbetar fram ett förslag till lösning, gärna med stöd av kursmaterial eller egen research. Lektionens tyngdpunkt ligger här.' },
+        { type: 'Exit ticket', title: 'Vad behöver vi ta reda på mer?', time: 10,
+          desc: 'Eleverna skriver ner vad de fortfarande är osäkra på eller behöver undersöka vidare. Använd svaren för att planera nästa steg i momentet.' },
+      ],
+    },
+  };
+
+  // Bygger HTML-innehållet för en aktivitet (rad + formulär + läsvy), så att
+  // både "Ny aktivitet" och lektionsförslagen återanvänder samma uppmärkning
+  // istället för att duplicera den.
+  // De fält (Typ/Beskrivning/Tid) som visas i aktivitetens läsvy. Beskrivning
+  // och Tid visas bara om de faktiskt har ett värde. Delas mellan
+  // buildActivityMarkup (vid skapande) och saveActivity (vid sparande), så
+  // läsvyn aldrig blir inaktuell mot formuläret.
+  function buildActivityReadFields(type, desc, time) {
+    const fields = [`<div class="read-field"><span class="read-field-label">Typ</span><span class="read-field-value">${type}</span></div>`];
+    if (desc) fields.push(`<div class="read-field"><span class="read-field-label">Beskrivning</span><span class="read-field-value">${desc}</span></div>`);
+    if (time) fields.push(`<div class="read-field"><span class="read-field-label">Tid</span><span class="read-field-value">${time} min</span></div>`);
+    return fields.join('\n        ');
+  }
+
+  function buildActivityMarkup(id, { type = 'Diskussion', title = 'Ny aktivitet', time = null, desc = '' } = {}) {
+    const { iconClass, icon } = ACTIVITY_TYPES[type] || ACTIVITY_TYPES['Diskussion'];
+    const timeLabel = time == null ? '– min' : time + ' min';
+    const timeValue = time == null ? '0' : String(time);
+    const options = Object.keys(ACTIVITY_TYPES)
+      .map(t => `<option${t === type ? ' selected' : ''}>${t}</option>`).join('\n              ');
+    return `
+      <div class="activity-row" onclick="toggleActivity('${id}')">
+        <div class="drag-handle edit-only" title="Dra för att ändra ordning">
+          <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
+        </div>
+        <div class="activity-icon ${iconClass}" title="${type}">
+          <i data-lucide="${icon}"></i>
+        </div>
+        <span class="activity-title">${title}</span>
+        <span class="activity-time">${timeLabel}</span>
+        <div class="popover-wrap" onclick="event.stopPropagation()">
+          <button class="activity-more-btn" onclick="toggleAppPopover(this)" title="Fler alternativ">
+            <i data-lucide="ellipsis"></i>
+          </button>
+          <div class="menu-popover">
+            <button class="menu-popover-item" onclick="openActivity('${id}')">
+              <i data-lucide="pencil"></i>
+              Ändra
+            </button>
+            <button class="menu-popover-item" onclick="duplicateActivity('${id}')">
+              <i data-lucide="copy"></i>
+              Duplicera
+            </button>
+            <button class="menu-popover-item menu-popover-item-danger" onclick="confirmDeleteActivity('${id}')">
+              <i data-lucide="trash-2"></i>
+              Ta bort
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="activity-form">
+        <div class="field-group">
+          <label class="field-label">Sammanfattning</label>
+          <input class="field-input" type="text" value="${title}" placeholder="Beskriv aktiviteten kort" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Gruppering</label>
+          <div class="field-select">
+            <div class="field-select-icon ${iconClass}">
+              <i data-lucide="${icon}"></i>
+            </div>
+            <select>
+              ${options}
+            </select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Beskrivning</label>
+          <div class="inline-editable-rich">
+            <div class="inline-editable-toolbar">
+              <button class="toolbar-btn" title="Stycke">T</button>
+              <button class="toolbar-btn" title="Fet" style="font-weight:800;">B</button>
+              <div class="toolbar-sep"></div>
+              <button class="toolbar-btn" title="Lista"><i data-lucide="list"></i></button>
+              <button class="toolbar-btn" title="Citat"><i data-lucide="quote"></i></button>
+              <button class="toolbar-btn" title="Mer">···</button>
+            </div>
+            <div class="inline-editable-body" contenteditable="true" data-placeholder="Glöm inte bort vad som är viktigt">${desc}</div>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Tidsåtgång</label>
+          <div class="time-input-wrap">
+            <input class="time-input" type="number" value="${timeValue}" min="0" />
+            <span class="time-label">min</span>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Filer</label>
+          <div class="file-drop">
+            <div class="file-drop-text">
+              <i data-lucide="paperclip"></i>
+              Släpp filer att bifoga eller
+              <button class="browse-btn">Bläddra</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-danger" onclick="confirmDeleteActivity('${id}')" style="margin-right:auto;">
+            <i data-lucide="trash-2"></i>
+            Ta bort
+          </button>
+          <button class="btn-primary" onclick="saveActivity('${id}')">Spara</button>
+          <button class="btn-ghost" onclick="closeActivity('${id}')">Avbryt</button>
+        </div>
+      </div>
+      <div class="activity-read">
+        ${buildActivityReadFields(type, desc, time)}
+      </div>
+    `;
+  }
+
+  // Uppläggsavataren: en bild ur PLAN_AVATARS (theme.js). Valet hör till
+  // just det här upplägget och sparas som "avatar" i dess eget sparade läge.
+  function renderPlanIcon(avatarId) {
+    const el = document.getElementById('planIcon');
+    const id = resolvePlanAvatarId(planId, avatarId);
+    el.dataset.avatar = id;
+    el.innerHTML = planAvatarImgHTML(id);
+    updateAsidePlan(planId || '1', { avatar: id });
+  }
+
+  renderPlanIcon(null);
+
+  function saveState() {
+    const state = {
+      title: document.getElementById('planTitle').textContent.trim(),
+      description: document.querySelector('.idea-text').innerHTML,
+      klass: document.getElementById('classPickerTrigger').dataset.klass || '',
+      subject: document.getElementById('detailSubject').textContent.trim(),
+      grade: document.getElementById('detailGrade').textContent.trim(),
+      avatar: document.getElementById('planIcon').dataset.avatar,
+      createdAt: document.getElementById('detailCreated').dataset.created || null,
+      statusKey: [...document.getElementById('statusBtn').classList].find(c => ['status-started', 'status-finished', 'status-upcoming'].includes(c)),
+      statusLabel: document.getElementById('statusLabel').textContent.trim(),
+      goalsHTML: document.getElementById('goalsList').innerHTML,
+      criteriaHTML: document.getElementById('criteriaList').innerHTML,
+      structureHTML: document.getElementById('structureList').innerHTML,
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn('Kunde inte spara upplägget lokalt:', e);
+    }
+  }
+
+  function loadState() {
+    let raw;
+    try {
+      raw = localStorage.getItem(STORAGE_KEY);
+    } catch (e) {
+      return;
+    }
+    if (!raw) return;
+
+    let state;
+    try {
+      state = JSON.parse(raw);
+    } catch (e) {
+      return;
+    }
+
+    document.getElementById('planTitle').textContent = state.title;
+    document.querySelector('.idea-text').innerHTML = state.description;
+    renderClassTag(state.klass || '');
+    document.getElementById('detailSubject').textContent = state.subject;
+    document.getElementById('detailGrade').textContent = state.grade;
+    // Bara upplägg skapade via Skapa har ett riktigt datum; demo-uppläggen behåller sitt.
+    // Filer sparas inte per upplägg än, så demo-filerna visas inte i nya upplägg.
+    if (state.createdAt) {
+      document.querySelectorAll('#sec-files .file-card').forEach(card => card.remove());
+      const created = document.getElementById('detailCreated');
+      created.dataset.created = state.createdAt;
+      created.textContent = new Date(state.createdAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    // Äldre sparade lägen saknar "avatar" (eller har gamla lucide-ikoner) och får uppläggets standardbild
+    renderPlanIcon(state.avatar);
+
+    const statusBtn = document.getElementById('statusBtn');
+    statusBtn.classList.remove('status-started', 'status-finished', 'status-upcoming');
+    statusBtn.classList.add(state.statusKey);
+    document.getElementById('statusLabel').textContent = state.statusLabel;
+
+    document.getElementById('goalsList').innerHTML = state.goalsHTML;
+    // Äldre sparade lägen saknar criteriaHTML och får en tom lista
+    document.getElementById('criteriaList').innerHTML = state.criteriaHTML || '';
+    document.getElementById('structureList').innerHTML = state.structureHTML;
+  }
+
+  loadState();
+  document.title = document.getElementById('planTitle').textContent.trim() + ' | Lossi';
+  window.addEventListener('beforeunload', saveState);
+
+  function toggleSection(id) {
+    document.getElementById(id).classList.toggle('collapsed');
+  }
+
+  // ── Aktivitetspanel ──
+  // Att klicka på en aktivitetsrad flyttar dess formulär (redigeringsläge)
+  // eller läsvy (läsläge) in i en panel till höger, istället för att
+  // fälla ut den i raden. Uppläggssidan förblir synlig och skrollbar
+  // bredvid panelen, som går att dra i för att göra bredare/smalare
+  // och expandera till helskärm för fokus på en aktivitet i taget.
+  let openActivityId = null;
+
+  function toggleActivity(id) {
+    if (openActivityId === id) {
+      closeActivity(id);
+    } else {
+      openActivity(id);
+    }
+  }
+
+  function openActivity(id) {
+    // Lägg tillbaka ev. redan öppet formulär/läsvy på sin plats innan vi öppnar nästa
+    if (openActivityId) {
+      returnActivityContent(openActivityId);
+      document.getElementById(openActivityId)?.classList.remove('active');
+    }
+
+    const wrapper = document.getElementById(id);
+    if (!wrapper) return;
+
+    const isEdit = document.body.classList.contains('edit-mode');
+    const content = wrapper.querySelector(isEdit ? '.activity-form' : '.activity-read');
+    const panelBody = document.getElementById('activityPanelBody');
+    panelBody.innerHTML = '';
+    if (content) panelBody.appendChild(content);
+
+    updateActivityPanelHeader(wrapper);
+
+    wrapper.classList.add('active');
+    openActivityId = id;
+    document.getElementById('activityPanel').classList.add('open');
+    document.body.classList.add('activity-panel-open');
+    syncActivityPanelWidthVar();
+  }
+
+  // Håller --activity-panel-current-w i synk med panelens faktiska bredd,
+  // så uppläggssidan (som får motsvarande padding-right) skalar med i
+  // realtid — även medan man drar i resize-handtaget. I helskärmsläge
+  // är panelen inte "bredvid" sidan utan täcker den helt, så då rör vi
+  // inte variabeln (sidan ligger ändå dold under panelen).
+  function syncActivityPanelWidthVar() {
+    const panel = document.getElementById('activityPanel');
+    if (panel.classList.contains('fullscreen')) return;
+    const width = panel.getBoundingClientRect().width;
+    document.documentElement.style.setProperty('--activity-panel-current-w', width + 'px');
+  }
+
+  // Flyttar tillbaka formuläret/läsvyn som just nu ligger i panelen till
+  // sin ursprungliga aktivitet (alltid direkt före .activity-read, som
+  // är den fasta ordningen i uppmärkningen — även när det är läsvyn
+  // själv som flyttas tillbaka, då landar den sist som den gjorde innan).
+  function returnActivityContent(id) {
+    const wrapper = document.getElementById(id);
+    const panelBody = document.getElementById('activityPanelBody');
+    const content = panelBody.firstElementChild;
+    if (wrapper && content) {
+      wrapper.insertBefore(content, wrapper.querySelector('.activity-read'));
+    }
+  }
+
+  function updateActivityPanelHeader(wrapper) {
+    const titleEl = wrapper.querySelector('.activity-title');
+    document.getElementById('activityPanelTitle').textContent = titleEl ? titleEl.textContent.trim() : 'Aktivitet';
+
+    const rowIcon = wrapper.querySelector('.activity-icon');
+    const panelIcon = document.getElementById('activityPanelIcon');
+    if (rowIcon) {
+      const iconClass = [...rowIcon.classList].find(c => c.startsWith('icon-'));
+      const graphic = rowIcon.querySelector('svg, i');
+      panelIcon.className = 'activity-panel-icon' + (iconClass ? ' ' + iconClass : '');
+      panelIcon.innerHTML = graphic ? graphic.outerHTML : '';
+      lucide.createIcons({ nodes: [panelIcon] });
+    }
+  }
+
+  // Panelens titel är redigerbar (inline-editable-plain) och ska hållas i
+  // synk åt båda hållen: raden visar samma titel direkt medan man skriver,
+  // och "Sammanfattning"-fältet i formuläret uppdateras också — annars
+  // skriver saveActivity() (som läser titeln därifrån) över ändringen igen.
+  function syncActivityPanelTitleToRow(title) {
+    if (!openActivityId) return;
+    const wrapper = document.getElementById(openActivityId);
+    const titleEl = wrapper?.querySelector('.activity-title');
+    if (titleEl) titleEl.textContent = title;
+
+    const summaryInput = document.getElementById('activityPanelBody').querySelector('.field-input[type="text"]');
+    if (summaryInput) summaryInput.value = title;
+  }
+
+  document.getElementById('activityPanelTitle').addEventListener('input', function () {
+    syncActivityPanelTitleToRow(this.textContent);
+  });
+
+  document.getElementById('activityPanelTitle').addEventListener('blur', function () {
+    const trimmed = this.textContent.trim();
+    this.textContent = trimmed;
+    syncActivityPanelTitleToRow(trimmed);
+    if (openActivityId) saveState();
+  });
+
+  function closeActivity(id) {
+    returnActivityContent(id);
+    document.getElementById(id)?.classList.remove('active');
+    const panel = document.getElementById('activityPanel');
+    panel.classList.remove('open', 'fullscreen');
+    resetActivityPanelExpandIcon();
+    panel.style.width = '';
+    document.body.classList.remove('activity-panel-open', 'activity-panel-fullscreen');
+    document.documentElement.style.setProperty('--activity-panel-current-w', '0px');
+    openActivityId = null;
+  }
+
+  function closeActivityPanel() {
+    if (openActivityId) closeActivity(openActivityId);
+  }
+
+  function toggleActivityPanelFullscreen() {
+    const panel = document.getElementById('activityPanel');
+    const isFull = panel.classList.toggle('fullscreen');
+    document.body.classList.toggle('activity-panel-fullscreen', isFull);
+    syncActivityPanelWidthVar(); // no-op while entering fullscreen; recomputes when leaving it
+    const btn = document.getElementById('activityPanelExpandBtn');
+    btn.innerHTML = `<i data-lucide="${isFull ? 'minimize-2' : 'maximize-2'}"></i>`;
+    btn.title = isFull ? 'Återställ storlek' : 'Expandera till helskärm';
+    lucide.createIcons({ nodes: [btn] });
+  }
+
+  function resetActivityPanelExpandIcon() {
+    const btn = document.getElementById('activityPanelExpandBtn');
+    btn.innerHTML = '<i data-lucide="maximize-2"></i>';
+    btn.title = 'Expandera till helskärm';
+    lucide.createIcons({ nodes: [btn] });
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && openActivityId) closeActivityPanel();
+  });
+
+  // Manuell breddändring: dra i handtaget på panelens vänsterkant
+  (function setupActivityPanelResize() {
+    const panel = document.getElementById('activityPanel');
+    const handle = document.getElementById('activityPanelResizeHandle');
+    let startX = 0;
+    let startWidth = 0;
+
+    function onPointerMove(e) {
+      const delta = startX - e.clientX; // drar man åt vänster ökar bredden
+      const min = 360;
+      const max = window.innerWidth - 80;
+      panel.style.width = Math.min(Math.max(startWidth + delta, min), max) + 'px';
+      syncActivityPanelWidthVar(); // uppläggssidan skalar med i realtid
+    }
+
+    function onPointerUp() {
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+      panel.classList.remove('resizing');
+      document.body.classList.remove('activity-panel-resizing');
+      document.body.style.userSelect = '';
+    }
+
+    handle.addEventListener('pointerdown', e => {
+      if (panel.classList.contains('fullscreen')) return;
+      e.preventDefault();
+      startX = e.clientX;
+      startWidth = panel.getBoundingClientRect().width;
+      panel.classList.add('resizing');
+      document.body.classList.add('activity-panel-resizing');
+      document.body.style.userSelect = 'none';
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
+    });
+  })();
+
+  // Läser av formuläret och skriver in värdena i den hopfällda raden
+  // innan den stängs, så att "Spara" faktiskt sparar något.
+  function saveActivity(id) {
+    const wrapper = document.getElementById(id);
+    const form = document.getElementById('activityPanelBody').querySelector('.activity-form');
+    const row = wrapper.querySelector('.activity-row');
+
+    const titleInput = form.querySelector('.field-input[type="text"]');
+    const typeSelect = form.querySelector('.field-select select');
+    const timeInput = form.querySelector('.time-input');
+
+    if (titleInput) {
+      const title = titleInput.value.trim();
+      titleInput.setAttribute('value', title);
+      const titleEl = row.querySelector('.activity-title');
+      if (titleEl) titleEl.textContent = title;
+    }
+
+    if (timeInput) {
+      const time = timeInput.value;
+      timeInput.setAttribute('value', time);
+      const timeEl = row.querySelector('.activity-time');
+      if (timeEl) timeEl.textContent = time + ' min';
+    }
+
+    if (typeSelect && ACTIVITY_TYPES[typeSelect.value]) {
+      const typeLabel = typeSelect.value;
+      const { iconClass, icon } = ACTIVITY_TYPES[typeLabel];
+
+      const iconEl = row.querySelector('.activity-icon');
+      iconEl.className = 'activity-icon ' + iconClass;
+      iconEl.title = typeLabel;
+      iconEl.innerHTML = `<i data-lucide="${icon}"></i>`;
+
+      const selectIcon = form.querySelector('.field-select-icon');
+      if (selectIcon) {
+        selectIcon.className = 'field-select-icon ' + iconClass;
+        selectIcon.innerHTML = `<i data-lucide="${icon}"></i>`;
+      }
+
+      Array.from(typeSelect.options).forEach(opt => {
+        if (opt.value === typeLabel) opt.setAttribute('selected', '');
+        else opt.removeAttribute('selected');
+      });
+
+      lucide.createIcons({ nodes: [iconEl, selectIcon].filter(Boolean) });
+    }
+
+    // Läsvyn (Typ/Beskrivning/Tid) byggs om från samma fält, så den aldrig
+    // blir inaktuell mot det som faktiskt sparades i formuläret.
+    const readView = wrapper.querySelector('.activity-read');
+    if (readView) {
+      const finalType = typeSelect ? typeSelect.value : (row.querySelector('.activity-icon')?.title || 'Aktivitet');
+      const finalDesc = form.querySelector('.inline-editable-body')?.innerHTML.trim() || '';
+      const finalTime = timeInput ? timeInput.value : '';
+      readView.innerHTML = buildActivityReadFields(finalType, finalDesc, finalTime);
+    }
+
+    closeActivity(id);
+    recalcLessonTimes();
+    saveState();
+  }
+
+  function toggleThought(card) {
+    card.classList.toggle('open');
+  }
+
+  // Samma radmönster för Centralt innehåll (goalsList) och Betygskriterier (criteriaList)
+  const GOAL_LISTS = {
+    goalsList:    { icon: 'square-check', iconClass: '',                    placeholder: 'Nytt centralt innehåll…' },
+    criteriaList: { icon: 'target',       iconClass: 'goal-check-criteria', placeholder: 'Nytt betygskriterium…' },
+  };
+
+  function addGoal(listId = 'goalsList') {
+    const list = document.getElementById(listId);
+    const cfg = GOAL_LISTS[listId];
+    const div = document.createElement('div');
+    div.className = 'goal-item';
+    div.innerHTML = `
+      <div class="drag-handle edit-only" title="Dra för att ändra ordning">
+        <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
+      </div>
+      <div class="goal-check ${cfg.iconClass}">
+        <i data-lucide="${cfg.icon}"></i>
+      </div>
+      <div class="goal-text" contenteditable="true" data-placeholder="${cfg.placeholder}"></div>
+      <button class="goal-delete" onclick="deleteGoal(this)" title="Ta bort"><i data-lucide="x"></i></button>
+    `;
+    list.appendChild(div);
+    lucide.createIcons({ nodes: [div] });
+    div.querySelector('[contenteditable]').focus();
+    saveState();
+  }
+
+  function deleteGoal(btn) {
+    btn.closest('.goal-item').remove();
+    saveState();
+  }
+
+  // Spara en rad när man klickar utanför den efter redigering
+  Object.keys(GOAL_LISTS).forEach(listId => {
+    document.getElementById(listId).addEventListener('focusout', e => {
+      if (e.target.classList.contains('goal-text')) saveState();
+    });
+  });
+
+  // Generic popover toggle (section "add" menu, status, share, export …)
+  function toggleAppPopover(btn) {
+    const menu = btn.nextElementSibling;
+    const isOpen = menu.classList.contains('open');
+    closeAllMenuPopovers();
+    if (!isOpen) {
+      const rect = btn.getBoundingClientRect();
+      menu.style.top = rect.bottom + 6 + 'px';
+      menu.style.right = window.innerWidth - rect.right + 'px';
+      menu.classList.add('open');
+    }
+  }
+
+  function closeAllMenuPopovers() {
+    document.querySelectorAll('.menu-popover.open').forEach(m => m.classList.remove('open'));
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.section-head-actions') && !e.target.closest('.popover-wrap')) {
+      closeAllMenuPopovers();
+    }
+  });
+
+  // ── Klass (inline, väljs ur klasskatalogen) ──
+  // Fältet under Detaljer fungerar som en dropdown: klicka på texten/taggen
+  // för att välja en klass ur katalogen, eller ta bort valet med krysset på
+  // taggen. Ett upplägg behöver ingen klass — "Ej tilldelad" är giltigt och
+  // låter läraren bygga upplägg i förväg, innan klassen finns.
+  function renderClassTag(klass) {
+    const trigger = document.getElementById('classPickerTrigger');
+    trigger.dataset.klass = klass || '';
+    trigger.innerHTML = klass
+      ? `<span class="class-tag">${klass}<button type="button" class="class-tag-remove" onclick="event.stopPropagation(); clearClass();" title="Ta bort klass"><i data-lucide="x"></i></button></span>`
+      : `<span class="class-tag is-empty">Ej tilldelad</span>`;
+    lucide.createIcons({ nodes: [trigger] });
+  }
+
+  function selectClass(klass) {
+    renderClassTag(klass);
+    closeAllMenuPopovers();
+    saveState();
+  }
+
+  function clearClass() {
+    renderClassTag('');
+    closeAllMenuPopovers();
+    saveState();
+  }
+
+  function handleStructureAdd(type) {
+    closeAllMenuPopovers();
+    if (type === 'activity') addActivity();
+    else if (type === 'suggest') suggestLesson();
+    else addWeek();
+  }
+
+  // ── Föreslå lektion ──
+  function suggestLesson() {
+    const picker = document.getElementById('stylePicker');
+    picker.innerHTML = Object.entries(LESSON_STYLES).map(([key, style]) => `
+      <button type="button" class="style-option" onclick="applyLessonTemplate('${key}')">
+        <span class="style-option-icon"><i data-lucide="${style.icon}"></i></span>
+        <span class="style-option-text">
+          <span class="style-option-title">${style.label}</span>
+          <span class="style-option-desc">${style.desc}</span>
+        </span>
+      </button>
+    `).join('');
+    lucide.createIcons({ nodes: [picker] });
+    document.getElementById('suggestLessonModal').classList.add('open');
+  }
+
+  function closeSuggestLessonModal() {
+    document.getElementById('suggestLessonModal').classList.remove('open');
+  }
+
+  document.getElementById('suggestLessonModal').addEventListener('click', e => {
+    if (e.target.id === 'suggestLessonModal') closeSuggestLessonModal();
+  });
+
+  // Skapar en ny lektion förifylld med vald stils aktivitetsskelett.
+  // Rubrikerna är vägledande, inte färdigt innehåll — läraren redigerar
+  // dem som vilken aktivitet som helst.
+  function applyLessonTemplate(styleKey) {
+    const style = LESSON_STYLES[styleKey];
+    if (!style) return;
+    closeSuggestLessonModal();
+
+    const lessonNumber = document.querySelectorAll('#structureList .lesson-group').length + 1;
+    const list = document.getElementById('structureList');
+    const group = document.createElement('div');
+    group.className = 'lesson-group';
+    group.innerHTML = `
+      <div class="week-row">
+        <div class="drag-handle edit-only" title="Dra för att flytta lektionen">
+          <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
+        </div>
+        <div class="week-pill" contenteditable="true">Lektion ${lessonNumber}: ${style.label}</div>
+      </div>
+      <div class="lesson-activities"></div>
+    `;
+    list.appendChild(group);
+
+    const activitiesList = group.querySelector('.lesson-activities');
+    style.activities.forEach(a => {
+      activityCounter++;
+      const id = 'act' + activityCounter;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'activity-wrapper';
+      wrapper.id = id;
+      wrapper.innerHTML = buildActivityMarkup(id, a);
+      activitiesList.appendChild(wrapper);
+    });
+
+    initActivitySortable(activitiesList);
+    lucide.createIcons({ nodes: [group] });
+    recalcLessonTimes();
+    group.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    saveState();
+  }
+
+  // ── Status (Påbörjad / Avslutad / Kommande) ──
+  function setStatus(status, label) {
+    const btn = document.getElementById('statusBtn');
+    btn.classList.remove('status-started', 'status-finished', 'status-upcoming');
+    btn.classList.add('status-' + status);
+    document.getElementById('statusLabel').textContent = label;
+    closeAllMenuPopovers();
+    saveState();
+  }
+
+  // ── Dela via e-post ──
+  function sendShareEmail() {
+    const email = document.getElementById('shareEmailInput').value.trim();
+    if (!email) return;
+    const title = document.getElementById('planTitle').textContent.trim();
+    const subject = encodeURIComponent(`Upplägg: ${title}`);
+    const body = encodeURIComponent(`Hej!\n\nJag vill dela upplägget "${title}" med dig:\n${window.location.href}\n\nMvh`);
+    window.location.href = `mailto:${encodeURIComponent(email)}?subject=${subject}&body=${body}`;
+    closeAllMenuPopovers();
+  }
+
+  // ── Exportera ──
+  function exportPlan(type) {
+    closeAllMenuPopovers();
+    if (type === 'print') {
+      window.print();
+    } else if (type === 'word') {
+      exportAsWord();
+    } else if (type === 'pptx') {
+      exportAsPptx();
+    }
+  }
+
+  function exportAsWord() {
+    const title = document.getElementById('planTitle').textContent.trim();
+    const idea = document.querySelector('.idea-text').innerText.trim();
+    const goals = Array.from(document.querySelectorAll('#goalsList .goal-text')).map(g => g.textContent.trim()).filter(Boolean);
+    const criteria = Array.from(document.querySelectorAll('#criteriaList .goal-text')).map(g => g.textContent.trim()).filter(Boolean);
+    const activities = Array.from(document.querySelectorAll('.activity-title')).map(a => a.textContent.trim());
+
+    const html = `<html><head><meta charset="utf-8"></head><body>
+      <h1>${title}</h1>
+      <h2>Pedagogisk idé</h2>
+      <p>${idea}</p>
+      <h2>Centralt innehåll</h2>
+      <ul>${goals.map(g => `<li>${g}</li>`).join('')}</ul>
+      ${criteria.length ? `<h2>Betygskriterier</h2>
+      <ul>${criteria.map(c => `<li>${c}</li>`).join('')}</ul>` : ''}
+      <h2>Struktur och tidslinje</h2>
+      <ol>${activities.map(a => `<li>${a}</li>`).join('')}</ol>
+    </body></html>`;
+
+    const blob = new Blob(['﻿', html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = title.replace(/[^\w åäöÅÄÖ-]+/g, '_') + '.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Exportera som PowerPoint (skelett) ──
+  // Bygger ett enkelt, oformgivet utkast utifrån upplägget: en rubrikslide,
+  // centralt innehåll, betygskriterier, en delare per lektion och en slide per aktivitet med en
+  // streckad platshållare. Ingen design eller innehåll läggs till åt
+  // läraren, det är meningen att hen öppnar filen i PowerPoint/Slides/Keynote
+  // och fyller i själv. Färgerna speglar samma typ-kodning som i appen
+  // (se ACTIVITY_TYPES och .icon-* i styles.css).
+  const PPTX_TYPE_COLORS = {
+    'icon-discussion': { fg: '7C3AED', bg: 'F2EEFE' },
+    'icon-review':     { fg: 'D97706', bg: 'FEF3C7' },
+    'icon-activity':   { fg: '3B82F6', bg: 'EAF2FE' },
+    'icon-exit':       { fg: 'DC2626', bg: 'FEE2E2' },
+    'icon-reading':    { fg: '0D9488', bg: 'CCFBF1' },
+  };
+  const PPTX_NAVY = '16233F';
+  const PPTX_BLUE = '2966CE';
+  const PPTX_ICE = 'CFE0FF';
+  const PPTX_ICE_DIM = '8FA8D9';
+  const PPTX_INK = '2C2C2A';
+  const PPTX_MUTED = '5F5E5A';
+  const PPTX_FAINT = 'D8DCE5';
+
+  function readPlanForExport() {
+    const title = document.getElementById('planTitle').textContent.trim();
+    const subject = document.getElementById('detailSubject').textContent.trim();
+    const grade = document.getElementById('detailGrade').textContent.trim();
+    const goals = Array.from(document.querySelectorAll('#goalsList .goal-text')).map(g => g.textContent.trim()).filter(Boolean);
+    const criteria = Array.from(document.querySelectorAll('#criteriaList .goal-text')).map(g => g.textContent.trim()).filter(Boolean);
+
+    const lessons = Array.from(document.querySelectorAll('.lesson-group')).map(group => {
+      const durationVal = group.querySelector('.lesson-time-pill-value')?.textContent.trim();
+      const activities = Array.from(group.querySelectorAll('.activity-wrapper')).map(node => {
+        const iconEl = node.querySelector('.activity-icon');
+        const typeClass = Object.keys(PPTX_TYPE_COLORS).find(c => iconEl.classList.contains(c)) || 'icon-discussion';
+        const type = iconEl.title || 'Aktivitet';
+        const activityTitle = node.querySelector('.activity-title').textContent.trim();
+        const time = node.querySelector('.activity-time').textContent.trim();
+        const descField = Array.from(node.querySelectorAll('.activity-read .read-field')).find(f =>
+          f.querySelector('.read-field-label')?.textContent.trim() === 'Beskrivning');
+        const desc = descField ? descField.querySelector('.read-field-value').textContent.trim() : '';
+        const file = node.querySelector('.activity-row .file-chip-sm')?.textContent.trim() || '';
+        return { type, typeClass, title: activityTitle, time, desc, file };
+      });
+      return {
+        name: group.querySelector('.week-pill').textContent.trim(),
+        duration: durationVal ? parseMinutes(durationVal) : null,
+        activities,
+      };
+    });
+
+    return { title, subject, grade, goals, criteria, lessons };
+  }
+
+  async function exportAsPptx() {
+    closeAllMenuPopovers();
+    const plan = readPlanForExport();
+    const pres = new PptxGenJS();
+    pres.layout = 'LAYOUT_WIDE'; // 13.3" x 7.5"
+    const H = 7.5;
+
+    const totalMin = plan.lessons.reduce((sum, l) => sum + l.activities.reduce((s, a) => s + (parseInt(a.time, 10) || 0), 0), 0);
+    const totalActivities = plan.lessons.reduce((sum, l) => sum + l.activities.length, 0);
+
+    // ── Titelslide ──
+    {
+      const s = pres.addSlide();
+      s.background = { color: PPTX_NAVY };
+      s.addShape('roundRect', { x: 0.6, y: 0.55, w: 0.42, h: 0.42, rectRadius: 0.09, fill: { color: PPTX_BLUE } });
+      s.addText('L', { x: 0.6, y: 0.55, w: 0.42, h: 0.42, isTextBox: true, margin: 0, align: 'center', valign: 'middle', fontFace: 'Calibri', fontSize: 16, bold: true, color: 'FFFFFF' });
+      s.addText('LOSSI · GENERERAT UTKAST', { x: 1.15, y: 0.55, w: 8, h: 0.42, isTextBox: true, margin: 0, fontFace: 'Calibri', fontSize: 12, bold: true, color: PPTX_ICE_DIM, charSpacing: 2, valign: 'middle' });
+      s.addText(plan.title || 'Namnlöst upplägg', { x: 0.6, y: 2.5, w: 12.1, h: 1.8, isTextBox: true, margin: 0, fontFace: 'Cambria', fontSize: 40, bold: true, color: 'FFFFFF', valign: 'bottom' });
+      s.addText([plan.subject, plan.grade].filter(Boolean).join('  ·  '), { x: 0.6, y: 4.35, w: 10, h: 0.5, isTextBox: true, margin: 0, fontFace: 'Calibri', fontSize: 18, color: PPTX_ICE, valign: 'top' });
+      s.addShape('line', { x: 0.6, y: 6.55, w: 12.1, h: 0, line: { color: '29406B', width: 1 } });
+      s.addText(`${plan.lessons.length} lektion${plan.lessons.length === 1 ? '' : 'er'}`, { x: 0.6, y: 6.75, w: 8, h: 0.4, isTextBox: true, margin: 0, fontFace: 'Calibri', fontSize: 13, bold: true, color: PPTX_ICE });
+      s.addText(`${totalActivities} moment  ·  ${totalMin} min totalt`, { x: 8.7, y: 6.75, w: 4, h: 0.4, isTextBox: true, margin: 0, align: 'right', fontFace: 'Calibri', fontSize: 13, color: PPTX_ICE_DIM });
+    }
+
+    // ── Centralt innehåll och betygskriterier: en listslide var ──
+    const addListSlide = (heading, items, mark, markColor, markFill) => {
+      if (!items.length) return;
+      const s = pres.addSlide();
+      s.background = { color: 'FFFFFF' };
+      s.addText(heading, { x: 0.7, y: 0.6, w: 11.9, h: 0.8, isTextBox: true, margin: 0, fontFace: 'Cambria', fontSize: 32, bold: true, color: PPTX_INK });
+      // Längre texter (t.ex. ämnesplanens formuleringar) får mindre text och högre rader
+      const long = items.some(t => t.length > 110);
+      const rowH = long ? 1.15 : 1.05;
+      let y = 2.0;
+      items.forEach(item => {
+        s.addShape('ellipse', { x: 0.7, y, w: 0.5, h: 0.5, fill: { color: markFill }, line: { type: 'none' } });
+        s.addText(mark, { x: 0.7, y, w: 0.5, h: 0.5, isTextBox: true, margin: 0, align: 'center', valign: 'middle', fontFace: 'Calibri', fontSize: 16, bold: true, color: markColor });
+        s.addText(item, { x: 1.5, y: y - 0.05, w: 11, h: rowH - 0.1, isTextBox: true, margin: 0, valign: 'top', fontFace: 'Calibri', fontSize: long ? 14 : 17, color: PPTX_INK, fit: 'shrink' });
+        y += rowH;
+      });
+    };
+    addListSlide('Centralt innehåll', plan.goals, '✓', PPTX_BLUE, 'EAF2FE');
+    addListSlide('Betygskriterier', plan.criteria, '◎', '7C3AED', 'F2EEFE');
+
+    // ── En delare + en slide per aktivitet, per lektion ──
+    plan.lessons.forEach((lesson, li) => {
+      const lessonMin = lesson.activities.reduce((s, a) => s + (parseInt(a.time, 10) || 0), 0);
+      {
+        const s = pres.addSlide();
+        s.background = { color: PPTX_NAVY };
+        s.addText(`LEKTION ${li + 1}`, { x: 0.6, y: 2.9, w: 12.1, h: 0.5, isTextBox: true, margin: 0, fontFace: 'Calibri', fontSize: 14, bold: true, color: '6FA0F5', charSpacing: 3 });
+        s.addText(lesson.name.replace(/^Lektion\s*\d+:?\s*/i, '').replace(/^Vecka\s*\d+:?\s*/i, '') || lesson.name, { x: 0.6, y: 3.35, w: 12.1, h: 1.2, isTextBox: true, margin: 0, fontFace: 'Cambria', fontSize: 38, bold: true, color: 'FFFFFF' });
+        const overBudget = lesson.duration && lessonMin > lesson.duration;
+        const timeLine = lesson.duration
+          ? (overBudget ? `${lessonMin} av ${lesson.duration} min · ${lessonMin - lesson.duration} min för mycket` : `${lessonMin} av ${lesson.duration} min`)
+          : `${lessonMin} min`;
+        s.addText(`${lesson.activities.length} moment  ·  ${timeLine}`, { x: 0.6, y: 4.5, w: 12.1, h: 0.5, isTextBox: true, margin: 0, fontFace: 'Calibri', fontSize: 16, color: overBudget ? 'F87171' : PPTX_ICE_DIM, bold: overBudget });
+      }
+
+      lesson.activities.forEach(a => {
+        const t = PPTX_TYPE_COLORS[a.typeClass];
+        const s = pres.addSlide();
+        s.background = { color: 'FFFFFF' };
+
+        s.addShape('ellipse', { x: 0.7, y: 0.65, w: 0.6, h: 0.6, fill: { color: t.bg }, line: { type: 'none' } });
+        s.addText((a.type[0] || '?').toUpperCase(), { x: 0.7, y: 0.65, w: 0.6, h: 0.6, isTextBox: true, margin: 0, align: 'center', valign: 'middle', fontFace: 'Calibri', fontSize: 20, bold: true, color: t.fg });
+        s.addText(a.type.toUpperCase(), { x: 1.45, y: 0.65, w: 4, h: 0.6, isTextBox: true, margin: 0, valign: 'middle', fontFace: 'Calibri', fontSize: 13, bold: true, color: t.fg, charSpacing: 1.5 });
+
+        s.addShape('roundRect', { x: 11.6, y: 0.75, w: 1.0, h: 0.42, rectRadius: 0.21, fill: { color: t.bg }, line: { type: 'none' } });
+        s.addText(a.time || '–', { x: 11.6, y: 0.75, w: 1.0, h: 0.42, isTextBox: true, margin: 0, align: 'center', valign: 'middle', fontFace: 'Calibri', fontSize: 13, bold: true, color: t.fg });
+
+        s.addText(a.title || 'Namnlöst moment', { x: 0.7, y: 1.65, w: 11.9, h: 1.3, isTextBox: true, margin: 0, fontFace: 'Cambria', fontSize: 28, bold: true, color: PPTX_INK });
+
+        let contentTop = 3.05;
+        if (a.desc) {
+          s.addText(a.desc, { x: 0.7, y: contentTop, w: 11.9, h: 0.6, isTextBox: true, margin: 0, fontFace: 'Calibri', fontSize: 15, color: PPTX_MUTED });
+          contentTop += 0.85;
+        }
+        if (a.file) {
+          s.addShape('roundRect', { x: 0.7, y: contentTop, w: 3.6, h: 0.55, rectRadius: 0.08, fill: { color: 'F5F4F1' }, line: { type: 'none' } });
+          s.addText(a.file, { x: 1.0, y: contentTop, w: 3.2, h: 0.55, isTextBox: true, margin: 0, valign: 'middle', fontFace: 'Calibri', fontSize: 13, color: PPTX_INK });
+          contentTop += 0.9;
+        }
+
+        const boxH = H - 0.6 - contentTop;
+        if (boxH > 1.2) {
+          s.addShape('roundRect', { x: 0.7, y: contentTop, w: 11.9, h: boxH, rectRadius: 0.1, fill: { type: 'none' }, line: { color: PPTX_FAINT, width: 1.5, dashType: 'dash' } });
+          s.addText('+', { x: 6.05, y: contentTop + boxH / 2 - 0.65, w: 1.2, h: 0.7, isTextBox: true, margin: 0, align: 'center', valign: 'middle', fontFace: 'Calibri', fontSize: 34, color: 'B7BECC' });
+          s.addText('Lägg till bilder, frågor eller material här', { x: 0.7, y: contentTop + boxH / 2 + 0.15, w: 11.9, h: 0.4, isTextBox: true, margin: 0, align: 'center', fontFace: 'Calibri', fontSize: 13, color: '9AA2B1' });
+        }
+      });
+    });
+
+    const fileName = (plan.title || 'upplägg').replace(/[^\w åäöÅÄÖ-]+/g, '_');
+    await pres.writeFile({ fileName: fileName + '.pptx' });
+  }
+
+  // ── Redigera direkt på sidan: avatar, ämne, årskurs ──
+  // Klick på avataren öppnar bildväljaren; valet sparas direkt.
+  const planAvatarPopover = document.getElementById('planAvatarPopover');
+  planAvatarPopover.querySelector('.avatar-picker').innerHTML = buildAvatarPickerHTML();
+
+  function togglePlanAvatarPopover() {
+    const isOpen = planAvatarPopover.classList.contains('open');
+    closeAllMenuPopovers();
+    if (isOpen) return;
+    const current = document.getElementById('planIcon').dataset.avatar;
+    planAvatarPopover.querySelectorAll('.avatar-picker-btn').forEach(b => b.classList.toggle('selected', b.dataset.avatar === current));
+    // Vänsterjusterad under avataren (toggleAppPopover högerjusterar)
+    const rect = document.getElementById('planIcon').getBoundingClientRect();
+    planAvatarPopover.style.top = rect.bottom + 6 + 'px';
+    planAvatarPopover.style.left = rect.left + 'px';
+    planAvatarPopover.style.right = 'auto';
+    planAvatarPopover.classList.add('open');
+  }
+
+  function onPlanAvatarPicked(avatarId) {
+    renderPlanIcon(avatarId);
+    closeAllMenuPopovers();
+    saveState();
+  }
+
+  // Ämne och årskurs väljs i Detaljer, på samma sätt som Klass
+  function fillDetailMenu(menuId, label, values, fieldId) {
+    document.getElementById(menuId).innerHTML = `<div class="menu-popover-label">${label}</div>` +
+      values.map(v => `<button type="button" class="menu-popover-item" onclick="setDetailField('${fieldId}', '${v}')">${v}</button>`).join('');
+  }
+  fillDetailMenu('subjectMenu', 'Ämne', PLAN_SUBJECTS, 'detailSubject');
+  fillDetailMenu('gradeMenu', 'Årskurs', PLAN_GRADES, 'detailGrade');
+
+  function setDetailField(fieldId, value) {
+    document.getElementById(fieldId).textContent = value;
+    closeAllMenuPopovers();
+    saveState();
+  }
+
+  // ── Ta bort aktivitet (bekräftelse) ──
+  let pendingDeleteActivityId = null;
+
+  function confirmDeleteActivity(id) {
+    pendingDeleteActivityId = id;
+    const titleEl = document.getElementById(id).querySelector('.activity-title');
+    document.getElementById('deleteActivityName').textContent = titleEl ? `"${titleEl.textContent.trim()}"` : 'den här aktiviteten';
+    document.getElementById('deleteActivityModal').classList.add('open');
+  }
+
+  function closeDeleteActivityModal() {
+    document.getElementById('deleteActivityModal').classList.remove('open');
+    pendingDeleteActivityId = null;
+  }
+
+  function deleteActivityConfirmed() {
+    if (pendingDeleteActivityId) {
+      // Lägg tillbaka formuläret/läsvyn från panelen (om det är den som tas bort)
+      // innan hela aktiviteten plockas bort, så inget blir kvar hängande i panelen.
+      if (pendingDeleteActivityId === openActivityId) closeActivity(pendingDeleteActivityId);
+      const wrapper = document.getElementById(pendingDeleteActivityId);
+      if (wrapper) wrapper.remove();
+      recalcLessonTimes();
+      saveState();
+    }
+    closeDeleteActivityModal();
+  }
+
+  document.getElementById('deleteActivityModal').addEventListener('click', e => {
+    if (e.target.id === 'deleteActivityModal') closeDeleteActivityModal();
+  });
+
+  let activityCounter = 5;
+  function addActivity() {
+    activityCounter++;
+    const id = 'act' + activityCounter;
+    // Ny aktivitet hamnar i den sista lektionen — går snabbt att dra till
+    // en annan lektion om det är fel plats.
+    const lessonLists = document.querySelectorAll('.lesson-activities');
+    const list = lessonLists[lessonLists.length - 1];
+    if (!list) return;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'activity-wrapper';
+    wrapper.id = id;
+    wrapper.innerHTML = buildActivityMarkup(id, { type: 'Diskussion', title: 'Ny aktivitet' });
+    list.appendChild(wrapper);
+    lucide.createIcons({ nodes: [wrapper] });
+    wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    openActivity(id);
+    document.getElementById('activityPanelBody').querySelector('.field-input')?.focus();
+    recalcLessonTimes();
+    saveState();
+  }
+
+  // ── Duplicera aktivitet ──
+  // Klonar hela aktiviteten (formulär + läsvy) och ger kopian ett nytt id.
+  // Om aktiviteten som dupliceras just nu ligger öppen i panelen, flyttas
+  // dess innehåll tillbaka till raden först (annars klonas en tom kortbox,
+  // eftersom openActivity() flyttar ut formuläret/läsvyn ur wrappern).
+  function duplicateActivity(id) {
+    if (openActivityId === id) closeActivity(id);
+    const original = document.getElementById(id);
+    if (!original) return;
+
+    activityCounter++;
+    const newId = 'act' + activityCounter;
+    const html = original.outerHTML.replace(new RegExp(id + '(?!\\d)', 'g'), newId);
+
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    const clone = temp.firstElementChild;
+    clone.classList.remove('active');
+
+    const titleEl = clone.querySelector('.activity-title');
+    if (titleEl) {
+      titleEl.textContent = titleEl.textContent.trim() + ' (kopia)';
+      const titleInput = clone.querySelector('.activity-form .field-input[type="text"]');
+      if (titleInput) {
+        titleInput.value = titleEl.textContent;
+        titleInput.setAttribute('value', titleEl.textContent);
+      }
+    }
+
+    original.after(clone);
+    lucide.createIcons({ nodes: [clone] });
+    closeAllMenuPopovers();
+    recalcLessonTimes();
+    saveState();
+  }
+
+  // ── Lektionsstatus ──
+  // Varje lektionsrad får en knapp för att markera lektionen som avklarad.
+  // Knappen läggs till här (inte i HTML:en) så att den även hamnar på rader
+  // som redan finns i sparat läge. Statusen är klassen "done" på raden och
+  // följer med när tidslinjen sparas.
+  // ── Lektionskontroller: avklarad-status + lektionstid ──
+  // Varje lektionsrad (week-row) får två injicerade kontroller, direkt efter
+  // namnet: en avklarad-knapp och en inline-editerbar pill för hur lång
+  // lektionen är (samma redigeringskänsla som week-pill). Injiceras via JS
+  // så äldre sparade upplägg också får dem, och städar bort den äldre,
+  // mer pratiga varianten (etikett + fält + sammanfattningstext) om den
+  // finns kvar sparad sedan tidigare.
+  function ensureLessonControls(scope) {
+    (scope || document).querySelectorAll('.week-row').forEach(row => {
+      row.querySelector('.lesson-duration')?.remove();
+      row.querySelector('.lesson-time-summary')?.remove();
+
+      const pill = row.querySelector('.week-pill');
+      let statusBtn = row.querySelector('.lesson-status-btn');
+      if (!statusBtn) {
+        statusBtn = document.createElement('button');
+        statusBtn.className = 'lesson-status-btn';
+        statusBtn.type = 'button';
+        statusBtn.innerHTML = `
+          <span class="ls-off"><i data-lucide="circle"></i></span>
+          <span class="ls-on"><i data-lucide="circle-check"></i></span>
+          <span class="ls-label">Avklarad</span>
+        `;
+        pill.after(statusBtn);
+        syncLessonStatusTitle(row);
+      }
+
+      if (!row.querySelector('.lesson-time-pill')) {
+        const timePill = document.createElement('div');
+        timePill.className = 'lesson-time-pill';
+        timePill.innerHTML = `
+          <span class="lesson-time-pill-icon"><i data-lucide="triangle-alert"></i></span>
+          <span class="lesson-time-pill-value" contenteditable="true" data-placeholder="–" title="Ange lektionens längd i minuter"></span>
+          <span class="lesson-time-pill-unit">min</span>
+        `;
+        statusBtn.after(timePill);
+      }
+
+      lucide.createIcons({ nodes: [row] });
+    });
+  }
+
+  function syncLessonStatusTitle(row) {
+    const btn = row.querySelector('.lesson-status-btn');
+    if (btn) btn.title = row.classList.contains('done') ? 'Markera som ej avklarad' : 'Markera som avklarad';
+  }
+
+  // ── Dra och släpp ──
+  // Aktiviteter kan dras mellan lektioner, inte bara inom samma — alla
+  // .lesson-activities-listor delar samma group-namn, vilket är det som
+  // gör det möjligt i SortableJS. Hela lektioner (med sina aktiviteter)
+  // går att dra om sinsemellan separat, via ett eget group-namn så de två
+  // inte blandas ihop. Draghandtaget är det enda som startar en dragning,
+  // så det krockar inte med att klicka på raden för att öppna den.
+  function initActivitySortable(el) {
+    if (!el || el.dataset.sortableInit) return;
+    el.dataset.sortableInit = '1';
+    Sortable.create(el, {
+      group: 'lossi-activities',
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      onEnd: () => { recalcLessonTimes(); saveState(); },
+    });
+  }
+
+  function initLessonSortable() {
+    const list = document.getElementById('structureList');
+    if (list.dataset.sortableInit) return;
+    list.dataset.sortableInit = '1';
+    Sortable.create(list, {
+      group: 'lossi-lessons',
+      handle: '.week-row .drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      onEnd: () => { recalcLessonTimes(); saveState(); },
+    });
+  }
+
+  // Körs vid sidladdning (även efter loadState(), som byter ut hela
+  // strukturens innerHTML och därmed skapar nya .lesson-activities-noder
+  // som behöver initieras på nytt). Nya lektioner som läggs till efteråt
+  // initierar sin egen lista direkt i addWeek().
+  function initAllSortables() {
+    initLessonSortable();
+    document.querySelectorAll('.lesson-activities').forEach(initActivitySortable);
+  }
+
+  function parseMinutes(text) {
+    const m = /(\d+)/.exec(text || '');
+    return m ? parseInt(m[1], 10) : 0;
+  }
+
+  // Räknar om varje lektions planerade tid mot dess satta lektionstid och
+  // visar varningsläget (röd pill + triangel) om aktiviteterna tillsammans
+  // överstiger den. Körs efter allt som kan ändra tider: aktiviteter
+  // sparas/läggs till/tas bort, lektionstiden ändras, ny lektion läggs
+  // till, och vid sidladdning.
+  function recalcLessonTimes() {
+    ensureLessonControls();
+    document.querySelectorAll('.lesson-group').forEach(group => {
+      const sum = Array.from(group.querySelectorAll('.activity-time'))
+        .reduce((s, el) => s + parseMinutes(el.textContent), 0);
+      const timePill = group.querySelector('.lesson-time-pill');
+      const valueEl = timePill.querySelector('.lesson-time-pill-value');
+      const duration = valueEl.textContent.trim() ? parseMinutes(valueEl.textContent) : null;
+      timePill.classList.toggle('over', !!(duration && sum > duration));
+    });
+  }
+
+  document.getElementById('structureList').addEventListener('input', e => {
+    if (e.target.classList.contains('lesson-time-pill-value')) {
+      recalcLessonTimes();
+      saveState();
+    }
+  });
+
+  document.getElementById('structureList').addEventListener('click', e => {
+    const btn = e.target.closest('.lesson-status-btn');
+    if (!btn) return;
+    const row = btn.closest('.week-row');
+    row.classList.toggle('done');
+    syncLessonStatusTitle(row);
+    saveState();
+  });
+
+  recalcLessonTimes();
+  initAllSortables();
+
+  function addWeek() {
+    const lessonNumber = document.querySelectorAll('#structureList .lesson-group').length + 1;
+    const list = document.getElementById('structureList');
+    const group = document.createElement('div');
+    group.className = 'lesson-group';
+    group.innerHTML = `
+      <div class="week-row">
+        <div class="drag-handle edit-only" title="Dra för att flytta lektionen">
+          <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
+        </div>
+        <div class="week-pill" contenteditable="true">Lektion ${lessonNumber}: Ny lektion</div>
+      </div>
+      <div class="lesson-activities"></div>
+    `;
+    list.appendChild(group);
+    initActivitySortable(group.querySelector('.lesson-activities'));
+    lucide.createIcons({ nodes: [group] });
+    recalcLessonTimes();
+    group.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    const pill = group.querySelector('.week-pill');
+    pill.focus();
+    const range = document.createRange();
+    range.selectNodeContents(pill);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    saveState();
+  }
+
+  // Spara en vecko-etikett när man klickar utanför den efter redigering
+  document.getElementById('structureList').addEventListener('focusout', e => {
+    if (e.target.classList.contains('week-pill')) saveState();
+  });
+
+  // Idea text save/cancel
+  const ideaText = document.querySelector('.idea-text');
+  const ideaEditor = document.querySelector('.idea-editor');
+  let ideaSnapshot = '';
+
+  ideaText.addEventListener('focus', () => {
+    ideaSnapshot = ideaText.innerHTML;
+    ideaEditor.classList.add('active');
+  });
+
+  function saveIdeaText() {
+    ideaEditor.classList.remove('active');
+    ideaText.blur();
+    saveState();
+  }
+
+  function cancelIdeaText() {
+    ideaText.innerHTML = ideaSnapshot;
+    ideaEditor.classList.remove('active');
+    ideaText.blur();
+  }
+
+  // Rich text-fält utan egen Spara/Avbryt-rad (t.ex. Beskrivning i
+  // aktivitetsformuläret, som redan sparas via formulärets egen
+  // Spara-knapp) togglar bara "active" automatiskt vid fokus. Fält som
+  // HAR en .inline-editable-actions-rad efter sig (Pedagogisk idé) sköter
+  // det själva ovan, så de rörs inte här.
+  function isSelfManagedInlineEditable(wrap) {
+    return wrap.nextElementSibling?.classList.contains('inline-editable-actions');
+  }
+
+  document.addEventListener('focusin', e => {
+    const wrap = e.target.closest('.inline-editable-rich');
+    if (wrap && !isSelfManagedInlineEditable(wrap)) wrap.classList.add('active');
+  });
+
+  document.addEventListener('focusout', e => {
+    const wrap = e.target.closest('.inline-editable-rich');
+    if (wrap && !isSelfManagedInlineEditable(wrap)) wrap.classList.remove('active');
+  });
+
+  // Håll asiden och webbläsarfliken i synk med titeln
+  document.getElementById('planTitle').addEventListener('input', function () {
+    const title = this.textContent.trim();
+    updateAsidePlan(planId || '1', { title });
+    document.title = (title || 'Namnlöst upplägg') + ' | Lossi';
+  });
+  document.getElementById('planTitle').addEventListener('blur', saveState);
+</script>
+</body>
+</html>

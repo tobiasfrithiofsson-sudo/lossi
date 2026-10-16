@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lossi – Pedagogiska upplägg för lärare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="landing.css" />
+  <link rel="stylesheet" href="theme.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="theme.js"></script>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav class="nav">
+  <p class="sec-tag">nav</p>
+  <div class="nav-inner">
+  <a href="landing.html" class="nav-logo">
+    <div class="nav-logo-mark">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="lossiLogoGradient" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#FF8A3D"/>
+            <stop offset="1" stop-color="#E24B4A"/>
+          </linearGradient>
+        </defs>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M29.9401 12.4167C31.2712 12.4168 32.3112 13.0102 33.0599 14.1953C33.836 15.354 34.2239 17.0258 34.224 19.2109C34.224 22.3449 33.3092 25.9799 31.4792 30.1146C29.649 34.2493 27.1673 38.3454 24.0339 42.401C24.2278 43.4807 24.5462 44.2577 24.9896 44.7318C25.4333 45.1795 26.016 45.4036 26.737 45.4036C27.8739 45.4036 28.8721 45.1005 29.7318 44.4948C30.2226 44.1338 30.7851 43.6261 31.4297 42.9818C31.3542 42.4842 31.3177 41.9745 31.3177 41.4531C31.3177 39.4516 31.7053 37.6737 32.4818 36.1198C33.286 34.5396 34.3678 33.3144 35.7266 32.4453C37.0851 31.55 38.6107 31.1017 40.3021 31.1016C41.9382 31.1016 43.3404 31.4989 44.5052 32.2891C45.6692 33.0527 46.5427 34.0669 47.125 35.3307C47.707 36.5946 47.9973 37.9504 47.9974 39.3984C47.9974 41.3999 47.5958 43.1907 46.7917 44.7708C45.9876 46.3248 44.8919 47.5499 43.5052 48.4453C42.1465 49.3143 40.6353 49.75 38.9714 49.75C37.3356 49.75 35.9352 49.3676 34.7708 48.6042C34.0051 48.072 33.3684 47.4294 32.8542 46.6823C32.1378 47.3331 31.3889 47.9095 30.6042 48.4063C29.2178 49.3014 27.6365 49.75 25.862 49.75C23.4222 49.7497 21.6062 48.6953 20.4141 46.5885C19.2494 44.4817 18.6667 41.7562 18.6667 38.4115C18.6667 35.1986 19.0962 31.538 19.9557 27.4297C20.8431 23.3212 22.134 19.7909 23.8255 16.8411C25.545 13.8917 27.5829 12.4167 29.9401 12.4167ZM39.9714 35.3698C38.9729 35.3698 38.1397 35.8565 37.474 36.8307C36.8362 37.7789 36.5182 39.2027 36.5182 41.099C36.5184 42.5995 36.7944 43.7057 37.349 44.4167C37.9035 45.1278 38.5977 45.4818 39.4297 45.4818C40.3724 45.4816 41.1616 44.9951 41.7995 44.0208C42.4649 43.0464 42.7994 41.6248 42.7995 39.7552C42.7995 38.3069 42.5207 37.214 41.9661 36.4766C41.4119 35.7395 40.7473 35.3702 39.9714 35.3698ZM29.0234 16.3281C28.3858 16.3295 27.6657 17.4223 26.862 19.6068C26.0577 21.7927 25.3496 24.5054 24.7396 27.7448C24.1296 30.9841 23.7977 34.0917 23.7422 37.0677C25.7108 33.9865 27.278 30.9041 28.4427 27.8229C29.6071 24.7157 30.19 21.8851 30.1901 19.3307C30.1901 17.3291 29.7998 16.3281 29.0234 16.3281Z" fill="url(#lossiLogoGradient)"/>
+        <path d="M53.3333 0C59.2244 6.87207e-07 64 4.77563 64 10.6667V53.3333C64 59.2244 59.2244 64 53.3333 64H10.6667C4.77563 64 1.71804e-07 59.2244 0 53.3333V10.6667C6.87217e-07 4.77563 4.77563 1.71802e-07 10.6667 0H53.3333ZM10.6667 2.66667C6.24839 2.66667 2.66667 6.24839 2.66667 10.6667V53.3333C2.66667 57.7516 6.24839 61.3333 10.6667 61.3333H53.3333C57.7516 61.3333 61.3333 57.7516 61.3333 53.3333V10.6667C61.3333 6.24839 57.7516 2.66667 53.3333 2.66667H10.6667Z" fill="url(#lossiLogoGradient)"/>
+      </svg>
+    </div>
+  </a>
+  <div class="nav-spacer"></div>
+  <div class="nav-actions">
+    <button class="theme-toggle" onclick="toggleTheme()" title="Byt till mörkt läge"><i data-lucide="moon"></i></button>
+    <a href="index.html" class="btn-nav-login">Logga in</a>
+  </div>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <p class="sec-tag">hero</p>
+  <div class="hero-badges">
+    <div class="hero-badge hero-badge-1">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M29.9401 12.4167C31.2712 12.4168 32.3112 13.0102 33.0599 14.1953C33.836 15.354 34.2239 17.0258 34.224 19.2109C34.224 22.3449 33.3092 25.9799 31.4792 30.1146C29.649 34.2493 27.1673 38.3454 24.0339 42.401C24.2278 43.4807 24.5462 44.2577 24.9896 44.7318C25.4333 45.1795 26.016 45.4036 26.737 45.4036C27.8739 45.4036 28.8721 45.1005 29.7318 44.4948C30.2226 44.1338 30.7851 43.6261 31.4297 42.9818C31.3542 42.4842 31.3177 41.9745 31.3177 41.4531C31.3177 39.4516 31.7053 37.6737 32.4818 36.1198C33.286 34.5396 34.3678 33.3144 35.7266 32.4453C37.0851 31.55 38.6107 31.1017 40.3021 31.1016C41.9382 31.1016 43.3404 31.4989 44.5052 32.2891C45.6692 33.0527 46.5427 34.0669 47.125 35.3307C47.707 36.5946 47.9973 37.9504 47.9974 39.3984C47.9974 41.3999 47.5958 43.1907 46.7917 44.7708C45.9876 46.3248 44.8919 47.5499 43.5052 48.4453C42.1465 49.3143 40.6353 49.75 38.9714 49.75C37.3356 49.75 35.9352 49.3676 34.7708 48.6042C34.0051 48.072 33.3684 47.4294 32.8542 46.6823C32.1378 47.3331 31.3889 47.9095 30.6042 48.4063C29.2178 49.3014 27.6365 49.75 25.862 49.75C23.4222 49.7497 21.6062 48.6953 20.4141 46.5885C19.2494 44.4817 18.6667 41.7562 18.6667 38.4115C18.6667 35.1986 19.0962 31.538 19.9557 27.4297C20.8431 23.3212 22.134 19.7909 23.8255 16.8411C25.545 13.8917 27.5829 12.4167 29.9401 12.4167ZM39.9714 35.3698C38.9729 35.3698 38.1397 35.8565 37.474 36.8307C36.8362 37.7789 36.5182 39.2027 36.5182 41.099C36.5184 42.5995 36.7944 43.7057 37.349 44.4167C37.9035 45.1278 38.5977 45.4818 39.4297 45.4818C40.3724 45.4816 41.1616 44.9951 41.7995 44.0208C42.4649 43.0464 42.7994 41.6248 42.7995 39.7552C42.7995 38.3069 42.5207 37.214 41.9661 36.4766C41.4119 35.7395 40.7473 35.3702 39.9714 35.3698ZM29.0234 16.3281C28.3858 16.3295 27.6657 17.4223 26.862 19.6068C26.0577 21.7927 25.3496 24.5054 24.7396 27.7448C24.1296 30.9841 23.7977 34.0917 23.7422 37.0677C25.7108 33.9865 27.278 30.9041 28.4427 27.8229C29.6071 24.7157 30.19 21.8851 30.1901 19.3307C30.1901 17.3291 29.7998 16.3281 29.0234 16.3281Z" fill="white"/>
+        <path d="M53.3333 0C59.2244 6.87207e-07 64 4.77563 64 10.6667V53.3333C64 59.2244 59.2244 64 53.3333 64H10.6667C4.77563 64 1.71804e-07 59.2244 0 53.3333V10.6667C6.87217e-07 4.77563 4.77563 1.71802e-07 10.6667 0H53.3333ZM10.6667 2.66667C6.24839 2.66667 2.66667 6.24839 2.66667 10.6667V53.3333C2.66667 57.7516 6.24839 61.3333 10.6667 61.3333H53.3333C57.7516 61.3333 61.3333 57.7516 61.3333 53.3333V10.6667C61.3333 6.24839 57.7516 2.66667 53.3333 2.66667H10.6667Z" fill="white"/>
+      </svg>
+    </div>
+    <div class="hero-badge hero-badge-2">
+      <i data-lucide="notebook-text"></i>
+    </div>
+    <div class="hero-badge hero-badge-3">
+      <i data-lucide="drama"></i>
+    </div>
+    <div class="hero-badge hero-badge-4">
+      <i data-lucide="key-round"></i>
+    </div>
+    <div class="hero-badge hero-badge-5">
+      <i data-lucide="ferris-wheel"></i>
+    </div>
+  </div>
+
+  <div class="hero-center">
+    <div class="hero-wordmark">lossi</div>
+    <h1 class="hero-headline">Upptäck, återanvänd och skapa <span class="hl-purple">upplägg</span> och <span class="hl-orange">material</span> – skapade av lärare, för lärare.</h1>
+
+    <div class="hero-proof">
+      <div class="hero-proof-row">
+        <div class="hero-avatars">
+          <img src="https://i.pravatar.cc/64?img=12" alt="" />
+          <img src="https://i.pravatar.cc/64?img=47" alt="" />
+          <img src="https://i.pravatar.cc/64?img=33" alt="" />
+          <img src="https://i.pravatar.cc/64?img=14" alt="" />
+        </div>
+        <div class="hero-rating">
+          <span class="hero-stars">
+            <i data-lucide="star"></i><i data-lucide="star"></i><i data-lucide="star"></i><i data-lucide="star"></i><i data-lucide="star"></i>
+          </span>
+          <span class="hero-rating-text">4.8 (2k+)</span>
+        </div>
+      </div>
+      <p class="hero-used-by">Används av 3k+ lärare</p>
+    </div>
+
+    <a href="index.html" class="btn-hero-cta">Kom igång</a>
+  </div>
+</section>
+
+<!-- ── Social proof ── -->
+<div class="social-strip">
+  <p class="sec-tag">social-strip</p>
+  <div class="social-strip-inner">
+  <div class="social-stat">
+    <span class="social-stat-number">2 400+</span>
+    <span class="social-stat-label">Lärare</span>
+  </div>
+  <div class="social-strip-sep"></div>
+  <div class="social-stat">
+    <span class="social-stat-number">8 700+</span>
+    <span class="social-stat-label">Upplägg</span>
+  </div>
+  <div class="social-strip-sep"></div>
+  <div class="social-stat">
+    <span class="social-stat-number">34 000+</span>
+    <span class="social-stat-label">Sparade lektioner</span>
+  </div>
+  <div class="social-strip-sep"></div>
+  <div class="social-stat">
+    <span class="social-stat-number">F–9</span>
+    <span class="social-stat-label">Alla stadier</span>
+  </div>
+  </div>
+</div>
+
+<!-- ── Features ── -->
+<section class="features">
+  <p class="sec-tag">features</p>
+  <div class="features-text">
+    <h2 class="features-heading">Allt du behöver för att planera bättre lektioner</h2>
+    <p class="features-sub">Sök bland tusentals skapade upplägg sorterade på ämne, metod, årkurs och tidsåtgång.</p>
+    <ul class="features-checklist">
+      <li><i data-lucide="pencil"></i> Anpassa direkt i webbläsaren</li>
+      <li><i data-lucide="share-2"></i> Dela med hela skolan</li>
+      <li><i data-lucide="search"></i> Hitta upplägg från kollegor</li>
+      <li><i data-lucide="layers"></i> Strukturerade lektionsplaner</li>
+    </ul>
+  </div>
+
+  <div class="features-visual">
+    <div class="features-card-bg features-card-purple"></div>
+    <div class="features-card-bg features-card-orange"></div>
+    <div class="features-screenshot">
+      <div class="fs-sidebar">
+        <div class="fs-logo"><span class="fs-logo-mark"></span>Lossi</div>
+        <div class="fs-search"><i data-lucide="search"></i>Sök</div>
+        <nav class="fs-nav">
+          <div class="fs-nav-item"><i data-lucide="layout-grid"></i>Översikt</div>
+          <div class="fs-nav-item active"><i data-lucide="file-text"></i>Upplägg</div>
+          <div class="fs-nav-item"><i data-lucide="package"></i>Material</div>
+          <div class="fs-nav-item"><i data-lucide="bookmark"></i>Sparade</div>
+          <div class="fs-nav-item"><i data-lucide="user"></i>Mina</div>
+        </nav>
+      </div>
+      <div class="fs-main">
+        <div class="fs-topbar">
+          <span class="fs-back"><i data-lucide="chevron-left"></i>Alla upplägg</span>
+          <span class="fs-sep"></span>
+          <span class="fs-crumb">Demokrati – grunderna och processerna</span>
+          <div class="fs-topbar-end">
+            <div class="fs-mode"><span>Läsläge</span><span class="active">Redigera</span></div>
+            <span class="fs-avatar-sm fs-avatar-user">MJ</span>
+          </div>
+        </div>
+        <div class="fs-content">
+          <h3 class="fs-title">Demokrati – grunderna och processerna</h3>
+          <div class="fs-meta">
+            <span class="fs-avatar-sm">AL</span>
+            <span>Anna Lindqvist</span>
+            <span class="fs-dim">18 feb 2025</span>
+            <span class="fs-dim"><i data-lucide="message-square"></i>124</span>
+            <span class="fs-dim"><i data-lucide="bookmark"></i>18</span>
+          </div>
+
+          <div class="fs-section">
+            <div class="fs-section-head"><i data-lucide="chevron-down"></i>Pedagogisk idé</div>
+            <p class="fs-text">Upplägget syftar till att ge eleverna en stabil grund i vad demokrati är, hur demokratiska processer fungerar i praktiken och vilka utmaningar demokratin står inför idag.</p>
+          </div>
+
+          <div class="fs-section">
+            <div class="fs-section-head"><i data-lucide="chevron-down"></i>Lärandemål</div>
+            <div class="fs-goals">
+              <div class="fs-goal"><span class="fs-check"></span>Förstå grundläggande principer för demokrati och diktatur</div>
+              <div class="fs-goal"><span class="fs-check"></span>Förklara hur demokratiska beslut fattas i Sverige</div>
+              <div class="fs-goal"><span class="fs-check"></span>Resonera kring medborgarens roll och ansvar i en demokrati</div>
+            </div>
+          </div>
+
+          <div class="fs-section">
+            <div class="fs-section-head"><i data-lucide="chevron-down"></i>Struktur och tidslinje</div>
+            <div class="fs-week">Vecka 1: Begrepp och grundidéer</div>
+            <div class="fs-task">
+              <span class="fs-task-icon" style="background:rgba(139,92,246,0.15);"><i data-lucide="message-circle"></i></span>
+              <span class="fs-task-title">Introduktionsdiskussion: "Vad betyder demokrati för dig?"</span>
+              <span class="fs-task-time">20 min</span>
+              <i data-lucide="chevron-down"></i>
+            </div>
+            <div class="fs-task expanded">
+              <span class="fs-task-icon" style="background:rgba(59,130,246,0.15);"><i data-lucide="layout-template"></i></span>
+              <span class="fs-task-title">Demokrati vs Diktatur</span>
+              <span class="fs-task-time">20 min</span>
+              <i data-lucide="chevron-up"></i>
+            </div>
+            <div class="fs-task-detail">
+              <label>Sammanfattning</label>
+              <div class="fs-input">Demokrati vs Diktatur</div>
+              <label>Gruppering</label>
+              <div class="fs-select"><i data-lucide="message-circle"></i>Diskussion<i data-lucide="chevron-down"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ── -->
+<section class="how">
+  <p class="sec-tag">how</p>
+  <div class="how-inner">
+    <h2 class="how-heading">Fulladdat med funktioner för att göra ditt arbete så lätt som möjligt</h2>
+  </div>
+  <div class="how-carousel">
+
+    <div class="how-card">
+      <div class="how-card-img" style="background: #8DB86A;"></div>
+      <div class="how-card-body" style="background: #4D7A2A;">
+        <span class="how-card-pill">Arbetssätt</span>
+        <p class="how-card-title">Från Google Drive till Lossi – en lärares erfarenhet</p>
+        <a href="#" class="how-card-link">Läs mer →</a>
+      </div>
+    </div>
+
+    <div class="how-card">
+      <div class="how-card-img" style="background: #F2C09E;"></div>
+      <div class="how-card-body" style="background: #C75B26;">
+        <span class="how-card-pill">Verktyg</span>
+        <p class="how-card-title">Ditt materialbibliotek, alltid tillgängligt — bilder, PowerPoints och filer samlade på ett ställe</p>
+        <a href="#" class="how-card-link">Läs mer →</a>
+      </div>
+    </div>
+
+    <div class="how-card">
+      <div class="how-card-img" style="background: #5B35C0;"></div>
+      <div class="how-card-body" style="background: #7C4FE0;">
+        <span class="how-card-pill">Inspiration</span>
+        <p class="how-card-title">5 filosofilektioner som andra lärare älskar</p>
+        <a href="#" class="how-card-link">Läs mer →</a>
+      </div>
+    </div>
+
+    <div class="how-card">
+      <div class="how-card-img" style="background: #F5C842;"></div>
+      <div class="how-card-body" style="background: #2F6FED;">
+        <span class="how-card-pill">Verktyg</span>
+        <p class="how-card-title">Spara för senare, använd när det passar — bokmärk intressanta upplägg utan att binda dig</p>
+        <a href="#" class="how-card-link">Läs mer →</a>
+      </div>
+    </div>
+
+    <div class="how-card">
+      <div class="how-card-img" style="background: #A2BB7E;"></div>
+      <div class="how-card-body" style="background: #5C7840;">
+        <span class="how-card-pill">Arbetssätt</span>
+        <p class="how-card-title">Gör ett upplägg till ditt eget — anpassa och bygg vidare på andras originalmaterial</p>
+        <a href="#" class="how-card-link">Läs mer →</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── Testimonials ── -->
+<section class="testimonials">
+  <p class="sec-tag">testimonials</p>
+  <p class="section-label">Vad lärare säger</p>
+  <h2 class="section-title">Byggd av lärare som förstår din vardag</h2>
+
+  <div class="testimonials-grid">
+    <div class="testimonial-card">
+      <p class="testimonial-quote">"Lossi har gett mig tillgång till upplägg som jag aldrig skulle ha hittat på egen hand. Jag sparar minst tre timmar i veckan på planeringen."</p>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar" style="background: linear-gradient(135deg, var(--color-subject-1-a), var(--color-subject-1-b));">AL</div>
+        <div>
+          <div class="testimonial-name">Anna Lindqvist</div>
+          <div class="testimonial-role">SO-lärare · Åk 7–9</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card">
+      <p class="testimonial-quote">"Det bästa är att kunna ta ett upplägg och direkt anpassa det till min grupp. Jag behöver inte börja om från noll varje gång."</p>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar" style="background: linear-gradient(135deg, var(--color-subject-3-a), var(--color-subject-3-b));">MK</div>
+        <div>
+          <div class="testimonial-name">Marcus Karlsson</div>
+          <div class="testimonial-role">Matematiklärare · Åk 4–6</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card">
+      <p class="testimonial-quote">"Jag har börjat dela mina egna upplägg och fått så mycket positiv respons från kollegor. Det känns meningsfullt att bidra."</p>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar" style="background: linear-gradient(135deg, var(--color-subject-7-a), var(--color-subject-7-b));">JS</div>
+        <div>
+          <div class="testimonial-name">Jenny Ström</div>
+          <div class="testimonial-role">Biologilärare · Gymnasium</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card">
+      <p class="testimonial-quote">"Äntligen en plattform som förstår hur lärare faktiskt tänker när de planerar. Det är lätt att hitta det man letar efter."</p>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar" style="background: linear-gradient(135deg, var(--color-subject-5-a), var(--color-subject-5-b));">EB</div>
+        <div>
+          <div class="testimonial-name">Erik Bergman</div>
+          <div class="testimonial-role">Svensklärare · Åk 1–3</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Final CTA ── -->
+<section class="cta">
+  <p class="sec-tag">cta</p>
+  <div class="cta-inner">
+  <h2>Redo att planera smartare?</h2>
+  <p>Gå med tusentals lärare som redan använder Lossi varje vecka.</p>
+  <div class="cta-actions">
+    <a href="index.html" class="btn-hero-primary">
+      <i data-lucide="user-plus"></i>
+      Skapa gratis konto
+    </a>
+    <a href="index.html" class="btn-hero-secondary">
+      <i data-lucide="log-in"></i>
+      Logga in
+    </a>
+  </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer class="footer">
+  <p class="sec-tag">footer</p>
+  <div class="footer-inner">
+  <a href="landing.html" class="footer-logo">
+    <div class="footer-logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <span class="footer-logo-text">Lossi</span>
+  </a>
+  <p class="footer-copy">© 2026 Lossi. Skapad av lärare, för lärare.</p>
+  </div>
+</footer>
+
+<script>
+  lucide.createIcons();
+  syncThemeIcons();
+</script>
+</body>
+</html>

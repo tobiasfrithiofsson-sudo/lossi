@@ -94,6 +94,23 @@
           </button>
         </div>
       </div>
+
+      <div class="popover-wrap" onclick="event.stopPropagation()">
+        <button class="icon-btn" onclick="toggleAppPopover(this)" title="Mer" aria-label="Mer">
+          <i data-lucide="ellipsis"></i>
+        </button>
+        <div class="menu-popover" id="planMoreMenu">
+          <button class="menu-popover-item" onclick="duplicatePlan()">
+            <i data-lucide="copy"></i>
+            Duplicera upplägg
+          </button>
+          <div class="menu-popover-sep"></div>
+          <button class="menu-popover-item menu-popover-item-danger" onclick="confirmDeletePlan()">
+            <i data-lucide="trash-2"></i>
+            Ta bort upplägg
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -931,6 +948,29 @@
   </div>
 </div>
 
+<!-- ── Modal: Ta bort upplägg ── -->
+<div class="modal-overlay" id="deletePlanModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Ta bort upplägget?</h3>
+      <button class="modal-close" onclick="closeDeletePlanModal()">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Är du säker på att du vill ta bort <strong id="deletePlanName">upplägget</strong>? Det raderas permanent, med alla lektioner och aktiviteter, och går inte att ångra.</p>
+      <p class="password-message is-error" id="deletePlanError" role="alert" hidden></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeDeletePlanModal()">Avbryt</button>
+      <button class="btn-danger-solid" id="deletePlanBtn" onclick="deletePlanConfirmed()">
+        <i data-lucide="trash-2"></i>
+        Ta bort upplägg
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Modal: Föreslå lektion (pedagogisk stil) ── -->
 <div class="modal-overlay" id="suggestLessonModal">
   <div class="modal modal-md">
@@ -1174,8 +1214,8 @@
 
   renderPlanIcon(null);
 
-  function saveState() {
-    if (!planLoaded) return;
+  // Hela upplägget som det ser ut på sidan just nu
+  function collectState() {
     const state = {
       title: document.getElementById('planTitle').textContent.trim(),
       description: document.querySelector('.idea-text').innerHTML,
@@ -1191,8 +1231,80 @@
       structureHTML: document.getElementById('structureList').innerHTML,
     };
     if (planDemoKey) state.demoKey = planDemoKey;
-    LossiData.savePlan(planKey, state).catch(e => console.warn('Kunde inte spara upplägget:', e));
+    return state;
   }
+
+  function saveState() {
+    if (!planLoaded) return;
+    LossiData.savePlan(planKey, collectState()).catch(e => console.warn('Kunde inte spara upplägget:', e));
+  }
+
+  // ── Duplicera och ta bort (Mer-menyn i sidhuvudet) ──
+  // Kopian får ett nytt id, "(kopia)" i titeln och dagens datum som Skapad.
+  // Den kopplas inte till Kommande-korten (ingen demoKey).
+  let planActionBusy = false;
+
+  async function duplicatePlan() {
+    closeAllMenuPopovers();
+    if (planActionBusy || !planLoaded) return;
+    planActionBusy = true;
+    const state = collectState();
+    delete state.demoKey;
+    state.title = (state.title || 'Namnlöst upplägg') + ' (kopia)';
+    state.createdAt = new Date().toISOString();
+    try {
+      const id = await LossiData.createPlan(state);
+      window.location = 'upplag.html?id=' + id;
+    } catch (e) {
+      console.warn('Kunde inte duplicera upplägget:', e);
+      alert('Kunde inte duplicera upplägget. Kontrollera uppkopplingen och försök igen.');
+      planActionBusy = false;
+    }
+  }
+
+  function confirmDeletePlan() {
+    closeAllMenuPopovers();
+    if (!planLoaded) return;
+    const title = document.getElementById('planTitle').textContent.trim();
+    document.getElementById('deletePlanName').textContent = title ? `"${title}"` : 'upplägget';
+    document.getElementById('deletePlanError').hidden = true;
+    document.getElementById('deletePlanBtn').disabled = false;
+    document.getElementById('deletePlanModal').classList.add('open');
+  }
+
+  function closeDeletePlanModal() {
+    document.getElementById('deletePlanModal').classList.remove('open');
+  }
+
+  async function deletePlanConfirmed() {
+    if (planActionBusy) return;
+    planActionBusy = true;
+    const btn = document.getElementById('deletePlanBtn');
+    btn.disabled = true;
+    // Inget får sparas om upplägget medan det raderas eller när sidan lämnas
+    planLoaded = false;
+    window.removeEventListener('beforeunload', saveState);
+    try {
+      await LossiData.deletePlan(planKey);
+      window.location.replace('index.html');
+    } catch (e) {
+      console.warn('Kunde inte ta bort upplägget:', e);
+      planLoaded = true;
+      window.addEventListener('beforeunload', saveState);
+      const err = document.getElementById('deletePlanError');
+      err.textContent = 'Kunde inte ta bort upplägget. Kontrollera uppkopplingen och försök igen.';
+      err.hidden = false;
+      btn.disabled = false;
+      planActionBusy = false;
+    }
+  }
+
+  document.getElementById('deletePlanModal').addEventListener('click', e => {
+    if (e.target.id === 'deletePlanModal') closeDeletePlanModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('deletePlanModal').classList.contains('open')) closeDeletePlanModal();
+  });
 
   // Fyller sidan med ett sparat upplägg
   function applyState(state) {

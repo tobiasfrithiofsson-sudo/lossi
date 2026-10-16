@@ -29,10 +29,15 @@ const LossiData = (() => {
   }
 
   // ── Demo-upplägg ──
-  // Den som saknar upplägg (ny lärare, eller efter supabase/reset.sql) får
-  // demo-uppläggen. Körs högst en gång per sidladdning, även om aside och
-  // översikt frågar samtidigt.
+  // En ny lärare får demo-uppläggen en gång. Att det skett noteras i
+  // användarens metadata (demo_seeded), så att den som själv tagit bort alla
+  // sina upplägg inte får tillbaka demona. supabase/reset.sql kan nollställa.
+  // Körs högst en gång per sidladdning, även om aside och översikt frågar samtidigt.
   let seeding = null;
+
+  function markSeeded() {
+    return db().auth.updateUser({ data: { demo_seeded: true } });
+  }
 
   function demoRows() {
     return Object.entries(DEMO_PLANS).map(([key, demo], i) => {
@@ -52,10 +57,15 @@ const LossiData = (() => {
   // [{ id, state }], äldst först
   async function listPlans() {
     let rows = await fetchPlans();
-    if (!rows.length) {
-      seeding = seeding || db().from('plans').insert(demoRows()).then(check);
+    const user = await LossiAuth.getUser();
+    const seeded = !!user?.user_metadata?.demo_seeded;
+    if (!rows.length && !seeded) {
+      seeding = seeding || db().from('plans').insert(demoRows()).then(check).then(markSeeded);
       await seeding;
       rows = await fetchPlans();
+    } else if (rows.length && !seeded && !seeding) {
+      // Konton från innan flaggan fanns
+      seeding = markSeeded();
     }
     return rows.map(r => ({ id: String(r.id), state: r.state }));
   }
@@ -141,6 +151,17 @@ const LossiData = (() => {
 
   window.addEventListener('pagehide', flushOnLeave);
 
+  // Raderar upplägget permanent. Väntande sparningar för det kastas.
+  async function deletePlan(id) {
+    id = String(id);
+    clearTimeout(timers.get(id));
+    timers.delete(id);
+    pending.delete(id);
+    const rows = check(await db().from('plans').delete().eq('id', id).select('id'));
+    if (!rows.length) throw new Error('Upplägget finns inte längre eller tillhör ett annat konto.');
+    lastSaved.delete(id);
+  }
+
   // Sparar ett nytt upplägg och returnerar dess id
   async function createPlan(state) {
     const row = check(await db().from('plans').insert(columnsFor(state)).select('id').single());
@@ -152,5 +173,5 @@ const LossiData = (() => {
     statusListener = fn;
   }
 
-  return { listPlans, loadPlan, savePlan, createPlan, flushOnLeave, onSaveStatus };
+  return { listPlans, loadPlan, savePlan, createPlan, deletePlan, flushOnLeave, onSaveStatus };
 })();

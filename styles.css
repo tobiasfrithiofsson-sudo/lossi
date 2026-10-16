@@ -1699,6 +1699,7 @@ body.read-mode .lesson-time-pill-value { pointer-events: none; }
 .activity-more-btn svg { width: 15px; height: 15px; }
 body.edit-mode .activity-more-btn { display: grid; }
 
+.menu-popover-sep { height: 1px; background: var(--color-border); margin: 4px 0; }
 .menu-popover-item-danger { color: #dc2626; }
 .menu-popover-item-danger:hover { background: #fee2e2; color: #dc2626; }
 [data-theme="dark"] .menu-popover-item-danger:hover { background: rgba(220, 38, 38, 0.18); }

@@ -4,8 +4,8 @@ Working checklist. Start every session by reading this file, picking the next un
 
 ## Progress
 - [x] Step 0: Plan into repo
-- [ ] Step 1: Git + GitHub
-- [ ] Step 2: Deploy today's app to Cloudflare Pages
+- [x] Step 1: Git + GitHub (private repo `tobiasfrithiofsson-sudo/lossi`)
+- [x] Step 2: Deploy today's app to Cloudflare (live: https://lossi.tobias-frithiofsson.workers.dev/)
 - [ ] Step 3: Introduce `data.js` (still localStorage)
 - [ ] Step 4: Supabase project + table
 - [ ] Step 5: Login (`auth.js`, magic link)
@@ -15,10 +15,10 @@ Working checklist. Start every session by reading this file, picking the next un
 Steps 3 and 4 are independent and can be done in either order. Everything else runs in order.
 
 ## Decisions (2026-10-16)
-- **Supabase** (Postgres) for database + auth, **Cloudflare Pages** for hosting. Both free for the test phase.
+- **Supabase** (Postgres) for database + auth, **Cloudflare Workers (static assets)** for hosting. Both free for the test phase.
 - **Supabase Auth** (magic link) for now. Better Auth (self-hosted on a Cloudflare Worker) was considered and deferred. All auth calls go through `auth.js`, so swapping it later touches one file.
 - **Test first, rewrite later:** wire Supabase into today's vanilla app. A JS framework rewrite is expected before real production. `data.js`, `auth.js` and the DB schema stay framework-agnostic so they carry over.
-- **Low lock-in:** Supabase is plain Postgres (`pg_dump` moves it anywhere). Pages never talk to Supabase directly, only through `data.js` / `auth.js`.
+- **Low lock-in:** Supabase is plain Postgres (`pg_dump` moves it anywhere). The app pages never talk to Supabase directly, only through `data.js` / `auth.js`.
 
 Why not the alternatives: Neon (needs our own API layer), PocketBase (no free always-on host), Appwrite (proprietary API shape), Firebase (proprietary NoSQL, high lock-in).
 
@@ -40,21 +40,21 @@ This file. *Done when:* committed together with step 1.
 First commit, `.gitignore` (.DS_Store, `Samhällsekonomi.pptx`, `.claude/settings.local.json`). Create a **private** GitHub repo and push.
 *Done when:* the code is visible on GitHub.
 
-### Step 2: Deploy today's app to Cloudflare Pages (30 min)
-Cloudflare dashboard → Workers & Pages → Create → Pages → connect the GitHub repo. No framework, no build command, output directory `/`. Still localStorage-only.
-*Done when:* a public `*.pages.dev` URL shows Lossi, and a push to GitHub redeploys it.
+### Step 2: Deploy today's app to Cloudflare (30 min)
+Deployed through Cloudflare's combined Workers & Pages wizard as a Worker serving static assets, connected to the GitHub repo (a push to `main` redeploys). No build step. `.assetsignore` keeps repo-only files (`docs/`, `.claude/` etc.) off the live site. Still localStorage-only.
+*Done when:* a public URL shows Lossi, and a push to GitHub redeploys it.
 
 ### Step 3: Introduce `data.js`, still localStorage (1 session)
 Pure refactor: `listPlans`, `loadPlan`, `savePlan`, `createPlan`, `getPlanAvatar` / `setPlanAvatar`, all async. Replace the touch points above. No visible change.
-*Done when:* create / edit / reorder / reload / Word + PowerPoint export work exactly as before, locally and on Pages.
+*Done when:* create / edit / reorder / reload / Word + PowerPoint export work exactly as before, locally and on the live site.
 
 ### Step 4: Supabase project + table (30–45 min)
 Create the account and project (EU region). Run the SQL for table `plans` (`id`, `owner_id`, `title`, `state jsonb`, `avatar`, `created_at`, `updated_at`) with Row Level Security (owner only). Put the project URL + anon key in `config.js`. The anon key is meant to be public; RLS provides the security.
 *Done when:* the table is visible in the Supabase table editor, with RLS enabled.
 
 ### Step 5: Login (1 session, needs 3 + 4)
-`auth.js` (`signIn`, `signOut`, `getUser`, `requireUser`), `login.html` with email magic link, redirect when logged out, log out in the user menu (app shell in `theme.js`). Add localhost + the Pages URL as redirect URLs in Supabase. Data still in localStorage.
-*Done when:* you can log in and out by magic link both locally and on Pages.
+`auth.js` (`signIn`, `signOut`, `getUser`, `requireUser`), `login.html` with email magic link, redirect when logged out, log out in the user menu (app shell in `theme.js`). Add localhost + the live URL as redirect URLs in Supabase. Data still in localStorage.
+*Done when:* you can log in and out by magic link both locally and on the live site.
 
 ### Step 6: Switch `data.js` to Supabase (1 session, needs 5)
 Swap the localStorage implementation for Supabase queries, with debounced autosave and seeded demo plans (`DEMO_PLANS`) for new users.
@@ -65,4 +65,4 @@ GitHub Action that pings Supabase weekly. Short tester note. Test the exit path:
 *Done when:* Kristoffer logs in on the live URL and creates a plan.
 
 ## Verification
-Run locally via the `lossi-static` preview (`.claude/launch.json`, port 8765), then re-check on the Pages URL after each push. Re-test Word/PowerPoint export in steps 3 and 6.
+Run locally via the `lossi-static` preview (`.claude/launch.json`, port 8765), then re-check on the live URL after each push. Re-test Word/PowerPoint export in steps 3 and 6.

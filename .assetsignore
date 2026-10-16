@@ -1,0 +1,8 @@
+.claude
+docs
+.git
+.gitignore
+.assetsignore
+.DS_Store
+*.pptx
+wrangler.*

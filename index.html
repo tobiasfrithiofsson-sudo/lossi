@@ -93,7 +93,7 @@
 </div><!-- /app-body -->
 
 <script>
-  LossiAuth.requireUser().then(showSignedInUser);
+  LossiAuth.requireUser().then(applyUserProfile);
   renderAppShell({ active: 'plans' });
   lucide.createIcons();
   syncThemeIcons();
@@ -110,10 +110,11 @@
           <div class="plan-row-icon plan-icon-image">${planAvatarImgHTML(p.avatar)}</div>
           <span class="plan-row-title">${escapeHTML(p.title)}</span>
           <span class="plan-row-meta">${escapeHTML(meta)}</span>
-          <div class="plan-row-avatar" title="Tobias Frithiofsson"><img src="avatar.png" alt="Tobias Frithiofsson" /></div>
+          <div class="plan-row-avatar" data-user-avatar data-user-title></div>
         </div>`;
     }).join('');
     document.getElementById('planListEmpty').insertAdjacentHTML('beforebegin', rows);
+    fillUserProfile(list);
     rebuildFilterOptions();
     filterPlans();
   }

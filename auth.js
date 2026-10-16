@@ -30,6 +30,26 @@ const LossiAuth = (() => {
     if (error) throw error;
   }
 
+  // Lärarens namn och avatar. Sparas i Supabase-användarens metadata
+  // (display_name syns som "Display name" i Supabase-panelen).
+  function profileOf(user) {
+    const meta = user?.user_metadata || {};
+    return {
+      displayName: (meta.display_name || '').trim(),
+      avatar: meta.avatar || null,
+      email: user?.email || '',
+    };
+  }
+
+  // Returnerar den uppdaterade användaren
+  async function updateProfile({ displayName, avatar }) {
+    const { data, error } = await client.auth.updateUser({
+      data: { display_name: displayName, avatar },
+    });
+    if (error) throw error;
+    return data.user;
+  }
+
   // För inloggade: byt till ett eget lösenord
   async function changePassword(password) {
     const { error } = await client.auth.updateUser({ password });
@@ -69,5 +89,5 @@ const LossiAuth = (() => {
     }
   });
 
-  return { client, getUser, signIn, changePassword, signOut, requireUser, safeNext, accessToken };
+  return { client, getUser, signIn, profileOf, updateProfile, changePassword, signOut, requireUser, safeNext, accessToken };
 })();

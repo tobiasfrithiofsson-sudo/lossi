@@ -853,8 +853,8 @@
             <span class="read-field-label">Skapare</span>
             <span class="read-field-value">
               <div class="author-chip">
-                <div class="author-chip-avatar"><img src="avatar.png" alt="Tobias Frithiofsson" /></div>
-                <span>Tobias Frithiofsson</span>
+                <div class="author-chip-avatar" data-user-avatar></div>
+                <span data-user-name></span>
               </div>
             </span>
           </div>
@@ -954,7 +954,7 @@
 
   const planKey = planId || '';
 
-  LossiAuth.requireUser().then(showSignedInUser);
+  LossiAuth.requireUser().then(applyUserProfile);
   renderAppShell({ active: 'plans', currentPlanId: planKey });
   lucide.createIcons();
   syncThemeIcons();

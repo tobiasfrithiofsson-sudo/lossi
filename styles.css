@@ -486,7 +486,7 @@ body.activity-panel-resizing .page-frame {
 .save-status.is-error { background: #C2413B; color: #fff; }
 
 /* Byt lösenord-dialogen (theme.js) */
-.modal.modal-sm { max-width: 420px; }
+.modal.modal-sm { width: 470px; }
 .password-message { font-size: var(--font-size-base); color: #1F9D6B; margin-top: 4px; }
 .password-message.is-error { color: #C2413B; }
 
@@ -495,23 +495,135 @@ body.activity-panel-resizing .page-frame {
 
 .user-menu-account {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 14px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--color-border);
   margin-bottom: 4px;
-  max-width: 260px;
+  max-width: 280px;
 }
 
 .user-menu-account[hidden] { display: none; }
-.user-menu-account-label { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
-.user-menu-account-email {
-  font-size: var(--font-size-base);
-  font-weight: 500;
+
+.user-menu-account-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.user-menu-account-text { display: flex; flex-direction: column; min-width: 0; }
+
+.user-menu-account-name {
+  font-size: var(--font-size-md);
+  font-weight: 600;
   color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.user-menu-account-email {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Lärarens avatar (USER_AVATARS i theme.js) ──
+   Fyller sin behållare (user-avatar-sm, plan-row-avatar, author-chip-avatar …);
+   behållaren bestämmer storlek och textstorlek för initialerna. */
+.user-face {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--face-a), var(--face-b));
+  color: #fff;
+  line-height: 1;
+}
+
+.user-face svg { width: 58%; height: 58%; stroke-width: 2.2; }
+.user-face-initials { font-weight: 700; letter-spacing: 0.02em; }
+
+/* ── Profil-dialogen ── */
+.profile-intro {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  margin-bottom: 16px;
+}
+
+.profile-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  margin-bottom: 18px;
+  background: var(--color-bg-aside);
+  border-radius: var(--radius-lg);
+}
+
+.profile-preview-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-size: 20px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.profile-preview-text { display: flex; flex-direction: column; min-width: 0; }
+
+.profile-preview-name {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-preview-email {
+  font-size: var(--font-size-base);
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-avatar-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 40px);
+  gap: 10px;
+}
+
+.profile-avatar-option {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-family: inherit;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.profile-avatar-option:hover { transform: scale(1.08); }
+
+.profile-avatar-option.selected {
+  box-shadow: 0 0 0 2px var(--color-bg-primary), 0 0 0 4px var(--color-primary);
+}
+
+.profile-avatar-option:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-bg-primary), 0 0 0 4px var(--color-primary-tint);
 }
 
 .user-menu-item {

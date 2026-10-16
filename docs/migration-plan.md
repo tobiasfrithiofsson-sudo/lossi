@@ -8,7 +8,7 @@ Working checklist. Start every session by reading this file, picking the next un
 - [x] Step 2: Deploy today's app to Cloudflare (live: https://lossi.tobias-frithiofsson.workers.dev/)
 - [x] Step 3: Introduce `data.js` (still localStorage)
 - [x] Step 4: Supabase project + table (project `lossi`, ref `mqzmtndjfgeujaqzqpeb`)
-- [ ] Step 5: Login (`auth.js`, magic link)
+- [x] Step 5: Login (`auth.js`, magic link)
 - [ ] Step 6: Switch `data.js` to Supabase
 - [ ] Step 7: Keep-alive + invite testers
 
@@ -58,12 +58,17 @@ Done 2026-10-16. Schema is in `supabase/schema.sql` (safe to re-run). `config.js
 `auth.js` (`signIn`, `signOut`, `getUser`, `requireUser`), `login.html` with email magic link, redirect when logged out, log out in the user menu (app shell in `theme.js`). Add localhost + the live URL as redirect URLs in Supabase. Data still in localStorage.
 *Done when:* you can log in and out by magic link both locally and on the live site.
 
+Done 2026-10-16. `login.html` + `login.css` (landing-page style, dark mode, mobile), `auth.js` (`LossiAuth`; supabase-js 2.45.4 from jsdelivr). Protected pages have `class="auth-pending" data-auth-required` on `<html>` and call `LossiAuth.requireUser()` first. An expired link's `#error=…` is carried along to the login page. Supabase → Authentication → URL Configuration: Site URL `https://lossi.tobias-frithiofsson.workers.dev`, Redirect URLs `https://lossi.tobias-frithiofsson.workers.dev/**` and `http://localhost:8765/**`. Lesson learned: if a link leads to `localhost:3000`, the Site URL/redirect list wasn't saved when the mail was sent; old mails keep the wrong address, so request a new link.
+
 ### Step 6: Switch `data.js` to Supabase (1 session, needs 5)
 Swap the localStorage implementation for Supabase queries, with debounced autosave and seeded demo plans (`DEMO_PLANS`) for new users.
 *Done when:* a plan made on one device shows up on another, a second user (private window) can't see it, and rows appear in the table editor.
 
-### Step 7: Keep-alive + invite testers (30 min)
-GitHub Action that pings Supabase weekly. Short tester note. Test the exit path: `pg_dump` works.
+### Step 7: Keep-alive + invite testers (30–60 min)
+- **Custom email (required before inviting anyone):** Supabase's built-in email only sends to members of the Supabase team, and only a few per hour. Connect a free SMTP service (e.g. Resend) under Authentication → Emails → SMTP Settings. Optionally translate the email templates into Swedish.
+- GitHub Action that pings Supabase weekly so the free project doesn't pause.
+- Short tester note. Test the exit path: `pg_dump` works.
+- Consider: a 6-digit code in the email as well as the link (`verifyOtp`), for teachers who open mail on their phone but use Lossi on a computer.
 *Done when:* Kristoffer logs in on the live URL and creates a plan.
 
 ## Verification

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="sv" class="auth-pending" data-auth-required>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,6 +13,9 @@
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
   <script src="https://unpkg.com/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
   <script src="theme.js"></script>
   <script src="data.js"></script>
 </head>
@@ -951,6 +954,7 @@
 
   const planKey = planId || '1';
 
+  LossiAuth.requireUser().then(showSignedInUser);
   renderAppShell({ active: 'plans', currentPlanId: planKey });
   lucide.createIcons();
   syncThemeIcons();

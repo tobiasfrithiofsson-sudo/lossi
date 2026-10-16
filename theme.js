@@ -264,16 +264,20 @@ function buildTopbarHTML(active) {
         <i data-lucide="chevron-down"></i>
       </div>
       <div class="user-menu-dropdown" id="userMenuDropdown">
+        <div class="user-menu-account" id="userMenuAccount" hidden>
+          <span class="user-menu-account-label">Inloggad som</span>
+          <span class="user-menu-account-email" id="userMenuEmail"></span>
+        </div>
         <button class="user-menu-item" id="themeMenuItem" onclick="toggleTheme()"></button>
         <button class="user-menu-item" onclick="clearSiteCache()">
           <i data-lucide="eraser"></i>
           Rensa sparad data
         </button>
         <div class="user-menu-sep"></div>
-        <a href="landing.html" class="user-menu-item">
+        <button class="user-menu-item" onclick="LossiAuth.signOut()">
           <i data-lucide="log-out"></i>
           Logga ut
-        </a>
+        </button>
       </div>
     </div>
   </div>`;
@@ -362,6 +366,14 @@ function updateAsidePlan(id, { title, avatar } = {}) {
     item.title = title;
   }
   if (avatar) item.querySelector('.aside-plan-icon').innerHTML = planAvatarImgHTML(avatar);
+}
+
+// Visar den inloggade lärarens e-post överst i användarmenyn
+function showSignedInUser(user) {
+  const account = document.getElementById('userMenuAccount');
+  if (!account || !user?.email) return;
+  document.getElementById('userMenuEmail').textContent = user.email;
+  account.hidden = false;
 }
 
 function dismissInvite() {

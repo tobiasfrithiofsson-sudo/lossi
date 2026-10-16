@@ -81,7 +81,7 @@ Done 2026-10-16, tested by Tobias with two accounts: plans persist, sync across 
 ### Step 7: Keep-alive + invite testers (30–60 min)
 - **Create tester accounts** in Supabase (see step 5) and send each tester their email + password yourself. No email service is needed for this.
 - *Later, not required now:* own email via SMTP (needs a domain; Brevo for EU data or Resend), which would allow magic links and password-reset mails.
-- GitHub Action that pings Supabase weekly so the free project doesn't pause.
+- [x] Keep-alive: `.github/workflows/keep-supabase-awake.yml` queries the database every third day (06:17 UTC) with the public key; a logged-out query is refused by RLS (HTTP 401) but still counts as traffic. A failed run (e.g. project already paused) makes GitHub email Tobias. Can also be run by hand: GitHub → Actions → "Håll Supabase vaket" → Run workflow. Note: GitHub turns off scheduled workflows after 60 days without commits in the repo (it emails a warning first).
 - Short tester note. Test the exit path: `pg_dump` works.
 *Done when:* Kristoffer logs in on the live URL and creates a plan.
 

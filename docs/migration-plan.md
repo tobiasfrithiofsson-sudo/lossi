@@ -9,7 +9,7 @@ Working checklist. Start every session by reading this file, picking the next un
 - [x] Step 3: Introduce `data.js` (still localStorage)
 - [x] Step 4: Supabase project + table (project `lossi`, ref `mqzmtndjfgeujaqzqpeb`)
 - [x] Step 5: Login (`auth.js`; email + password since 2026-10-16)
-- [ ] Step 6: Switch `data.js` to Supabase
+- [x] Step 6: Switch `data.js` to Supabase
 - [ ] Step 7: Keep-alive + invite testers
 
 Steps 3 and 4 are independent and can be done in either order. Everything else runs in order.
@@ -75,6 +75,8 @@ Also (decided 2026-10-16):
 - Add `supabase/reset.sql` with ready-to-run lines: delete one user's plans by email (keeps the account), and delete all plans. Users with no plans get the demo plans again at next login, so deleting rows = "start over with demo".
 - Admin path for now is the Supabase dashboard: Authentication → Users → Delete user also removes their plans (`on delete cascade`). An in-app admin page needs a server-side secret key and waits for the framework rewrite.
 *Done when:* a plan made on one device shows up on another, a second user (private window) can't see it, and rows appear in the table editor.
+
+Done 2026-10-16, tested by Tobias with two accounts: plans persist, sync across devices, and the second user can't see the first user's plans. Logic (seeding once, debounced saves, skip-unchanged, keepalive on leave) was also checked against a mock database.
 
 ### Step 7: Keep-alive + invite testers (30–60 min)
 - **Create tester accounts** in Supabase (see step 5) and send each tester their email + password yourself. No email service is needed for this.

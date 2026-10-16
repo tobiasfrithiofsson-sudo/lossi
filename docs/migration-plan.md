@@ -31,6 +31,12 @@ All plan data goes through `LossiData` in `data.js`: `listPlans()` → `[{ id, s
 - Stays in localStorage on purpose (UI/browser-local, not plan data): `lossi-theme`, `lossi-invite-dismissed`, and the random fallback avatar `lossi-plan-avatar-<id>` (only used when a plan has no saved avatar; in step 6, seed demo plans with an avatar so it's rarely needed). `clearSiteCache` still wipes local `lossi-*` keys, which is fine: in step 6 that's only a local cache.
 - **Step 6 watch-out:** `saveState` also runs on `beforeunload`. A network save may not finish when the page closes, so use debounced autosave while editing (and/or `fetch` with `keepalive`).
 
+## Add a tester (closed registration, decided 2026-10-16)
+1. Supabase → Authentication → Users → **Add user** → **Create new user**.
+2. Email + a password you make up, tick **Auto Confirm User**, **Create user**.
+3. Send the email + password to the tester (preferably by SMS) and ask them to change it under "Byt lösenord" in the user menu.
+The tester gets the demo plans automatically on first login. Forgotten password: "Reset password" on the user in Supabase (mail only reaches Supabase team members), or `supabase/admin.sql`. Registration stays closed during the test phase because Lossi can't send mail yet (no address check, no self-service reset). Option for later: "Skapa konto" with an invite code.
+
 ## Steps
 
 ### Step 0: Plan into repo

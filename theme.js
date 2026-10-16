@@ -57,6 +57,21 @@ document.addEventListener('click', e => {
   }
 });
 
+// ── Sidopanelen som meny på mobil ──
+function toggleAside(open) {
+  const isOpen = typeof open === 'boolean' ? open : !document.body.classList.contains('aside-open');
+  document.body.classList.toggle('aside-open', isOpen);
+  document.getElementById('asideToggle')?.setAttribute('aria-expanded', String(isOpen));
+}
+
+function closeAside() {
+  toggleAside(false);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.body.classList.contains('aside-open')) closeAside();
+});
+
 // ── Logga ut ──
 // Spara först: åtkomsttoken försvinner vid utloggningen, och sidbytet efteråt
 // hinner annars inte skicka ändringar som väntar på att sparas.
@@ -181,6 +196,11 @@ function renderAppShell(options = {}) {
   if (header) header.innerHTML = buildTopbarHTML(options.active);
 
   const aside = document.querySelector('aside.app-aside');
+  if (aside && !document.querySelector('.aside-backdrop')) {
+    document.body.insertAdjacentHTML('beforeend', '<div class="aside-backdrop" onclick="closeAside()"></div>');
+    // En länk i menyn byter sida; stäng menyn direkt så att den inte syns kvar vid bakåt
+    aside.addEventListener('click', e => { if (e.target.closest('a[href]')) closeAside(); });
+  }
   if (aside) {
     aside.innerHTML = buildAsideHTML();
     renderAsidePlans(options.currentPlanId).catch(e => console.warn('Kunde inte hämta upplägg till sidopanelen:', e));
@@ -211,6 +231,10 @@ function renderAppShell(options = {}) {
 function buildTopbarHTML(active) {
   return `
   <div class="app-topbar-start">
+    <!-- Bara på mobil: öppnar sidopanelen som en meny (styles.css, MOBIL) -->
+    <button class="aside-toggle" id="asideToggle" onclick="toggleAside()" aria-label="Meny" aria-expanded="false">
+      <i data-lucide="menu"></i>
+    </button>
     <!-- Appväxlare: platshållare för navigering mellan tjänsterna i Lossi-familjen -->
     <div class="app-switcher">
       <button class="app-switcher-btn" onclick="toggleAppSwitcher()" id="appSwitcherBtn" title="Appar i Lossi-familjen">

@@ -7,7 +7,7 @@ Working checklist. Start every session by reading this file, picking the next un
 - [x] Step 1: Git + GitHub (private repo `tobiasfrithiofsson-sudo/lossi`)
 - [x] Step 2: Deploy today's app to Cloudflare (live: https://lossi.tobias-frithiofsson.workers.dev/)
 - [x] Step 3: Introduce `data.js` (still localStorage)
-- [ ] Step 4: Supabase project + table
+- [x] Step 4: Supabase project + table (project `lossi`, ref `mqzmtndjfgeujaqzqpeb`)
 - [ ] Step 5: Login (`auth.js`, magic link)
 - [ ] Step 6: Switch `data.js` to Supabase
 - [ ] Step 7: Keep-alive + invite testers
@@ -51,6 +51,8 @@ Pure refactor: `listPlans`, `loadPlan`, `savePlan`, `createPlan`, `getPlanAvatar
 ### Step 4: Supabase project + table (30–45 min)
 Create the account and project (EU region). Run the SQL for table `plans` (`id`, `owner_id`, `title`, `state jsonb`, `avatar`, `created_at`, `updated_at`) with Row Level Security (owner only). Put the project URL + anon key in `config.js`. The anon key is meant to be public; RLS provides the security.
 *Done when:* the table is visible in the Supabase table editor, with RLS enabled.
+
+Done 2026-10-16. Schema is in `supabase/schema.sql` (safe to re-run). `config.js` holds the project URL + publishable key (`LOSSI_CONFIG`); no page loads it yet (step 5 does). Checked from outside: logged-out reads and inserts get "permission denied", and the auth endpoint answers. The policies for logged-in users get their real test in step 6 (two users). Table columns: `id` (bigint identity, used in `?id=`), `owner_id` (defaults to the logged-in user), `title`, `avatar`, `state` (jsonb), `created_at`, `updated_at` (trigger). The database password is in Tobias's password manager (needed for `pg_dump` in step 7).
 
 ### Step 5: Login (1 session, needs 3 + 4)
 `auth.js` (`signIn`, `signOut`, `getUser`, `requireUser`), `login.html` with email magic link, redirect when logged out, log out in the user menu (app shell in `theme.js`). Add localhost + the live URL as redirect URLs in Supabase. Data still in localStorage.

@@ -2327,6 +2327,10 @@ body.edit-mode .activity-more-btn { display: grid; }
   gap: var(--space-4);
 }
 
+/* [hidden] måste vinna över display nedan (index.html döljer kort/ruta) */
+.upcoming-panel[hidden],
+.upcoming-card[hidden] { display: none; }
+
 .upcoming-card {
   width: 220px;
   display: flex;

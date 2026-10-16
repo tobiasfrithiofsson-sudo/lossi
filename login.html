@@ -136,8 +136,14 @@
 
   function friendlyError(err) {
     const msg = (err && err.message) || '';
+    // Supabase: max en länk per minut och adress ("…after 42 seconds")
+    const seconds = /after (\d+) seconds?/i.exec(msg);
+    if (seconds) {
+      return `Du bad nyss om en länk. Vänta ${seconds[1]} sekunder och försök igen.`;
+    }
+    // …och bara några få mail per timme med Supabase inbyggda e-post
     if (err && (err.status === 429 || /rate limit|security purposes/i.test(msg))) {
-      return 'Du har bett om många länkar på kort tid. Vänta en stund och försök igen.';
+      return 'Gränsen för antal inloggningsmail är nådd för stunden. Försök igen om en stund – det kan ta upp till en timme.';
     }
     if (/invalid/i.test(msg) && /email/i.test(msg)) return 'Den e-postadressen ser inte riktigt rätt ut.';
     if (/fetch|network/i.test(msg)) return 'Kunde inte nå servern. Kontrollera din uppkoppling.';

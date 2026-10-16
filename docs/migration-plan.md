@@ -8,7 +8,7 @@ Working checklist. Start every session by reading this file, picking the next un
 - [x] Step 2: Deploy today's app to Cloudflare (live: https://lossi.tobias-frithiofsson.workers.dev/)
 - [x] Step 3: Introduce `data.js` (still localStorage)
 - [x] Step 4: Supabase project + table (project `lossi`, ref `mqzmtndjfgeujaqzqpeb`)
-- [x] Step 5: Login (`auth.js`, magic link)
+- [x] Step 5: Login (`auth.js`; email + password since 2026-10-16)
 - [ ] Step 6: Switch `data.js` to Supabase
 - [ ] Step 7: Keep-alive + invite testers
 
@@ -16,7 +16,7 @@ Steps 3 and 4 are independent and can be done in either order. Everything else r
 
 ## Decisions (2026-10-16)
 - **Supabase** (Postgres) for database + auth, **Cloudflare Workers (static assets)** for hosting. Both free for the test phase.
-- **Supabase Auth** (magic link) for now. Better Auth (self-hosted on a Cloudflare Worker) was considered and deferred. All auth calls go through `auth.js`, so swapping it later touches one file.
+- **Supabase Auth** (email + password; magic link was tried first, see step 5) for now. Better Auth (self-hosted on a Cloudflare Worker) was considered and deferred. All auth calls go through `auth.js`, so swapping it later touches one file.
 - **Test first, rewrite later:** wire Supabase into today's vanilla app. A JS framework rewrite is expected before real production. `data.js`, `auth.js` and the DB schema stay framework-agnostic so they carry over.
 - **Low lock-in:** Supabase is plain Postgres (`pg_dump` moves it anywhere). The app pages never talk to Supabase directly, only through `data.js` / `auth.js`.
 
@@ -60,6 +60,8 @@ Done 2026-10-16. Schema is in `supabase/schema.sql` (safe to re-run). `config.js
 
 Done 2026-10-16. `login.html` + `login.css` (landing-page style, dark mode, mobile), `auth.js` (`LossiAuth`; supabase-js 2.45.4 from jsdelivr). Protected pages have `class="auth-pending" data-auth-required` on `<html>` and call `LossiAuth.requireUser()` first. An expired link's `#error=…` is carried along to the login page. Supabase → Authentication → URL Configuration: Site URL `https://lossi.tobias-frithiofsson.workers.dev`, Redirect URLs `https://lossi.tobias-frithiofsson.workers.dev/**` and `http://localhost:8765/**`. Lesson learned: if a link leads to `localhost:3000`, the Site URL/redirect list wasn't saved when the mail was sent; old mails keep the wrong address, so request a new link.
 
+**Changed 2026-10-16: email + password instead of magic link.** Supabase's built-in email only sends to Supabase team members and only a couple of mails per hour, so testers couldn't log in, and Tobias got locked out after logging out. Now no email is sent at all: Tobias creates accounts in Supabase (Authentication → Users → Add user → Create new user, tick "Auto Confirm User") and gives the tester the password. Testers can change it under "Byt lösenord" in the user menu. `supabase/admin.sql` sets a new password for a user (forgotten password, or accounts first created by magic link). Recommended Supabase setting: turn off "Allow new users to sign up", so only accounts Tobias creates exist. Magic link can come back once Lossi has its own email (needs a domain; Brevo suggested for EU data).
+
 ### Step 6: Switch `data.js` to Supabase (1 session, needs 5)
 Swap the localStorage implementation for Supabase queries, with debounced autosave and seeded demo plans (`DEMO_PLANS`) for new users.
 Also (decided 2026-10-16):
@@ -69,10 +71,10 @@ Also (decided 2026-10-16):
 *Done when:* a plan made on one device shows up on another, a second user (private window) can't see it, and rows appear in the table editor.
 
 ### Step 7: Keep-alive + invite testers (30–60 min)
-- **Custom email (required before inviting anyone):** Supabase's built-in email only sends to members of the Supabase team, and only a few per hour. Connect a free SMTP service (e.g. Resend) under Authentication → Emails → SMTP Settings. Optionally translate the email templates into Swedish.
+- **Create tester accounts** in Supabase (see step 5) and send each tester their email + password yourself. No email service is needed for this.
+- *Later, not required now:* own email via SMTP (needs a domain; Brevo for EU data or Resend), which would allow magic links and password-reset mails.
 - GitHub Action that pings Supabase weekly so the free project doesn't pause.
 - Short tester note. Test the exit path: `pg_dump` works.
-- Consider: a 6-digit code in the email as well as the link (`verifyOtp`), for teachers who open mail on their phone but use Lossi on a computer.
 *Done when:* Kristoffer logs in on the live URL and creates a plan.
 
 ## Verification

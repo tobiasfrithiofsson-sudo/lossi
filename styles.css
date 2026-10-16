@@ -485,6 +485,11 @@ body.activity-panel-resizing .page-frame {
 .save-status.is-visible { opacity: 1; transform: translate(-50%, 0); }
 .save-status.is-error { background: #C2413B; color: #fff; }
 
+/* Byt lösenord-dialogen (theme.js) */
+.modal.modal-sm { max-width: 420px; }
+.password-message { font-size: var(--font-size-base); color: #1F9D6B; margin-top: 4px; }
+.password-message.is-error { color: #C2413B; }
+
 /* Skyddade sidor döljs tills LossiAuth.requireUser() vet att man är inloggad */
 .auth-pending body { visibility: hidden; }
 

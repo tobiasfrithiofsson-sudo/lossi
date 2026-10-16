@@ -42,49 +42,33 @@
   <a href="landing.html" class="login-wordmark" aria-label="Lossi – till startsidan">lossi</a>
 
   <div class="login-card">
-    <!-- Steg 1: ange e-post -->
-    <section class="login-step" id="stepEmail">
-      <h1 class="login-title">Välkommen till Lossi</h1>
-      <p class="login-lead">Skriv din e-post så skickar vi en inloggningslänk. Inget lösenord att komma ihåg.</p>
+    <h1 class="login-title">Välkommen till Lossi</h1>
+    <p class="login-lead">Logga in med e-postadressen och lösenordet du fått från oss.</p>
 
-      <div class="login-notice" id="loginNotice" role="status" hidden></div>
+    <div class="login-notice" id="loginNotice" role="status" hidden></div>
 
-      <form id="loginForm" novalidate>
-        <label class="login-label" for="loginEmail">E-postadress</label>
-        <div class="login-input-wrap">
-          <i data-lucide="mail"></i>
-          <input class="login-input" id="loginEmail" type="email" name="email" autocomplete="email" inputmode="email" placeholder="namn@skola.se" required autofocus />
-        </div>
-        <p class="login-error" id="loginError" role="alert" hidden></p>
-
-        <button class="login-btn" id="loginSubmit" type="submit">
-          <span class="login-btn-label">Skicka inloggningslänk</span>
-          <span class="login-spinner" aria-hidden="true"></span>
-        </button>
-      </form>
-
-      <p class="login-fine"><i data-lucide="sparkles"></i>Ny här? Samma länk skapar ditt konto.</p>
-    </section>
-
-    <!-- Steg 2: länken är skickad -->
-    <section class="login-step" id="stepSent" hidden>
-      <div class="login-sent-icon">
-        <i data-lucide="mail-check"></i>
+    <form id="loginForm" novalidate>
+      <label class="login-label" for="loginEmail">E-postadress</label>
+      <div class="login-input-wrap">
+        <i data-lucide="mail"></i>
+        <input class="login-input" id="loginEmail" type="email" name="email" autocomplete="username" inputmode="email" placeholder="namn@skola.se" required autofocus />
       </div>
-      <h1 class="login-title">Kolla din inkorg</h1>
-      <p class="login-lead">Vi har skickat en länk till <strong id="sentEmail"></strong>. Klicka på den för att logga in.</p>
 
-      <ul class="login-tips">
-        <li><i data-lucide="clock"></i>Länken gäller i en timme.</li>
-        <li><i data-lucide="inbox"></i>Syns inget? Titta i skräpposten.</li>
-      </ul>
-
-      <p class="login-error" id="resendError" role="alert" hidden></p>
-      <div class="login-actions">
-        <button class="login-btn login-btn-secondary" id="resendBtn" type="button">Skicka igen</button>
-        <button class="login-link" id="changeEmailBtn" type="button">Använd en annan e-post</button>
+      <label class="login-label login-label-spaced" for="loginPassword">Lösenord</label>
+      <div class="login-input-wrap">
+        <i data-lucide="lock"></i>
+        <input class="login-input login-input-password" id="loginPassword" type="password" name="password" autocomplete="current-password" placeholder="Ditt lösenord" required />
+        <button class="login-reveal" id="revealPassword" type="button" title="Visa lösenord" aria-label="Visa lösenord" aria-pressed="false"><i data-lucide="eye"></i></button>
       </div>
-    </section>
+      <p class="login-error" id="loginError" role="alert" hidden></p>
+
+      <button class="login-btn" id="loginSubmit" type="submit">
+        <span class="login-btn-label">Logga in</span>
+        <span class="login-spinner" aria-hidden="true"></span>
+      </button>
+    </form>
+
+    <p class="login-fine"><i data-lucide="key-round"></i>Glömt lösenordet? Hör av dig till den som bjöd in dig.</p>
   </div>
 </main>
 
@@ -97,138 +81,88 @@
 
   const form = document.getElementById('loginForm');
   const emailInput = document.getElementById('loginEmail');
+  const passwordInput = document.getElementById('loginPassword');
   const submitBtn = document.getElementById('loginSubmit');
   const errorEl = document.getElementById('loginError');
   const noticeEl = document.getElementById('loginNotice');
-  const resendBtn = document.getElementById('resendBtn');
-  const resendErrorEl = document.getElementById('resendError');
-
-  const RESEND_SECONDS = 60;
-  let sentTo = '';
-  let resendTimer = null;
+  const revealBtn = document.getElementById('revealPassword');
 
   // Redan inloggad: vidare direkt
   LossiAuth.getUser().then(user => {
     if (user) window.location.replace(next || 'index.html');
   });
 
-  // Kom man hit via en gammal eller redan använd länk står felet i adressen
-  const hash = new URLSearchParams(window.location.hash.slice(1));
-  if (hash.get('error')) {
-    const expired = hash.get('error_code') === 'otp_expired';
-    showNotice(expired
-      ? 'Länken har gått ut eller redan använts. Skicka en ny nedan.'
-      : 'Inloggningen gick inte igenom. Försök igen med en ny länk.');
-    history.replaceState(null, '', window.location.pathname + window.location.search);
-  } else if (next) {
-    showNotice('Logga in för att fortsätta.');
-  }
-
-  function showNotice(text) {
-    noticeEl.textContent = text;
+  if (next) {
+    noticeEl.textContent = 'Logga in för att fortsätta.';
     noticeEl.hidden = false;
   }
 
-  function showError(el, text) {
-    el.textContent = text;
-    el.hidden = !text;
+  function showError(text) {
+    errorEl.textContent = text;
+    errorEl.hidden = !text;
   }
 
   function friendlyError(err) {
     const msg = (err && err.message) || '';
-    // Supabase: max en länk per minut och adress ("…after 42 seconds")
-    const seconds = /after (\d+) seconds?/i.exec(msg);
-    if (seconds) {
-      return `Du bad nyss om en länk. Vänta ${seconds[1]} sekunder och försök igen.`;
+    if (/invalid login credentials/i.test(msg)) return 'Fel e-postadress eller lösenord.';
+    if (/email not confirmed/i.test(msg)) return 'Kontot är inte aktiverat än. Hör av dig till den som bjöd in dig.';
+    if (err && (err.status === 429 || /rate limit|too many/i.test(msg))) {
+      return 'Många försök på kort tid. Vänta en stund och försök igen.';
     }
-    // …och bara några få mail per timme med Supabase inbyggda e-post
-    if (err && (err.status === 429 || /rate limit|security purposes/i.test(msg))) {
-      return 'Gränsen för antal inloggningsmail är nådd för stunden. Försök igen om en stund – det kan ta upp till en timme.';
-    }
-    if (/invalid/i.test(msg) && /email/i.test(msg)) return 'Den e-postadressen ser inte riktigt rätt ut.';
     if (/fetch|network/i.test(msg)) return 'Kunde inte nå servern. Kontrollera din uppkoppling.';
-    return 'Något gick fel när länken skulle skickas. Försök igen om en stund.';
+    return 'Något gick fel vid inloggningen. Försök igen om en stund.';
   }
 
-  function setLoading(btn, loading) {
-    btn.classList.toggle('is-loading', loading);
-    btn.disabled = loading;
+  function setLoading(loading) {
+    submitBtn.classList.toggle('is-loading', loading);
+    submitBtn.disabled = loading;
   }
 
-  function showStep(id) {
-    document.querySelectorAll('.login-step').forEach(s => {
-      s.hidden = s.id !== id;
-      s.classList.toggle('is-entering', s.id === id);
-    });
-  }
-
-  function startResendCountdown() {
-    let left = RESEND_SECONDS;
-    resendBtn.disabled = true;
-    clearInterval(resendTimer);
-    const tick = () => {
-      resendBtn.textContent = left > 0 ? `Skicka igen om ${left} s` : 'Skicka igen';
-      if (left <= 0) {
-        clearInterval(resendTimer);
-        resendBtn.disabled = false;
-      }
-      left--;
-    };
-    tick();
-    resendTimer = setInterval(tick, 1000);
-  }
+  revealBtn.addEventListener('click', () => {
+    const show = passwordInput.type === 'password';
+    passwordInput.type = show ? 'text' : 'password';
+    const label = show ? 'Dölj lösenord' : 'Visa lösenord';
+    revealBtn.title = label;
+    revealBtn.setAttribute('aria-label', label);
+    revealBtn.setAttribute('aria-pressed', String(show));
+    revealBtn.innerHTML = `<i data-lucide="${show ? 'eye-off' : 'eye'}"></i>`;
+    lucide.createIcons({ nodes: [revealBtn] });
+    passwordInput.focus();
+  });
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const email = emailInput.value.trim();
+    const password = passwordInput.value;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      showError(errorEl, 'Skriv en giltig e-postadress, t.ex. namn@skola.se.');
+      showError('Skriv en giltig e-postadress, t.ex. namn@skola.se.');
       emailInput.classList.add('is-invalid');
       emailInput.focus();
       return;
     }
-    showError(errorEl, '');
-    setLoading(submitBtn, true);
+    if (!password) {
+      showError('Skriv ditt lösenord.');
+      passwordInput.classList.add('is-invalid');
+      passwordInput.focus();
+      return;
+    }
+    showError('');
+    setLoading(true);
     try {
-      await LossiAuth.signIn(email, next);
-      sentTo = email;
-      document.getElementById('sentEmail').textContent = email;
-      noticeEl.hidden = true;
-      showStep('stepSent');
-      startResendCountdown();
+      await LossiAuth.signIn(email, password);
+      window.location.replace(next || 'index.html');
     } catch (err) {
-      console.warn('Kunde inte skicka inloggningslänk:', err);
-      showError(errorEl, friendlyError(err));
-    } finally {
-      setLoading(submitBtn, false);
+      console.warn('Inloggningen misslyckades:', err);
+      showError(friendlyError(err));
+      passwordInput.select();
+      setLoading(false);
     }
   });
 
-  emailInput.addEventListener('input', () => {
-    emailInput.classList.remove('is-invalid');
-    showError(errorEl, '');
-  });
-
-  resendBtn.addEventListener('click', async () => {
-    showError(resendErrorEl, '');
-    setLoading(resendBtn, true);
-    try {
-      await LossiAuth.signIn(sentTo, next);
-      setLoading(resendBtn, false);
-      startResendCountdown();
-    } catch (err) {
-      setLoading(resendBtn, false);
-      showError(resendErrorEl, friendlyError(err));
-    }
-  });
-
-  document.getElementById('changeEmailBtn').addEventListener('click', () => {
-    clearInterval(resendTimer);
-    showError(resendErrorEl, '');
-    showStep('stepEmail');
-    emailInput.focus();
-    emailInput.select();
-  });
+  [emailInput, passwordInput].forEach(input => input.addEventListener('input', () => {
+    input.classList.remove('is-invalid');
+    showError('');
+  }));
 </script>
 </body>
 </html>

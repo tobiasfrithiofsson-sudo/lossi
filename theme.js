@@ -192,6 +192,13 @@ function renderAppShell(options = {}) {
       if (e.target.id === 'createPlanModal') closeCreatePlanModal();
     });
   }
+
+  if (!document.getElementById('passwordModal')) {
+    document.body.insertAdjacentHTML('beforeend', buildPasswordModalHTML());
+    document.getElementById('passwordModal').addEventListener('click', e => {
+      if (e.target.id === 'passwordModal') closePasswordModal();
+    });
+  }
 }
 
 function buildTopbarHTML(active) {
@@ -250,6 +257,10 @@ function buildTopbarHTML(active) {
           <span class="user-menu-account-email" id="userMenuEmail"></span>
         </div>
         <button class="user-menu-item" id="themeMenuItem" onclick="toggleTheme()"></button>
+        <button class="user-menu-item" onclick="openPasswordModal()">
+          <i data-lucide="key-round"></i>
+          Byt lösenord
+        </button>
         <div class="user-menu-sep"></div>
         <button class="user-menu-item" onclick="logOut()">
           <i data-lucide="log-out"></i>
@@ -438,6 +449,102 @@ function buildCreatePlanModalHTML() {
   </div>
 </div>`;
 }
+
+// ── Byt lösenord ──
+// Testare får ett lösenord av Tobias och kan byta till ett eget här.
+const PASSWORD_MIN_LENGTH = 8;
+
+function buildPasswordModalHTML() {
+  return `
+<div class="modal-overlay" id="passwordModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Byt lösenord</h3>
+      <button class="modal-close" onclick="closePasswordModal()">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <form class="modal-body" id="passwordForm" onsubmit="event.preventDefault(); savePassword()">
+      <input type="text" name="username" autocomplete="username" hidden />
+      <div class="field-group">
+        <label class="field-label" for="newPassword">Nytt lösenord</label>
+        <div class="field-group-content">
+          <input class="field-input" type="password" id="newPassword" autocomplete="new-password" placeholder="Minst ${PASSWORD_MIN_LENGTH} tecken" oninput="clearPasswordError()" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="newPasswordRepeat">Upprepa</label>
+        <div class="field-group-content">
+          <input class="field-input" type="password" id="newPasswordRepeat" autocomplete="new-password" oninput="clearPasswordError()" />
+        </div>
+      </div>
+      <p class="password-message" id="passwordMessage" role="status" hidden></p>
+      <button type="submit" hidden></button>
+    </form>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closePasswordModal()">Avbryt</button>
+      <button class="btn-primary" id="passwordSaveBtn" onclick="savePassword()">Spara lösenord</button>
+    </div>
+  </div>
+</div>`;
+}
+
+function openPasswordModal() {
+  document.getElementById('userMenuDropdown')?.classList.remove('open');
+  document.getElementById('passwordForm').reset();
+  clearPasswordError();
+  document.getElementById('passwordSaveBtn').disabled = false;
+  document.getElementById('passwordModal').classList.add('open');
+  document.getElementById('newPassword').focus();
+}
+
+function closePasswordModal() {
+  document.getElementById('passwordModal').classList.remove('open');
+}
+
+function showPasswordMessage(text, isError) {
+  const el = document.getElementById('passwordMessage');
+  el.textContent = text;
+  el.classList.toggle('is-error', !!isError);
+  el.hidden = !text;
+}
+
+function clearPasswordError() {
+  showPasswordMessage('');
+}
+
+async function savePassword() {
+  const password = document.getElementById('newPassword').value;
+  const repeat = document.getElementById('newPasswordRepeat').value;
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    showPasswordMessage(`Lösenordet behöver vara minst ${PASSWORD_MIN_LENGTH} tecken.`, true);
+    return;
+  }
+  if (password !== repeat) {
+    showPasswordMessage('Lösenorden är inte likadana.', true);
+    return;
+  }
+  const btn = document.getElementById('passwordSaveBtn');
+  btn.disabled = true;
+  try {
+    await LossiAuth.changePassword(password);
+    showPasswordMessage('Klart! Använd det nya lösenordet nästa gång du loggar in.');
+    setTimeout(closePasswordModal, 1600);
+  } catch (e) {
+    console.warn('Kunde inte byta lösenord:', e);
+    const msg = /different from the old/i.test(e?.message || '')
+      ? 'Det nya lösenordet måste skilja sig från det gamla.'
+      : /weak|short|characters/i.test(e?.message || '')
+        ? 'Lösenordet är för svagt. Prova ett längre.'
+        : 'Kunde inte byta lösenord. Försök igen om en stund.';
+    showPasswordMessage(msg, true);
+    btn.disabled = false;
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('passwordModal')?.classList.contains('open')) closePasswordModal();
+});
 
 // Bildväljare som används både i Skapa-dialogen och i uppläggets avatar-popover
 function buildAvatarPickerHTML() {

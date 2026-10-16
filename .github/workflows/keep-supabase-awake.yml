@@ -1,0 +1,32 @@
+# Håller Supabase-projektet vaket (steg 7 i docs/migration-plan.md).
+# Gratisplanen pausar projekt efter 7 dagar utan trafik. Det här frågar
+# databasen var tredje dag. Adress och nyckel är publika (samma som config.js);
+# en utloggad fråga nekas av databasens regler, men räknas ändå som trafik.
+# Misslyckas körningen (t.ex. om projektet redan pausats) mailar GitHub dig.
+name: Håll Supabase vaket
+
+on:
+  schedule:
+    - cron: '17 6 */3 * *'   # var tredje dag kl. 06:17 UTC
+  workflow_dispatch:         # "Run workflow"-knappen i GitHub
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Fråga databasen
+        env:
+          SUPABASE_URL: https://mqzmtndjfgeujaqzqpeb.supabase.co
+          SUPABASE_KEY: sb_publishable__AjC-8yqjsBivM-xgN4DHQ__zZQ2sNa
+        run: |
+          code=$(curl -s -o response.txt -w '%{http_code}' --max-time 30 \
+            "$SUPABASE_URL/rest/v1/plans?select=id&limit=1" \
+            -H "apikey: $SUPABASE_KEY")
+          echo "Svar: HTTP $code"
+          cat response.txt; echo
+          # 200 = svar, 401 = nekad av reglerna (väntat för utloggad). Båda betyder att databasen svarade.
+          case "$code" in
+            200|401) echo "Databasen är vaken." ;;
+            *) echo "::error::Databasen svarade inte som väntat (HTTP $code). Kolla om projektet är pausat i Supabase."; exit 1 ;;
+          esac

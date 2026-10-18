@@ -1999,10 +1999,10 @@ body.edit-mode .activity-more-btn { display: grid; }
   padding: 3px 10px;
 }
 
-/* ── TEST: Klass/Ämne/Årskurs under Detaljer som ren text i stället för taggar ──
+/* ── Klass/Ämne/Årskurs under Detaljer visas som ren text (beslut 2026-10-18) ──
    Samma storlek och färg som övriga värden i panelen (t.ex. Skapad). En svag
-   bakgrund vid hover visar att värdet går att klicka på. Ta bort hela blocket
-   för att gå tillbaka till taggarna. */
+   bakgrund vid hover visar att värdet går att klicka på. (.class-tag-stilarna
+   ovan är taggvarianten; den här blocket skriver över dem i panelen.) */
 .detail-panel .class-picker-trigger { margin-left: -8px; border-radius: var(--radius-sm); }
 .detail-panel .class-tag,
 .detail-panel .class-tag.is-empty {

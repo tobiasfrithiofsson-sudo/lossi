@@ -50,6 +50,14 @@ const LossiAuth = (() => {
     return data.user;
   }
 
+  // Lärarens egna klasser (t.ex. "7B"), sparade i användarens metadata så att
+  // de finns i alla upplägg och på alla enheter. Returnerar den uppdaterade användaren.
+  async function saveClasses(classes) {
+    const { data, error } = await client.auth.updateUser({ data: { classes } });
+    if (error) throw error;
+    return data.user;
+  }
+
   // För inloggade: byt till ett eget lösenord
   async function changePassword(password) {
     const { error } = await client.auth.updateUser({ password });
@@ -89,5 +97,5 @@ const LossiAuth = (() => {
     }
   });
 
-  return { client, getUser, signIn, profileOf, updateProfile, changePassword, signOut, requireUser, safeNext, accessToken };
+  return { client, getUser, signIn, profileOf, updateProfile, saveClasses, changePassword, signOut, requireUser, safeNext, accessToken };
 })();

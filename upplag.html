@@ -828,15 +828,16 @@
           <div class="read-field">
             <span class="read-field-label">Klass</span>
             <div class="popover-wrap" onclick="event.stopPropagation()">
-              <div class="class-picker-trigger" id="classPickerTrigger" onclick="toggleAppPopover(this)" title="Välj klass">
+              <div class="class-picker-trigger" id="classPickerTrigger" onclick="openClassMenu(this)" title="Välj eller skriv in klass">
                 <span class="class-tag is-empty">Ej tilldelad</span>
               </div>
-              <div class="menu-popover" id="classMenu">
-                <div class="menu-popover-label">Klasskatalog</div>
-                <button type="button" class="menu-popover-item" onclick="selectClass('SA26A')">SA26A</button>
-                <button type="button" class="menu-popover-item" onclick="selectClass('SA26B')">SA26B</button>
-                <button type="button" class="menu-popover-item" onclick="selectClass('NA26A')">NA26A</button>
-                <button type="button" class="menu-popover-item" onclick="selectClass('EK26B')">EK26B</button>
+              <div class="menu-popover class-menu" id="classMenu">
+                <div class="class-search">
+                  <i data-lucide="search"></i>
+                  <input type="text" id="classInput" placeholder="Skriv klassens namn…" autocomplete="off" maxlength="30"
+                    role="combobox" aria-expanded="true" aria-controls="classOptions" aria-autocomplete="list" />
+                </div>
+                <div class="class-options" id="classOptions" role="listbox" aria-label="Dina klasser"></div>
               </div>
             </div>
           </div>
@@ -1722,16 +1723,156 @@
     }
   });
 
-  // ── Klass (inline, väljs ur klasskatalogen) ──
-  // Fältet under Detaljer fungerar som en dropdown: klicka på texten/taggen
-  // för att välja en klass ur katalogen, eller ta bort valet med krysset på
-  // taggen. Ett upplägg behöver ingen klass — "Ej tilldelad" är giltigt och
-  // låter läraren bygga upplägg i förväg, innan klassen finns.
+  // ── Klass (inline: välj bland lärarens klasser eller skriv in en ny) ──
+  // Klicka på taggen under Detaljer: en lista med lärarens klasser visas och
+  // filtreras när man skriver. Finns inte namnet läggs det till ("Lägg till
+  // '7B'") och sparas bland lärarens klasser (användarens metadata, så de
+  // finns i alla upplägg). Klasser som redan används i upplägg räknas med.
+  // Ett upplägg behöver ingen klass — "Ej tilldelad" är giltigt och låter
+  // läraren bygga upplägg i förväg, innan klassen finns.
+  const CLASS_MAX_LENGTH = 30;
+  let classesFromPlans = [];
+  let classHighlight = 0;
+
+  function normalizeClass(name) {
+    return name.replace(/\s+/g, ' ').trim().slice(0, CLASS_MAX_LENGTH);
+  }
+
+  // Lärarens klasser: sparade i profilen + de som används i upplägg, utan dubbletter
+  function teacherClasses() {
+    const saved = Array.isArray(currentUser?.user_metadata?.classes) ? currentUser.user_metadata.classes : [];
+    const seen = new Map();
+    [...saved, ...classesFromPlans].forEach(c => {
+      const name = normalizeClass(String(c || ''));
+      if (name && !seen.has(name.toLowerCase())) seen.set(name.toLowerCase(), name);
+    });
+    return [...seen.values()].sort((a, b) => a.localeCompare(b, 'sv', { numeric: true }));
+  }
+
+  async function loadClassesFromPlans() {
+    try {
+      const plans = await LossiData.listPlans();
+      classesFromPlans = plans.map(p => p.state?.klass).filter(Boolean);
+    } catch (e) {
+      classesFromPlans = [];
+    }
+  }
+
+  async function rememberClass(name) {
+    const saved = Array.isArray(currentUser?.user_metadata?.classes) ? currentUser.user_metadata.classes : [];
+    if (saved.some(c => c.toLowerCase() === name.toLowerCase())) return;
+    try {
+      currentUser = await LossiAuth.saveClasses([...saved, name]);
+    } catch (e) {
+      console.warn('Kunde inte spara klassen i profilen:', e);
+    }
+  }
+
+  async function forgetClass(name) {
+    const saved = Array.isArray(currentUser?.user_metadata?.classes) ? currentUser.user_metadata.classes : [];
+    classesFromPlans = classesFromPlans.filter(c => c.toLowerCase() !== name.toLowerCase());
+    try {
+      currentUser = await LossiAuth.saveClasses(saved.filter(c => c.toLowerCase() !== name.toLowerCase()));
+    } catch (e) {
+      console.warn('Kunde inte ta bort klassen ur profilen:', e);
+    }
+    renderClassOptions();
+    document.getElementById('classInput').focus();
+  }
+
+  function openClassMenu(trigger) {
+    const menu = document.getElementById('classMenu');
+    const wasOpen = menu.classList.contains('open');
+    toggleAppPopover(trigger);
+    if (wasOpen) return;
+    const input = document.getElementById('classInput');
+    input.value = '';
+    classHighlight = 0;
+    renderClassOptions();
+    setTimeout(() => input.focus(), 0);
+  }
+
+  // Alternativen: matchande klasser, och "Lägg till" om namnet är nytt
+  function classOptions() {
+    const query = normalizeClass(document.getElementById('classInput').value);
+    const all = teacherClasses();
+    const q = query.toLowerCase();
+    const matches = q ? all.filter(c => c.toLowerCase().includes(q)) : all;
+    // Börjar med det man skrivit först, sedan övriga träffar
+    matches.sort((a, b) => (b.toLowerCase().startsWith(q)) - (a.toLowerCase().startsWith(q)));
+    const exact = all.some(c => c.toLowerCase() === q);
+    const options = matches.map(name => ({ type: 'class', name }));
+    if (query && !exact) options.unshift({ type: 'add', name: query });
+    return options;
+  }
+
+  function renderClassOptions() {
+    const list = document.getElementById('classOptions');
+    const options = classOptions();
+    const current = document.getElementById('classPickerTrigger').dataset.klass || '';
+    classHighlight = Math.max(0, Math.min(classHighlight, options.length - 1));
+    list.innerHTML = options.length
+      ? options.map((o, i) => o.type === 'add'
+        ? `<div class="class-option is-add${i === classHighlight ? ' is-active' : ''}" role="option" data-index="${i}">
+             <i data-lucide="plus"></i><span>Lägg till <strong>${escapeHTML(o.name)}</strong></span>
+           </div>`
+        : `<div class="class-option${i === classHighlight ? ' is-active' : ''}${o.name === current ? ' is-selected' : ''}" role="option" data-index="${i}" aria-selected="${o.name === current}">
+             <span class="class-option-name">${escapeHTML(o.name)}</span>
+             ${o.name === current ? '<i data-lucide="check" class="class-option-check"></i>' : ''}
+             <button type="button" class="class-option-forget" data-forget="${escapeHTML(o.name)}" title="Ta bort ur dina klasser" aria-label="Ta bort ${escapeHTML(o.name)} ur dina klasser"><i data-lucide="x"></i></button>
+           </div>`).join('')
+      : `<div class="class-empty">${teacherClasses().length ? 'Ingen klass matchar.' : 'Du har inga klasser än. Skriv namnet på en klass, t.ex. <strong>7B</strong>, och tryck Enter.'}</div>`;
+    lucide.createIcons({ nodes: [list] });
+  }
+
+  function pickClassOption(index) {
+    const option = classOptions()[index];
+    if (!option) return;
+    selectClass(option.name);
+    if (option.type === 'add') rememberClass(option.name);
+  }
+
+  document.getElementById('classInput').addEventListener('input', () => {
+    classHighlight = 0;
+    renderClassOptions();
+  });
+
+  document.getElementById('classInput').addEventListener('keydown', e => {
+    const count = classOptions().length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!count) return;
+      classHighlight = (classHighlight + (e.key === 'ArrowDown' ? 1 : -1) + count) % count;
+      renderClassOptions();
+      document.querySelector('#classOptions .is-active')?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      pickClassOption(classHighlight);
+    } else if (e.key === 'Escape') {
+      closeAllMenuPopovers();
+    }
+  });
+
+  document.getElementById('classOptions').addEventListener('mousedown', e => {
+    // mousedown i stället för click, så att fältet inte tappar fokus först
+    const forget = e.target.closest('.class-option-forget');
+    if (forget) {
+      e.preventDefault();
+      forgetClass(forget.dataset.forget);
+      return;
+    }
+    const option = e.target.closest('.class-option');
+    if (option) {
+      e.preventDefault();
+      pickClassOption(Number(option.dataset.index));
+    }
+  });
+
   function renderClassTag(klass) {
     const trigger = document.getElementById('classPickerTrigger');
     trigger.dataset.klass = klass || '';
     trigger.innerHTML = klass
-      ? `<span class="class-tag">${klass}<button type="button" class="class-tag-remove" onclick="event.stopPropagation(); clearClass();" title="Ta bort klass"><i data-lucide="x"></i></button></span>`
+      ? `<span class="class-tag">${escapeHTML(klass)}<button type="button" class="class-tag-remove" onclick="event.stopPropagation(); clearClass();" title="Ta bort klass"><i data-lucide="x"></i></button></span>`
       : `<span class="class-tag is-empty">Ej tilldelad</span>`;
     lucide.createIcons({ nodes: [trigger] });
   }
@@ -2499,6 +2640,7 @@
     window.addEventListener('beforeunload', saveState);
     if (lessonIdsAssigned) saveState();
     loadPlanEvents();
+    loadClassesFromPlans();
   })();
 </script>
 </body>

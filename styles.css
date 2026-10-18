@@ -1999,6 +1999,27 @@ body.edit-mode .activity-more-btn { display: grid; }
   padding: 3px 10px;
 }
 
+/* ── TEST: Klass/Ämne/Årskurs under Detaljer som ren text i stället för taggar ──
+   Samma storlek och färg som övriga värden i panelen (t.ex. Skapad). En svag
+   bakgrund vid hover visar att värdet går att klicka på. Ta bort hela blocket
+   för att gå tillbaka till taggarna. */
+.detail-panel .class-picker-trigger { margin-left: -8px; border-radius: var(--radius-sm); }
+.detail-panel .class-tag,
+.detail-panel .class-tag.is-empty {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  font-weight: 400;
+}
+.detail-panel .class-tag.is-empty { color: var(--color-text-secondary); }
+.detail-panel .class-picker-trigger:hover .class-tag,
+.detail-panel .class-picker-trigger:hover .class-tag.is-empty { background: var(--color-aside-hover); }
+.detail-panel .class-tag-remove { opacity: 0; color: var(--color-text-secondary); }
+.detail-panel .class-picker-trigger:hover .class-tag-remove { opacity: 0.8; }
+.detail-panel .class-tag-remove:hover { opacity: 1; background: var(--color-border); }
+
 /* Klassväljaren: sökfält + lärarens klasser (upplag.html) */
 .class-menu { width: 260px; padding: 6px; }
 

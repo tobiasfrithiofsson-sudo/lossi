@@ -16,6 +16,8 @@
   --color-bg-secondary:      #FFFFFF;
   --color-bg-hover:          #F5F4F1;
   --color-bg-aside:          #F9F7F7;
+  --color-aside-hover:       rgba(0, 0, 0, 0.05);   /* sidopanelens rader vid hover */
+  --color-aside-active:      rgba(0, 0, 0, 0.085);  /* öppet upplägg i sidopanelen */
 
   /* ── Border ── */
   --color-border:            rgba(0,0,0,0.15);
@@ -111,6 +113,8 @@
   --color-bg-secondary:      #141413;
   --color-bg-hover:          #252522;
   --color-bg-aside:          #222222;
+  --color-aside-hover:       rgba(255, 255, 255, 0.07);
+  --color-aside-active:      rgba(255, 255, 255, 0.12);
 
   --color-border:            rgba(255, 255, 255, 0.09);
 

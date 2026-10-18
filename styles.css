@@ -200,7 +200,7 @@ body.activity-panel-resizing .page-frame {
 
 .aside-item:hover { background: var(--color-aside-hover); }
 .aside-item.active,
-.aside-item.active:hover { background: var(--color-aside-active); font-weight: 600; }
+.aside-item.active:hover { background: var(--color-aside-active); }
 .aside-item.is-placeholder { cursor: default; }
 .aside-item.is-placeholder:hover { background: none; }
 

@@ -202,6 +202,31 @@ body.activity-panel-resizing .page-frame {
 .aside-item.is-placeholder { cursor: default; }
 .aside-item.is-placeholder:hover { background: none; }
 
+/* ── Kommer snart (platshållare som ännu inte fungerar) ── */
+.soon-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-hover);
+  border: 1px solid var(--color-border);
+  padding: 3px 7px;
+  border-radius: var(--radius-full);
+  vertical-align: middle;
+}
+
+.aside-project.is-soon { cursor: default; }
+.aside-project.is-soon .aside-project-name { flex: 1; min-width: 0; }
+.aside-label-soon { display: flex; align-items: center; gap: 6px; }
+.aside-item.is-soon { opacity: 0.6; }
+.aside-invite.is-soon .aside-invite-title { display: flex; align-items: center; gap: 6px; }
+.topnav-link.is-soon { color: var(--color-text-tertiary); cursor: default; display: inline-flex; align-items: center; gap: 6px; }
+.topnav-link.is-soon:hover { background: none; }
+
 .aside-item-text {
   flex: 1;
   min-width: 0;
@@ -2892,7 +2917,7 @@ body.edit-mode .goal-item:hover .goal-delete { display: grid; place-items: cente
   .app-topbar-start { gap: var(--space-2); min-width: 0; }
   .app-switcher,
   .logo-text,
-  .topnav-link[title="Kommer senare"],
+  .topnav-link.is-soon,
   .topnav-calendar { display: none; }
   .topnav { margin-left: 0; }
   .feedback-btn { padding: 8px; margin-right: 0; }

@@ -269,7 +269,7 @@ function buildTopbarHTML(active) {
     <nav class="topnav">
       <a href="index.html" class="topnav-link${active === 'plans' ? ' active' : ''}">Upplägg</a>
       <a href="calendar.html" class="topnav-link topnav-calendar${active === 'calendar' ? ' active' : ''}">Kalender</a>
-      <a href="#" class="topnav-link${active === 'material' ? ' active' : ''}" title="Kommer senare">Material</a>
+      <span class="topnav-link is-soon" title="Material kommer snart" aria-disabled="true">Material <span class="soon-badge">Snart</span></span>
       <button class="topnav-create" onclick="openCreatePlanModal()">Skapa</button>
     </nav>
   </div>
@@ -317,9 +317,10 @@ function buildAsideHTML() {
 
   return `
   <div class="aside-scroll">
-    <div class="aside-project" title="Projekt – fler projekt kommer senare">
+    <div class="aside-project is-soon" title="Projekt kommer snart: samla upplägg och dela dem med kollegor">
       <div class="aside-project-icon"><i data-lucide="award"></i></div>
       <span class="aside-project-name">${escapeHTML(APP_PROJECT.name)}</span>
+      <span class="soon-badge">Snart</span>
     </div>
 
     <div class="aside-group">
@@ -341,25 +342,21 @@ function buildAsideHTML() {
     </div>
 
     <div class="aside-group">
-      <div class="aside-label">Team</div>
+      <div class="aside-label aside-label-soon">Team <span class="soon-badge">Snart</span></div>
       ${APP_TEAMS.map(t => `
-        <div class="aside-item is-placeholder" title="Teamchatt – kommer senare">
+        <div class="aside-item is-placeholder is-soon" title="Team kommer snart – exempel på hur det kan se ut">
           <span class="aside-dot"></span>
           <span class="aside-item-text">${escapeHTML(t.name)} ${t.emoji}</span>
         </div>`).join('')}
-      <div class="aside-item aside-more is-placeholder" title="Kommer senare">
-        <i data-lucide="ellipsis"></i>
-        <span class="aside-item-text">Mer</span>
-      </div>
     </div>
   </div>
 
   ${inviteDismissed ? '' : `
-  <div class="aside-invite" title="Inbjudningar kommer senare">
+  <div class="aside-invite is-soon" title="Inbjudningar kommer snart">
     <i data-lucide="user-plus" class="aside-invite-icon"></i>
     <div class="aside-invite-text">
-      <div class="aside-invite-title">Bjud in kollegor</div>
-      <div class="aside-invite-sub">Samarbeta med ditt team</div>
+      <div class="aside-invite-title">Bjud in kollegor <span class="soon-badge">Snart</span></div>
+      <div class="aside-invite-sub">Snart kan du samarbeta med ditt team</div>
     </div>
     <button class="aside-invite-close" onclick="dismissInvite()" title="Dölj"><i data-lucide="x"></i></button>
   </div>`}`;

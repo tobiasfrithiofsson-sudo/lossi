@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="sv" class="auth-pending" data-auth-required>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalender | Lossi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="calendar.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <script src="theme.js"></script>
+  <script src="data.js"></script>
+  <script src="schedule.js"></script>
+</head>
+<body>
+
+<header class="app-topbar"></header>
+
+<div class="app-body">
+  <aside class="app-aside"></aside>
+
+  <main class="cal-main">
+    <div class="cal-header">
+      <div class="cal-heading">
+        <h1 class="cal-title">Kalender</h1>
+        <div class="cal-range" id="calRange"></div>
+      </div>
+      <div class="cal-nav">
+        <button class="btn-ghost" onclick="goToday()">Idag</button>
+        <button class="icon-btn" onclick="shiftPeriod(-1)" title="Föregående" aria-label="Föregående"><i data-lucide="chevron-left"></i></button>
+        <button class="icon-btn" onclick="shiftPeriod(1)" title="Nästa" aria-label="Nästa"><i data-lucide="chevron-right"></i></button>
+        <button class="btn-ghost cal-weekend-btn" id="weekendBtn" onclick="toggleWeekend()" aria-pressed="false" title="Visa lördag och söndag">Helg</button>
+        <button class="btn-primary" onclick="addLesson()"><i data-lucide="plus"></i><span class="cal-add-label">Lägg in lektion</span></button>
+      </div>
+    </div>
+
+    <div class="cal-notice" id="calNotice" hidden></div>
+
+    <div class="cal-grid" id="calGrid">
+      <div class="cal-head-row" id="calHeadRow"></div>
+      <div class="cal-scroll" id="calScroll">
+        <div class="cal-body" id="calBody"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Meny för en inlagd lektion -->
+<div class="cal-popover" id="calPopover" hidden>
+  <div class="cal-popover-head">
+    <div class="cal-popover-icon plan-icon-image" id="calPopIcon"></div>
+    <div class="cal-popover-text">
+      <div class="cal-popover-lesson" id="calPopLesson"></div>
+      <div class="cal-popover-plan" id="calPopPlan"></div>
+    </div>
+    <button class="modal-close" onclick="closePopover()" aria-label="Stäng"><i data-lucide="x"></i></button>
+  </div>
+  <div class="cal-popover-when" id="calPopWhen"></div>
+  <div class="cal-popover-actions">
+    <a class="btn-ghost" id="calPopOpen" href="#"><i data-lucide="external-link"></i>Öppna upplägg</a>
+    <button class="btn-ghost" onclick="editSelected()"><i data-lucide="clock"></i>Ändra tid</button>
+    <button class="btn-ghost cal-popover-remove" onclick="removeSelected()"><i data-lucide="calendar-x"></i>Ta bort</button>
+  </div>
+</div>
+
+<script>
+  LossiAuth.requireUser().then(applyUserProfile);
+  renderAppShell({ active: 'calendar' });
+  lucide.createIcons();
+  syncThemeIcons();
+
+  // ── Veckokalender ──
+  // Visar inlagda lektioner (LossiData.listEvents) vecka för vecka, mån–fre
+  // (helgen på begäran). På mobil visas en dag i taget. Klick på en ledig tid
+  // lägger in en lektion där; klick på en lektion öppnar en meny.
+  const HOUR_PX = 56;
+  const DEFAULT_FIRST_HOUR = 7;
+  const DEFAULT_LAST_HOUR = 18;
+  const SNAP_MIN = 15;
+  const mobileQuery = window.matchMedia('(max-width: 760px)');
+
+  let showWeekend = false;
+  try { showWeekend = localStorage.getItem('lossi-cal-weekend') === 'true'; } catch (e) {}
+  let anchor = todayAnchor(); // en dag i perioden som visas
+  let plans = [];
+  let allEvents = [];   // alla lärarens händelser (för "redan inlagd" i dialogen)
+  let shown = [];       // händelser i perioden, kopplade till upplägg/lektion
+  let selected = null;
+
+  // Idag – men på en helg med dold helg visas kommande vecka
+  function todayAnchor() {
+    const today = startOfDay(new Date());
+    const weekendDay = today.getDay() === 0 || today.getDay() === 6;
+    if (weekendDay && !showWeekend && !mobileQuery.matches) return addDays(today, today.getDay() === 6 ? 2 : 1);
+    return today;
+  }
+
+  function mondayOf(date) {
+    const d = startOfDay(date);
+    return addDays(d, -((d.getDay() + 6) % 7));
+  }
+
+  function isoWeek(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+  }
+
+  function periodDays() {
+    if (mobileQuery.matches) return [startOfDay(anchor)];
+    const monday = mondayOf(anchor);
+    return Array.from({ length: showWeekend ? 7 : 5 }, (_, i) => addDays(monday, i));
+  }
+
+  function rangeLabel(days) {
+    const first = days[0], last = days[days.length - 1];
+    if (days.length === 1) {
+      return `${first.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · v. ${isoWeek(first)}`;
+    }
+    const sameMonth = first.getMonth() === last.getMonth();
+    const from = first.toLocaleDateString('sv-SE', sameMonth ? { day: 'numeric' } : { day: 'numeric', month: 'short' });
+    const to = last.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' });
+    return `Vecka ${isoWeek(first)} · ${from}–${to}`;
+  }
+
+  async function load() {
+    try {
+      [plans, allEvents] = await Promise.all([
+        LossiData.listPlans(),
+        LossiData.listEvents(new Date(2000, 0, 1), new Date(2100, 0, 1)),
+      ]);
+      document.getElementById('calNotice').hidden = true;
+    } catch (e) {
+      console.warn('Kunde inte hämta kalendern:', e);
+      const notice = document.getElementById('calNotice');
+      notice.textContent = 'Kunde inte hämta kalendern. Ladda om sidan för att försöka igen.';
+      notice.hidden = false;
+    }
+    render();
+  }
+
+  function render() {
+    closePopover();
+    const days = periodDays();
+    const from = days[0], to = addDays(days[days.length - 1], 1);
+    shown = resolveEvents(allEvents.filter(e => e.start >= from && e.start < to), plans);
+
+    // Visa hela dagen 07–18, eller mer om något ligger utanför
+    let firstHour = DEFAULT_FIRST_HOUR, lastHour = DEFAULT_LAST_HOUR;
+    shown.forEach(e => {
+      firstHour = Math.min(firstHour, e.start.getHours());
+      const end = eventEnd(e);
+      lastHour = Math.max(lastHour, end.getHours() + (end.getMinutes() ? 1 : 0));
+    });
+    lastHour = Math.min(lastHour, 24);
+
+    document.getElementById('calRange').textContent = rangeLabel(days);
+    const weekendBtn = document.getElementById('weekendBtn');
+    weekendBtn.classList.toggle('is-active', showWeekend);
+    weekendBtn.setAttribute('aria-pressed', String(showWeekend));
+
+    const grid = document.getElementById('calGrid');
+    grid.style.setProperty('--cal-days', days.length);
+    grid.style.setProperty('--hour-px', HOUR_PX + 'px');
+
+    const today = startOfDay(new Date()).getTime();
+    document.getElementById('calHeadRow').innerHTML = '<div class="cal-corner"></div>' + days.map(d => `
+      <div class="cal-day-head${d.getTime() === today ? ' is-today' : ''}">
+        <span class="cal-day-name">${d.toLocaleDateString('sv-SE', { weekday: 'short' })}</span>
+        <span class="cal-day-num">${d.getDate()}</span>
+      </div>`).join('');
+
+    const hours = Array.from({ length: lastHour - firstHour }, (_, i) => firstHour + i);
+    const body = document.getElementById('calBody');
+    body.style.height = hours.length * HOUR_PX + 'px';
+    body.innerHTML = `
+      <div class="cal-times">${hours.map(h => `<div class="cal-time"><span>${String(h).padStart(2, '0')}:00</span></div>`).join('')}</div>
+      ${days.map((d, i) => `
+        <div class="cal-day${d.getTime() === today ? ' is-today' : ''}" data-day="${i}" title="Klicka för att lägga in en lektion">
+          ${dayEventsHTML(d, firstHour)}
+        </div>`).join('')}`;
+    body.dataset.firstHour = firstHour;
+    body.querySelectorAll('.cal-day').forEach((col, i) => {
+      col.addEventListener('click', e => onDayClick(e, days[i], firstHour));
+    });
+    drawNowLine(days, firstHour, lastHour);
+    lucide.createIcons({ nodes: [body] });
+  }
+
+  // Lektioner som överlappar delar på bredden
+  function layoutDay(events) {
+    const sorted = events.slice().sort((a, b) => a.start - b.start || b.durationMin - a.durationMin);
+    const placed = [];
+    let cluster = [], clusterEnd = 0;
+    const flush = () => {
+      const cols = Math.max(...cluster.map(p => p.col)) + 1;
+      cluster.forEach(p => { p.cols = cols; });
+      cluster = [];
+    };
+    sorted.forEach(e => {
+      const start = e.start.getTime(), end = eventEnd(e).getTime();
+      if (cluster.length && start >= clusterEnd) flush();
+      const used = cluster.filter(p => eventEnd(p.e).getTime() > start).map(p => p.col);
+      let col = 0;
+      while (used.includes(col)) col++;
+      const item = { e, col, cols: 1 };
+      cluster.push(item);
+      placed.push(item);
+      clusterEnd = Math.max(clusterEnd, end);
+    });
+    if (cluster.length) flush();
+    return placed;
+  }
+
+  function dayEventsHTML(day, firstHour) {
+    const next = addDays(day, 1);
+    return layoutDay(shown.filter(e => e.start >= day && e.start < next)).map(({ e, col, cols }) => {
+      const top = ((e.start.getHours() - firstHour) * 60 + e.start.getMinutes()) * HOUR_PX / 60;
+      const height = Math.max(e.durationMin * HOUR_PX / 60, 22);
+      const compact = height < 34;
+      return `
+        <button type="button" class="cal-event${compact ? ' is-compact' : ''}" data-event-id="${e.id}"
+          style="top:${top}px;height:${height}px;left:calc(${col} * 100% / ${cols});width:calc(100% / ${cols})"
+          title="${escapeHTML(e.lessonName)} · ${escapeHTML(e.plan.title)} · ${formatTime(e.start)}–${formatTime(eventEnd(e))}">
+          <span class="cal-event-inner">
+            <span class="cal-event-title">${escapeHTML(e.lessonName)}</span>
+            <span class="cal-event-meta">${formatTime(e.start)}–${formatTime(eventEnd(e))} · ${escapeHTML(e.plan.title)}</span>
+          </span>
+        </button>`;
+    }).join('');
+  }
+
+  function drawNowLine(days, firstHour, lastHour) {
+    const now = new Date();
+    const index = days.findIndex(d => d.getTime() === startOfDay(now).getTime());
+    if (index < 0 || now.getHours() < firstHour || now.getHours() >= lastHour) return;
+    const col = document.querySelectorAll('#calBody .cal-day')[index];
+    const top = ((now.getHours() - firstHour) * 60 + now.getMinutes()) * HOUR_PX / 60;
+    col.insertAdjacentHTML('beforeend', `<div class="cal-now" style="top:${top}px"></div>`);
+  }
+
+  function onDayClick(e, day, firstHour) {
+    const eventBtn = e.target.closest('.cal-event');
+    if (eventBtn) return openPopover(eventBtn);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const minutes = Math.floor(((e.clientY - rect.top) / HOUR_PX * 60) / SNAP_MIN) * SNAP_MIN;
+    const start = new Date(day);
+    start.setHours(firstHour, 0, 0, 0);
+    start.setMinutes(minutes);
+    addLesson(start);
+  }
+
+  function eventsByKey() {
+    return new Map(allEvents.map(e => [e.planId + ':' + e.lessonId, e]));
+  }
+
+  // Från kalendern: välj upplägg och lektion
+  function addLesson(start) {
+    if (!plans.length) return alert('Skapa ett upplägg först, så kan du lägga in dess lektioner här.');
+    if (!start) {
+      start = new Date(Math.max(periodDays()[0].getTime(), Date.now()));
+      start.setMinutes(0, 0, 0);
+      start.setHours(Math.max(start.getHours() + 1, 8));
+    }
+    // Upplägg med lektioner först (demo-upplägg som aldrig öppnats har inga än)
+    const sorted = plans.slice().reverse().sort((a, b) => (lessonsFromState(b.state).length > 0) - (lessonsFromState(a.state).length > 0));
+    openScheduleModal({ plans: sorted, eventsByKey: eventsByKey(), start, onSaved: afterChange });
+  }
+
+  async function afterChange() {
+    await load();
+    if (typeof renderAsideEvents === 'function') renderAsideEvents();
+  }
+
+  // ── Meny för en inlagd lektion ──
+  function openPopover(btn) {
+    selected = shown.find(e => e.id === btn.dataset.eventId);
+    if (!selected) return;
+    const pop = document.getElementById('calPopover');
+    document.getElementById('calPopIcon').innerHTML = planAvatarImgHTML(selected.plan.avatar);
+    document.getElementById('calPopLesson').textContent = selected.lessonName;
+    document.getElementById('calPopPlan').textContent = selected.plan.title;
+    document.getElementById('calPopWhen').textContent = formatEventWhen(selected, { long: true });
+    document.getElementById('calPopOpen').href = 'upplag.html?id=' + selected.planId;
+    pop.hidden = false;
+    // Bredvid lektionen, inom fönstret
+    const r = btn.getBoundingClientRect();
+    const w = pop.offsetWidth, h = pop.offsetHeight;
+    let left = r.right + 8;
+    if (left + w > window.innerWidth - 8) left = r.left - w - 8;
+    left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
+    const top = Math.max(64, Math.min(r.top, window.innerHeight - h - 8));
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+  }
+
+  function closePopover() {
+    document.getElementById('calPopover').hidden = true;
+  }
+
+  function editSelected() {
+    if (!selected) return;
+    const e = selected;
+    closePopover();
+    openScheduleModal({
+      planId: e.planId, lessonId: e.lessonId, planTitle: e.plan.title, lessonName: e.lessonName,
+      event: e, onSaved: afterChange, onRemoved: afterChange,
+    });
+  }
+
+  async function removeSelected() {
+    if (!selected) return;
+    const e = selected;
+    closePopover();
+    try {
+      await LossiData.unscheduleLesson(e.planId, e.lessonId);
+      afterChange();
+    } catch (err) {
+      console.warn('Kunde inte ta bort från kalendern:', err);
+      alert('Kunde inte ta bort lektionen från kalendern. Försök igen om en stund.');
+    }
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#calPopover, .cal-event')) closePopover();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePopover(); });
+  document.getElementById('calScroll').addEventListener('scroll', closePopover);
+
+  // ── Navigering ──
+  function shiftPeriod(step) {
+    anchor = addDays(anchor, step * (mobileQuery.matches ? 1 : 7));
+    render();
+  }
+
+  function goToday() {
+    anchor = todayAnchor();
+    render();
+  }
+
+  function toggleWeekend() {
+    showWeekend = !showWeekend;
+    try { localStorage.setItem('lossi-cal-weekend', String(showWeekend)); } catch (e) {}
+    render();
+  }
+
+  mobileQuery.addEventListener('change', render);
+  // Nu-linjen och "idag" hålls aktuella om sidan står öppen
+  setInterval(() => { if (document.getElementById('calPopover').hidden) render(); }, 5 * 60 * 1000);
+
+  load();
+</script>
+</body>
+</html>

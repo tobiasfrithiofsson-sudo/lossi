@@ -45,6 +45,9 @@ create table if not exists private.app_secrets (
   key   text primary key,
   value text not null
 );
+-- Extra skydd: ingen policy alls = ingen åtkomst via API (funktionerna nedan
+-- körs som ägaren och påverkas inte)
+alter table private.app_secrets enable row level security;
 
 -- ── Läsa feedback med nyckeln (för Claude) ──
 create or replace function public.feedback_list(p_token text, p_since timestamptz default null)

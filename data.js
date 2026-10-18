@@ -214,6 +214,11 @@ const LossiData = (() => {
     check(await db().from('lesson_events').delete().eq('plan_id', planId).eq('lesson_id', lessonId));
   }
 
+  // ── Feedback från testare (tabellen feedback, supabase/feedback.sql) ──
+  async function sendFeedback({ kind, message, page, context }) {
+    check(await db().from('feedback').insert({ kind, message, page, context }));
+  }
+
   // Sidan kan visa "Sparar…/Kunde inte spara" (status: 'saving' | 'saved' | 'error')
   function onSaveStatus(fn) {
     statusListener = fn;
@@ -222,5 +227,6 @@ const LossiData = (() => {
   return {
     listPlans, loadPlan, savePlan, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
+    sendFeedback,
   };
 })();

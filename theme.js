@@ -275,6 +275,10 @@ function buildTopbarHTML(active) {
   </div>
 
   <div class="app-topbar-end">
+    <button class="feedback-btn" onclick="openFeedbackModal()" title="Ge feedback – idéer, tankar eller buggar">
+      <i data-lucide="message-square-heart"></i>
+      <span class="feedback-btn-label">Feedback</span>
+    </button>
     <div class="user-menu">
       <div class="user-badge" onclick="toggleUserMenu()" id="userBadge" data-user-title>
         <div class="user-avatar-sm" data-user-avatar></div>

@@ -8,3 +8,6 @@ docs
 wrangler.*
 supabase
 .github
+*.local.sql
+.feedback-token
+scripts

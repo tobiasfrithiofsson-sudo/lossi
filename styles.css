@@ -514,6 +514,111 @@ body.activity-panel-resizing .page-frame {
 .field-group[hidden],
 .schedule-footer [hidden] { display: none; }
 
+/* ── Feedback (feedback.js) ── */
+.feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  font: inherit;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.feedback-btn:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.feedback-btn svg { width: 15px; height: 15px; color: #E24B4A; }
+
+#feedbackModal [hidden] { display: none; }
+
+.feedback-intro { font-size: var(--font-size-md); color: var(--color-text-secondary); margin-bottom: 16px; }
+
+.feedback-kinds {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.feedback-kind {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.feedback-kind svg { width: 20px; height: 20px; }
+.feedback-kind:hover { background: var(--color-bg-hover); }
+
+.feedback-kind.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.feedback-label { display: block; font-size: var(--font-size-base); font-weight: 600; margin-bottom: 6px; }
+
+.feedback-text {
+  width: 100%;
+  resize: vertical;
+  min-height: 120px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.feedback-fine {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.feedback-fine svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; }
+
+.feedback-thanks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 36px 32px 40px;
+}
+
+.feedback-thanks-icon {
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #FF8A3D, #E24B4A);
+  color: #fff;
+  transform: rotate(-6deg);
+  margin-bottom: 16px;
+  box-shadow: 0 14px 30px rgba(226, 75, 74, 0.28);
+}
+
+.feedback-thanks-icon svg { width: 28px; height: 28px; }
+.feedback-thanks h4 { font-size: var(--font-size-xl); margin-bottom: 6px; }
+.feedback-thanks p { font-size: var(--font-size-md); color: var(--color-text-secondary); max-width: 300px; }
+
 /* Skyddade sidor döljs tills LossiAuth.requireUser() vet att man är inloggad */
 .auth-pending body { visibility: hidden; }
 
@@ -2790,6 +2895,8 @@ body.edit-mode .goal-item:hover .goal-delete { display: grid; place-items: cente
   .topnav-link[title="Kommer senare"],
   .topnav-calendar { display: none; }
   .topnav { margin-left: 0; }
+  .feedback-btn { padding: 8px; margin-right: 0; }
+  .feedback-btn-label { display: none; }
 
   /* Sidopanelen som utdragbar meny */
   aside {

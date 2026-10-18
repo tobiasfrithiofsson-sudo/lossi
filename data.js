@@ -168,10 +168,59 @@ const LossiData = (() => {
     return String(row.id);
   }
 
+  // ── Kalender: lektioner inlagda på en tid (tabellen lesson_events, supabase/calendar.sql) ──
+  // En händelse = { id, planId, lessonId, start (Date), durationMin }.
+  const EVENT_COLUMNS = 'id, plan_id, lesson_id, starts_at, duration_min';
+
+  function toEvent(r) {
+    return { id: String(r.id), planId: String(r.plan_id), lessonId: r.lesson_id, start: new Date(r.starts_at), durationMin: r.duration_min };
+  }
+
+  // Händelser som börjar i intervallet [from, to)
+  async function listEvents(from, to) {
+    const rows = check(await db().from('lesson_events').select(EVENT_COLUMNS)
+      .gte('starts_at', from.toISOString()).lt('starts_at', to.toISOString()).order('starts_at'));
+    return rows.map(toEvent);
+  }
+
+  async function listPlanEvents(planId) {
+    const rows = check(await db().from('lesson_events').select(EVENT_COLUMNS).eq('plan_id', planId));
+    return rows.map(toEvent);
+  }
+
+  // De närmaste händelserna som inte är slut än
+  async function upcomingEvents(limit = 5) {
+    const now = new Date();
+    const since = new Date(now.getTime() - 10 * 60 * 60 * 1000);
+    const rows = check(await db().from('lesson_events').select(EVENT_COLUMNS)
+      .gte('starts_at', since.toISOString()).order('starts_at').limit(limit + 10));
+    return rows.map(toEvent)
+      .filter(e => e.start.getTime() + e.durationMin * 60000 > now.getTime())
+      .slice(0, limit);
+  }
+
+  // Lägger in lektionen på en tid, eller flyttar den om den redan ligger i kalendern
+  async function scheduleLesson({ planId, lessonId, start, durationMin }) {
+    const row = check(await db().from('lesson_events').upsert({
+      plan_id: Number(planId),
+      lesson_id: lessonId,
+      starts_at: start.toISOString(),
+      duration_min: durationMin,
+    }, { onConflict: 'plan_id,lesson_id' }).select(EVENT_COLUMNS).single());
+    return toEvent(row);
+  }
+
+  async function unscheduleLesson(planId, lessonId) {
+    check(await db().from('lesson_events').delete().eq('plan_id', planId).eq('lesson_id', lessonId));
+  }
+
   // Sidan kan visa "Sparar…/Kunde inte spara" (status: 'saving' | 'saved' | 'error')
   function onSaveStatus(fn) {
     statusListener = fn;
   }
 
-  return { listPlans, loadPlan, savePlan, createPlan, deletePlan, flushOnLeave, onSaveStatus };
+  return {
+    listPlans, loadPlan, savePlan, createPlan, deletePlan, flushOnLeave, onSaveStatus,
+    listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
+  };
 })();

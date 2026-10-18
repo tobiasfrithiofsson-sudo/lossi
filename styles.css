@@ -491,6 +491,30 @@ body.activity-panel-resizing .page-frame {
 .password-message { font-size: var(--font-size-base); color: #1F9D6B; margin-top: 4px; }
 .password-message.is-error { color: #C2413B; }
 
+/* Kalenderdialogen (schedule.js) */
+.schedule-target {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  background: var(--color-bg-aside);
+  border-radius: var(--radius-md);
+}
+.schedule-target[hidden] { display: none; }
+.schedule-target-lesson { font-size: var(--font-size-md); font-weight: 600; color: var(--color-text-primary); }
+.schedule-target-plan { font-size: var(--font-size-base); color: var(--color-text-tertiary); }
+.schedule-hint { font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
+.schedule-time-row { flex-direction: row !important; align-items: center; gap: 10px !important; }
+.schedule-time-row > input[type="time"] { flex: 1; min-width: 0; }
+.schedule-length { display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-tertiary); font-size: var(--font-size-base); }
+.schedule-length input { width: 76px; }
+.schedule-footer .schedule-remove { margin-right: auto; color: #dc2626; }
+.schedule-footer .schedule-remove:hover { background: #fee2e2; }
+[data-theme="dark"] .schedule-footer .schedule-remove:hover { background: rgba(220, 38, 38, 0.18); }
+.field-group[hidden],
+.schedule-footer [hidden] { display: none; }
+
 /* Skyddade sidor döljs tills LossiAuth.requireUser() vet att man är inloggad */
 .auth-pending body { visibility: hidden; }
 
@@ -1511,6 +1535,40 @@ body.edit-mode .goal-item:hover .goal-delete { display: grid; place-items: cente
 /* Lektionstid: en pill som fungerar som week-pill (klicka för att skriva
    direkt i den), fast bara för minuter. Visar en varningsvariant med
    triangel när lektionens aktiviteter tillsammans överstiger den. */
+/* Kalenderknappen på lektionsraden (upplag.html): bara ikon tills lektionen
+   ligger i kalendern, då visas dag och tid */
+.lesson-schedule-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 3px 9px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-full);
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.lesson-schedule-btn:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.lesson-schedule-btn svg { width: 14px; height: 14px; display: block; }
+.lesson-schedule-label:empty { display: none; }
+
+.lesson-schedule-btn.is-scheduled {
+  border: 1px solid transparent;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.lesson-schedule-btn.is-scheduled:hover { border-color: color-mix(in srgb, var(--color-primary) 35%, transparent); }
+
+.lesson-schedule-btn + .lesson-time-pill { margin-left: 8px; }
+
 .lesson-time-pill {
   display: inline-flex;
   align-items: center;
@@ -2368,11 +2426,37 @@ body.edit-mode .activity-more-btn { display: grid; }
   color: var(--color-text-primary);
 }
 
+.upcoming-card-plan {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .upcoming-card-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--font-size-sm);
   color: var(--color-text-tertiary);
   margin-top: var(--space-3);
 }
+
+.upcoming-card-step svg { width: 13px; height: 13px; flex-shrink: 0; }
+a.upcoming-card { text-decoration: none; color: inherit; }
+
+.upcoming-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+}
+
+.upcoming-empty svg { width: 18px; height: 18px; color: var(--color-text-tertiary); flex-shrink: 0; }
+.upcoming-empty a { color: var(--color-primary); font-weight: 500; }
 
 /* "Upplägg" list */
 .plan-list {
@@ -2704,7 +2788,8 @@ body.edit-mode .goal-item:hover .goal-delete { display: grid; place-items: cente
   .app-topbar-start { gap: var(--space-2); min-width: 0; }
   .app-switcher,
   .logo-text,
-  .topnav-link[title="Kommer senare"] { display: none; }
+  .topnav-link[title="Kommer senare"],
+  .topnav-calendar { display: none; }
   .topnav { margin-left: 0; }
 
   /* Sidopanelen som utdragbar meny */

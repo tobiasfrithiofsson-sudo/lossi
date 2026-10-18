@@ -179,12 +179,9 @@ function escapeHTML(text) {
 // ── App-skal: topbar + aside ──
 // Byggs här så att index.html och upplag.html delar exakt samma innehåll.
 // Sidan anropar renderAppShell() först i sitt script, före lucide.createIcons().
-// Projekt, kommande händelser och team är platshållare tills de tjänsterna finns.
+// Projekt och team är platshållare tills de tjänsterna finns. Kommande
+// händelser fylls från kalendern av renderAsideEvents() i schedule.js.
 const APP_PROJECT = { name: 'Sandlådan' };
-const APP_EVENTS = [
-  { title: 'Samhällsekonomi', time: '10:00–11:00' },
-  { title: 'Matematik', time: '11:00–12:00' },
-];
 const APP_TEAMS = [
   { name: 'Astronomerna', emoji: '🚀' },
   { name: 'Dricka kaffe?', emoji: '☕' },
@@ -204,6 +201,7 @@ function renderAppShell(options = {}) {
   if (aside) {
     aside.innerHTML = buildAsideHTML();
     renderAsidePlans(options.currentPlanId).catch(e => console.warn('Kunde inte hämta upplägg till sidopanelen:', e));
+    if (typeof renderAsideEvents === 'function') renderAsideEvents();
   }
 
   if (!document.getElementById('createPlanModal')) {
@@ -246,11 +244,10 @@ function buildTopbarHTML(active) {
           <div class="app-switcher-icon app-icon-lossi"><i data-lucide="layers"></i></div>
           <span class="app-switcher-name">Lossi</span>
         </a>
-        <div class="app-switcher-item is-disabled" title="Kommer senare">
+        <a href="calendar.html" class="app-switcher-item">
           <div class="app-switcher-icon app-icon-calendar"><i data-lucide="calendar-days"></i></div>
           <span class="app-switcher-name">Kalender</span>
-          <span class="app-switcher-soon">Snart</span>
-        </div>
+        </a>
         <div class="app-switcher-item is-disabled" title="Kommer senare">
           <div class="app-switcher-icon app-icon-grades"><i data-lucide="graduation-cap"></i></div>
           <span class="app-switcher-name">Betygssystem</span>
@@ -271,6 +268,7 @@ function buildTopbarHTML(active) {
     </a>
     <nav class="topnav">
       <a href="index.html" class="topnav-link${active === 'plans' ? ' active' : ''}">Upplägg</a>
+      <a href="calendar.html" class="topnav-link topnav-calendar${active === 'calendar' ? ' active' : ''}">Kalender</a>
       <a href="#" class="topnav-link${active === 'material' ? ' active' : ''}" title="Kommer senare">Material</a>
       <button class="topnav-create" onclick="openCreatePlanModal()">Skapa</button>
     </nav>
@@ -322,12 +320,11 @@ function buildAsideHTML() {
 
     <div class="aside-group">
       <div class="aside-label">Kommande händelser</div>
-      ${APP_EVENTS.map(ev => `
-        <div class="aside-item is-placeholder" title="Från Kalender – kommer senare">
-          <span class="aside-dot"></span>
-          <span class="aside-item-text">${escapeHTML(ev.title)}</span>
-          <span class="aside-item-meta">${ev.time}</span>
-        </div>`).join('')}
+      <div class="aside-events-list"></div>
+      <a href="calendar.html" class="aside-item aside-more">
+        <i data-lucide="calendar-days"></i>
+        <span class="aside-item-text">Kalender</span>
+      </a>
     </div>
 
     <div class="aside-group">

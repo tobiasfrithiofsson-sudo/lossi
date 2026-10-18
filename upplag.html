@@ -18,6 +18,7 @@
   <script src="auth.js"></script>
   <script src="theme.js"></script>
   <script src="data.js"></script>
+  <script src="schedule.js"></script>
 </head>
 <body class="edit-mode">
 
@@ -1006,6 +1007,8 @@
   // skriva över det sparade upplägget.
   let planLoaded = false;
   let planDemoKey = null; // följer med när ett demo-upplägg sparas (Kommande-korten hittar det)
+  let lessonIdsAssigned = false; // lektioner fick nya id vid laddning → spara när upplägget lästs in
+  const planEvents = new Map();  // lessonId → kalenderhändelse för det här upplägget
 
   const ACTIVITY_TYPES = {
     'Diskussion':  { iconClass: 'icon-discussion', icon: 'message-square' },
@@ -1238,6 +1241,72 @@
     if (!planLoaded) return;
     LossiData.savePlan(planKey, collectState()).catch(e => console.warn('Kunde inte spara upplägget:', e));
   }
+
+  // ── Kalendern: lektioner inlagda på en tid ──
+  // Kalenderknappen på lektionsraden visar när lektionen ligger inne och
+  // öppnar dialogen i schedule.js för att lägga in, flytta eller ta bort.
+  async function loadPlanEvents() {
+    try {
+      const events = await LossiData.listPlanEvents(planKey);
+      planEvents.clear();
+      events.forEach(e => planEvents.set(e.lessonId, e));
+    } catch (e) {
+      console.warn('Kunde inte hämta kalenderhändelser:', e);
+    }
+    renderLessonSchedules();
+  }
+
+  function renderLessonSchedules() {
+    document.querySelectorAll('#structureList .lesson-group').forEach(group => {
+      const btn = group.querySelector('.lesson-schedule-btn');
+      if (!btn) return;
+      const event = planEvents.get(group.dataset.lessonId);
+      btn.classList.toggle('is-scheduled', !!event);
+      btn.title = event ? 'Ändra tid i kalendern' : 'Lägg in i kalendern';
+      btn.setAttribute('aria-label', event ? `Inlagd ${formatEventWhen(event, { long: true })}. Ändra tid` : 'Lägg in i kalendern');
+      btn.querySelector('.lesson-schedule-label').textContent = event ? `${formatDay(event.start, { long: true })} ${formatTime(event.start)}` : '';
+      const icon = btn.querySelector('svg, i');
+      const wanted = event ? 'calendar-check' : 'calendar-plus';
+      if (icon?.getAttribute('data-lucide') !== wanted) {
+        icon?.remove();
+        btn.insertAdjacentHTML('afterbegin', `<i data-lucide="${wanted}"></i>`);
+        lucide.createIcons({ nodes: [btn] });
+      }
+    });
+  }
+
+  document.getElementById('structureList').addEventListener('click', e => {
+    const btn = e.target.closest('.lesson-schedule-btn');
+    if (!btn || !planLoaded) return;
+    const group = btn.closest('.lesson-group');
+    const lessonId = group.dataset.lessonId;
+    const valueEl = group.querySelector('.lesson-time-pill-value');
+    const lessonMinutes = parseMinutes(valueEl?.textContent);
+    openScheduleModal({
+      planId: planKey,
+      lessonId,
+      planTitle: document.getElementById('planTitle').textContent.trim(),
+      lessonName: group.querySelector('.week-pill')?.textContent.trim(),
+      event: planEvents.get(lessonId),
+      durationMin: lessonMinutes || undefined,
+      onSaved: event => {
+        planEvents.set(lessonId, event);
+        // Lektionens längd följer det som valdes i kalendern
+        if (valueEl && lessonMinutes !== event.durationMin) {
+          valueEl.textContent = String(event.durationMin);
+          recalcLessonTimes();
+        }
+        saveState();
+        renderLessonSchedules();
+        if (typeof renderAsideEvents === 'function') renderAsideEvents();
+      },
+      onRemoved: () => {
+        planEvents.delete(lessonId);
+        renderLessonSchedules();
+        if (typeof renderAsideEvents === 'function') renderAsideEvents();
+      },
+    });
+  });
 
   // ── Duplicera och ta bort (Mer-menyn i sidhuvudet) ──
   // Kopian får ett nytt id, "(kopia)" i titeln och dagens datum som Skapad.
@@ -2106,6 +2175,13 @@
       row.querySelector('.lesson-duration')?.remove();
       row.querySelector('.lesson-time-summary')?.remove();
 
+      // Fast id så att kalendern kan peka på lektionen (schedule.js)
+      const group = row.closest('.lesson-group');
+      if (group && !group.dataset.lessonId) {
+        group.dataset.lessonId = newLessonId();
+        lessonIdsAssigned = true;
+      }
+
       const pill = row.querySelector('.week-pill');
       let statusBtn = row.querySelector('.lesson-status-btn');
       if (!statusBtn) {
@@ -2121,6 +2197,15 @@
         syncLessonStatusTitle(row);
       }
 
+      if (!row.querySelector('.lesson-schedule-btn')) {
+        const scheduleBtn = document.createElement('button');
+        scheduleBtn.className = 'lesson-schedule-btn';
+        scheduleBtn.type = 'button';
+        scheduleBtn.title = 'Lägg in i kalendern';
+        scheduleBtn.innerHTML = `<i data-lucide="calendar-plus"></i><span class="lesson-schedule-label"></span>`;
+        statusBtn.after(scheduleBtn);
+      }
+
       if (!row.querySelector('.lesson-time-pill')) {
         const timePill = document.createElement('div');
         timePill.className = 'lesson-time-pill';
@@ -2129,7 +2214,7 @@
           <span class="lesson-time-pill-value" contenteditable="true" data-placeholder="–" title="Ange lektionens längd i minuter"></span>
           <span class="lesson-time-pill-unit">min</span>
         `;
-        statusBtn.after(timePill);
+        row.querySelector('.lesson-schedule-btn').after(timePill);
       }
 
       lucide.createIcons({ nodes: [row] });
@@ -2366,6 +2451,8 @@
     initAllSortables();
     planLoaded = true;
     window.addEventListener('beforeunload', saveState);
+    if (lessonIdsAssigned) saveState();
+    loadPlanEvents();
   })();
 </script>
 </body>

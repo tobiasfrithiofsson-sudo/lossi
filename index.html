@@ -16,6 +16,7 @@
   <script src="auth.js"></script>
   <script src="theme.js"></script>
   <script src="data.js"></script>
+  <script src="schedule.js"></script>
 </head>
 <body>
 
@@ -30,24 +31,10 @@
 <!-- ── Main ── -->
 <main>
 
-  <!-- Kommande: nästa steg i upplägg som är på gång -->
+  <!-- Kommande: de närmaste lektionerna i lärarens kalender (renderUpcoming) -->
   <div class="upcoming-panel" id="upcomingPanel" hidden>
     <div class="upcoming-panel-label">Kommande</div>
-    <div class="upcoming-list">
-
-      <div class="upcoming-card" data-demo-key="1" hidden>
-        <div class="upcoming-card-icon plan-icon-image"></div>
-        <div class="upcoming-card-title">Demokrati – grunderna och processerna</div>
-        <div class="upcoming-card-step">Steg 4</div>
-      </div>
-
-      <div class="upcoming-card" data-demo-key="2" hidden>
-        <div class="upcoming-card-icon plan-icon-image"></div>
-        <div class="upcoming-card-title">Källkritik i det digitala samhället</div>
-        <div class="upcoming-card-step">Steg 2</div>
-      </div>
-
-    </div>
+    <div class="upcoming-list" id="upcomingList"></div>
   </div>
 
   <!-- Upplägg: alla sparade/skapade upplägg, samlade för överblick -->
@@ -119,32 +106,32 @@
     filterPlans();
   }
 
-  // Kommande-korten är fortfarande demo: de pekar på lärarens demo-upplägg
-  // (via demoKey) och visar dess aktuella titel och bild. Korten är dolda tills
-  // datan hämtats; finns inget sådant upplägg (t.ex. borttaget) förblir kortet
-  // dolt, och utan kort döljs hela Kommande-rutan.
-  function syncUpcomingCards(plans) {
-    let visible = 0;
-    document.querySelectorAll('.upcoming-card[data-demo-key]').forEach(el => {
-      const p = plans.find(plan => plan.demoKey === el.dataset.demoKey);
-      el.hidden = !p;
-      if (!p) return;
-      visible++;
-      el.dataset.planId = p.id;
-      el.onclick = () => { window.location = 'upplag.html?id=' + p.id; };
-      el.querySelector('.upcoming-card-title').textContent = p.title;
-      renderPlanAvatar(el, p.avatar);
-    });
-    document.getElementById('upcomingPanel').hidden = visible === 0;
-  }
-
-  // Samma avatar som upplägget visar i upplag.html (delad lista i theme.js)
-  function renderPlanAvatar(el, savedId) {
-    const iconEl = el.querySelector('.upcoming-card-icon, .plan-row-icon');
-    if (!iconEl) return;
-    const baseClass = iconEl.classList.contains('upcoming-card-icon') ? 'upcoming-card-icon' : 'plan-row-icon';
-    iconEl.className = baseClass + ' plan-icon-image';
-    iconEl.innerHTML = planAvatarImgHTML(resolvePlanAvatarId(el.dataset.planId, savedId));
+  // Kommande: de närmaste inlagda lektionerna (kalendern, schedule.js). Utan
+  // inlagda lektioner visas en hänvisning till kalendern.
+  async function renderUpcoming(plans) {
+    const panel = document.getElementById('upcomingPanel');
+    const list = document.getElementById('upcomingList');
+    let upcoming;
+    try {
+      upcoming = resolveEvents(await LossiData.upcomingEvents(6), plans).slice(0, 3);
+    } catch (e) {
+      console.warn('Kunde inte hämta kommande lektioner:', e);
+      return; // t.ex. om kalendertabellen inte finns än: visa ingenting
+    }
+    list.innerHTML = upcoming.length
+      ? upcoming.map(e => `
+        <a class="upcoming-card" href="upplag.html?id=${e.planId}" data-plan-id="${e.planId}">
+          <div class="upcoming-card-icon plan-icon-image">${planAvatarImgHTML(e.plan.avatar)}</div>
+          <div class="upcoming-card-title">${escapeHTML(e.lessonName)}</div>
+          <div class="upcoming-card-plan">${escapeHTML(e.plan.title)}</div>
+          <div class="upcoming-card-step"><i data-lucide="calendar-days"></i>${escapeHTML(formatEventWhen(e))}</div>
+        </a>`).join('')
+      : `<div class="upcoming-empty">
+          <i data-lucide="calendar-plus"></i>
+          <span>Inga lektioner inlagda än. Lägg in dem från ett upplägg eller i <a href="calendar.html">kalendern</a>.</span>
+        </div>`;
+    lucide.createIcons({ nodes: [list] });
+    panel.hidden = false;
   }
 
   // Filtren ska alltid spegla de ämnen/årskurser som faktiskt finns, inte en hårdkodad lista
@@ -166,9 +153,9 @@
     gradeSelect.value = grades.includes(currentGrade) ? currentGrade : '';
   }
 
-  getPlanSummaries().then(plans => {
-    renderPlanList(plans);
-    syncUpcomingCards(plans);
+  LossiData.listPlans().then(plans => {
+    renderPlanList(plans.slice().reverse().map(p => getPlanSummary(p.id, p.state)));
+    renderUpcoming(plans);
   }).catch(e => {
     console.warn('Kunde inte hämta upplägg:', e);
     const empty = document.getElementById('planListEmpty');

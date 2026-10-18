@@ -2272,9 +2272,14 @@
     saveState();
   }
 
+  // Om listan redan är dragbar frågas SortableJS direkt. (Tidigare markerades
+  // listan med data-sortable-init, men markeringen sparades med upplägget och
+  // gjorde att aktiviteter inte gick att dra efter omladdning. Gamla
+  // markeringar städas bort här och försvinner vid nästa sparning.)
   function initActivitySortable(el) {
-    if (!el || el.dataset.sortableInit) return;
-    el.dataset.sortableInit = '1';
+    if (!el) return;
+    delete el.dataset.sortableInit;
+    if (Sortable.get(el)) return;
     Sortable.create(el, {
       ...DRAG_OPTIONS,
       group: 'lossi-activities',
@@ -2289,8 +2294,7 @@
 
   function initLessonSortable() {
     const list = document.getElementById('structureList');
-    if (list.dataset.sortableInit) return;
-    list.dataset.sortableInit = '1';
+    if (Sortable.get(list)) return;
     Sortable.create(list, {
       ...DRAG_OPTIONS,
       group: 'lossi-lessons',

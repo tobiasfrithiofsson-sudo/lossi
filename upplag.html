@@ -2235,18 +2235,55 @@
   // .lesson-activities-listor delar samma group-namn, vilket är det som
   // gör det möjligt i SortableJS. Hela lektioner (med sina aktiviteter)
   // går att dra om sinsemellan separat, via ett eget group-namn så de två
-  // inte blandas ihop. Draghandtaget är det enda som startar en dragning,
-  // så det krockar inte med att klicka på raden för att öppna den.
+  // inte blandas ihop.
+  //
+  // Aktiviteter dras i hela kortet (ett klick utan rörelse öppnar den som
+  // vanligt); knappar, menyer och filer i raden startar ingen dragning.
+  // Lektioner dras i raden utanför namnet och knapparna (namnet går att
+  // redigera), eller i handtaget till vänster.
+  // forceFallback ger samma beteende i alla webbläsare (egen dragbild,
+  // fungerar med listor i listor, rullar sidan vid kanten). På pekskärm
+  // startar dragningen efter ett kort tryck så att vanlig scroll fungerar.
+  const DRAG_OPTIONS = {
+    animation: 160,
+    forceFallback: true,
+    fallbackOnBody: true,
+    fallbackTolerance: 5,
+    delay: 180,
+    delayOnTouchOnly: true,
+    swapThreshold: 0.6,
+    scroll: true,
+    bubbleScroll: true,
+    scrollSensitivity: 90,
+    scrollSpeed: 14,
+    ghostClass: 'drag-placeholder',
+    chosenClass: 'drag-chosen',
+    fallbackClass: 'drag-floating',
+  };
+
+  function dragStarted(kind) {
+    closeAllMenuPopovers();
+    document.body.classList.add('is-dragging', 'is-dragging-' + kind);
+  }
+
+  function dragEnded(kind) {
+    document.body.classList.remove('is-dragging', 'is-dragging-' + kind);
+    recalcLessonTimes();
+    saveState();
+  }
+
   function initActivitySortable(el) {
     if (!el || el.dataset.sortableInit) return;
     el.dataset.sortableInit = '1';
     Sortable.create(el, {
+      ...DRAG_OPTIONS,
       group: 'lossi-activities',
-      handle: '.drag-handle',
-      animation: 150,
-      ghostClass: 'sortable-ghost',
-      chosenClass: 'sortable-chosen',
-      onEnd: () => { recalcLessonTimes(); saveState(); },
+      handle: '.activity-row',
+      filter: '.popover-wrap, .menu-popover, .file-chip-sm, input, textarea, select, [contenteditable="true"]',
+      preventOnFilter: false,
+      emptyInsertThreshold: 28,
+      onStart: () => dragStarted('activity'),
+      onEnd: () => dragEnded('activity'),
     });
   }
 
@@ -2255,12 +2292,13 @@
     if (list.dataset.sortableInit) return;
     list.dataset.sortableInit = '1';
     Sortable.create(list, {
+      ...DRAG_OPTIONS,
       group: 'lossi-lessons',
-      handle: '.week-row .drag-handle',
-      animation: 150,
-      ghostClass: 'sortable-ghost',
-      chosenClass: 'sortable-chosen',
-      onEnd: () => { recalcLessonTimes(); saveState(); },
+      handle: '.week-row',
+      filter: '.week-pill, .lesson-status-btn, .lesson-schedule-btn, .lesson-time-pill, button, [contenteditable="true"]',
+      preventOnFilter: false,
+      onStart: () => dragStarted('lesson'),
+      onEnd: () => dragEnded('lesson'),
     });
   }
 

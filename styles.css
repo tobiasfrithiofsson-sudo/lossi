@@ -1769,12 +1769,49 @@ body.read-mode .lesson-time-pill-value { pointer-events: none; }
 .lesson-group { margin-bottom: 4px; }
 .lesson-activities { display: flex; flex-direction: column; }
 
-/* SortableJS-tillstånd under drag. Hålls medvetet återhållsamt — ingen
-   skugga eller rotation, bara en tonad platshållare där objektet landar
-   och en mjuk highlight på det som faktiskt flyttas. */
-.sortable-ghost { opacity: 0.35; }
-.sortable-chosen > .activity-row,
-.sortable-chosen > .week-row { background: var(--color-bg-hover); }
+/* ── Dra och släpp (SortableJS, se DRAG_OPTIONS i upplag.html) ──
+   Platsen där objektet landar visas som en streckad ruta; det som dras
+   följer muspekaren med en skugga. */
+.activity-row,
+.week-row { cursor: grab; }
+.week-row .week-pill { cursor: text; }
+.week-row button { cursor: pointer; }
+body.is-dragging,
+body.is-dragging * { cursor: grabbing !important; user-select: none; }
+
+.drag-placeholder {
+  position: relative;
+  border: 1.5px dashed color-mix(in srgb, var(--color-primary) 60%, transparent) !important;
+  background: var(--color-primary-light) !important;
+  border-radius: var(--radius-sm);
+}
+.drag-placeholder > * { visibility: hidden; }
+
+.drag-floating {
+  opacity: 0.96 !important;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: rotate(0.6deg);
+  pointer-events: none;
+}
+.drag-floating .drag-handle { opacity: 1; }
+
+/* Medan en aktivitet dras: varje lektion har en yta att släppa på,
+   även tomma lektioner */
+body.is-dragging-activity .lesson-activities { min-height: 40px; padding-bottom: 6px; }
+body.is-dragging-activity .lesson-activities:empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+}
+body.is-dragging-activity .lesson-activities:empty::before {
+  content: 'Släpp här';
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
 
 .activity-wrapper {
   border: 1px solid var(--color-border);

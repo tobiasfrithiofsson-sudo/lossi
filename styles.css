@@ -505,10 +505,9 @@ body.activity-panel-resizing .page-frame {
 .schedule-target-lesson { font-size: var(--font-size-md); font-weight: 600; color: var(--color-text-primary); }
 .schedule-target-plan { font-size: var(--font-size-base); color: var(--color-text-tertiary); }
 .schedule-hint { font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
-.schedule-time-row { flex-direction: row !important; align-items: center; gap: 10px !important; }
+.schedule-time-row { display: flex; align-items: center; gap: 10px; }
 .schedule-time-row > input[type="time"] { flex: 1; min-width: 0; }
-.schedule-length { display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-tertiary); font-size: var(--font-size-base); }
-.schedule-length input { width: 76px; }
+.schedule-time-sep { color: var(--color-text-tertiary); }
 .schedule-footer .schedule-remove { margin-right: auto; color: #dc2626; }
 .schedule-footer .schedule-remove:hover { background: #fee2e2; }
 [data-theme="dark"] .schedule-footer .schedule-remove:hover { background: rgba(220, 38, 38, 0.18); }

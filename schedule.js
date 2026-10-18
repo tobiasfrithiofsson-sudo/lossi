@@ -177,13 +177,14 @@ function buildScheduleModalHTML() {
         </div>
       </div>
       <div class="field-group">
-        <label class="field-label" for="scheduleTime">Starttid</label>
-        <div class="field-group-content schedule-time-row">
-          <input class="field-input" type="time" id="scheduleTime" step="300" required />
-          <span class="schedule-length">
-            <input class="field-input" type="number" id="scheduleDuration" min="5" max="600" step="5" aria-label="Längd i minuter" />
-            <span>min</span>
-          </span>
+        <label class="field-label" for="scheduleTime">Tid</label>
+        <div class="field-group-content">
+          <div class="schedule-time-row">
+            <input class="field-input" type="time" id="scheduleTime" step="300" required aria-label="Starttid" oninput="shiftScheduleEnd()" />
+            <span class="schedule-time-sep">–</span>
+            <input class="field-input" type="time" id="scheduleEnd" step="300" required aria-label="Sluttid" oninput="rememberScheduleLength()" />
+          </div>
+          <span class="schedule-hint" id="scheduleLengthHint"></span>
         </div>
       </div>
       <p class="password-message is-error" id="scheduleError" role="alert" hidden></p>
@@ -229,7 +230,7 @@ function openScheduleModal(ctx) {
   document.getElementById('scheduleLessonGroup').hidden = !picking;
   document.getElementById('scheduleDate').value = toDateInputValue(start);
   document.getElementById('scheduleTime').value = formatTime(start);
-  document.getElementById('scheduleDuration').value = ctx.event?.durationMin || ctx.durationMin || SCHEDULE_DEFAULT_DURATION;
+  setScheduleLength(ctx.event?.durationMin || ctx.durationMin || SCHEDULE_DEFAULT_DURATION);
   document.getElementById('scheduleRemoveBtn').hidden = !ctx.event;
   document.getElementById('scheduleSaveBtn').disabled = false;
   showScheduleError('');
@@ -278,7 +279,7 @@ function syncScheduleDuration() {
   if (!scheduleCtx?.plans) return;
   const plan = scheduleCtx.plans.find(p => p.id === document.getElementById('schedulePlan').value);
   const lesson = lessonsFromState(plan?.state)[Number(document.getElementById('scheduleLesson').value)];
-  if (lesson?.durationMin) document.getElementById('scheduleDuration').value = lesson.durationMin;
+  if (lesson?.durationMin) setScheduleLength(lesson.durationMin);
   const booked = lesson?.id && scheduleCtx.eventsByKey?.get(plan.id + ':' + lesson.id);
   const hint = document.getElementById('scheduleLessonHint');
   if (lesson) {
@@ -287,15 +288,61 @@ function syncScheduleDuration() {
   }
 }
 
+// ── Start- och sluttid ──
+// Läraren anger t.ex. 10:00–12:00. Ändras starttiden flyttas sluttiden med
+// så att längden behålls; ändras sluttiden blir det den nya längden.
+let scheduleLengthMin = SCHEDULE_DEFAULT_DURATION;
+
+function timeToMinutes(value) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(value || '');
+  return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null;
+}
+
+function minutesToTime(total) {
+  const t = Math.max(0, Math.min(total, 23 * 60 + 59));
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+}
+
+function formatLength(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  return h && m ? `${h} h ${m} min` : h ? `${h} h` : `${m} min`;
+}
+
+function updateScheduleLengthHint() {
+  const start = timeToMinutes(document.getElementById('scheduleTime').value);
+  const end = timeToMinutes(document.getElementById('scheduleEnd').value);
+  document.getElementById('scheduleLengthHint').textContent =
+    start !== null && end !== null && end > start ? `Lektionen blir ${formatLength(end - start)}` : '';
+}
+
+function setScheduleLength(min) {
+  scheduleLengthMin = min;
+  const start = timeToMinutes(document.getElementById('scheduleTime').value);
+  if (start !== null) document.getElementById('scheduleEnd').value = minutesToTime(start + min);
+  updateScheduleLengthHint();
+}
+
+function shiftScheduleEnd() {
+  setScheduleLength(scheduleLengthMin);
+}
+
+function rememberScheduleLength() {
+  const start = timeToMinutes(document.getElementById('scheduleTime').value);
+  const end = timeToMinutes(document.getElementById('scheduleEnd').value);
+  if (start !== null && end !== null && end > start) scheduleLengthMin = end - start;
+  updateScheduleLengthHint();
+}
+
 function readScheduleForm() {
   const date = document.getElementById('scheduleDate').value;
-  const time = document.getElementById('scheduleTime').value;
-  const durationMin = parseInt(document.getElementById('scheduleDuration').value, 10);
-  if (!date || !time) return { error: 'Välj datum och starttid.' };
-  if (!(durationMin >= 5 && durationMin <= 600)) return { error: 'Längden behöver vara mellan 5 och 600 minuter.' };
+  const start = timeToMinutes(document.getElementById('scheduleTime').value);
+  const end = timeToMinutes(document.getElementById('scheduleEnd').value);
+  if (!date || start === null || end === null) return { error: 'Välj datum, starttid och sluttid.' };
+  if (end <= start) return { error: 'Sluttiden behöver vara efter starttiden.' };
+  const durationMin = end - start;
+  if (durationMin < 5 || durationMin > 600) return { error: 'Lektionen behöver vara mellan 5 minuter och 10 timmar.' };
   const [y, mo, d] = date.split('-').map(Number);
-  const [h, mi] = time.split(':').map(Number);
-  return { start: new Date(y, mo - 1, d, h, mi), durationMin };
+  return { start: new Date(y, mo - 1, d, Math.floor(start / 60), start % 60), durationMin };
 }
 
 async function saveSchedule() {

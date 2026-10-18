@@ -373,7 +373,10 @@ async function saveSchedule() {
     done?.(event);
   } catch (e) {
     console.warn('Kunde inte lägga in lektionen:', e);
-    showScheduleError(e.message === 'Välj en lektion.' ? e.message : 'Kunde inte spara i kalendern. Försök igen om en stund.');
+    showScheduleError(e.message === 'Välj en lektion.' ? e.message
+      // PGRST205: tabellen lesson_events finns inte (supabase/calendar.sql har inte körts)
+      : e.code === 'PGRST205' ? 'Kalendern är inte aktiverad i databasen än. Kör supabase/calendar.sql i Supabase.'
+      : 'Kunde inte spara i kalendern. Försök igen om en stund.');
     btn.disabled = false;
   }
 }

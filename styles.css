@@ -1641,6 +1641,37 @@ body.edit-mode .goal-item:hover .goal-delete { display: grid; place-items: cente
 
 .week-row:first-child { margin-top: 0; }
 
+/* Fäll ihop/ut en lektion (upplag.html, ensureLessonControls) */
+.lesson-collapse-btn {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 4px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.lesson-collapse-btn:hover { background: var(--color-aside-hover); color: var(--color-text-primary); }
+.lesson-collapse-btn svg { width: 16px; height: 16px; transition: transform 0.18s ease; }
+.lesson-group.is-collapsed .lesson-collapse-btn svg { transform: rotate(-90deg); }
+
+.lesson-group.is-collapsed > .lesson-activities { display: none !important; }
+
+.lesson-collapsed-count {
+  margin-left: 8px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.lesson-collapsed-count:empty { display: none; }
+
 .week-pill {
   display: inline-flex;
   background: var(--color-bg-hover);

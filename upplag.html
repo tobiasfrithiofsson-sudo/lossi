@@ -1247,6 +1247,14 @@
     LossiData.savePlan(planKey, collectState()).catch(e => console.warn('Kunde inte spara upplägget:', e));
   }
 
+  document.getElementById('structureList').addEventListener('click', e => {
+    const btn = e.target.closest('.lesson-collapse-btn');
+    if (!btn) return;
+    const group = btn.closest('.lesson-group');
+    setLessonCollapsed(group, !group.classList.contains('is-collapsed'));
+    saveState();
+  });
+
   // ── Kalendern: lektioner inlagda på en tid ──
   // Kalenderknappen på lektionsraden visar när lektionen ligger inne och
   // öppnar dialogen i schedule.js för att lägga in, flytta eller ta bort.
@@ -2254,6 +2262,7 @@
     const lessonLists = document.querySelectorAll('.lesson-activities');
     const list = lessonLists[lessonLists.length - 1];
     if (!list) return;
+    setLessonCollapsed(list.closest('.lesson-group'), false);
     const wrapper = document.createElement('div');
     wrapper.className = 'activity-wrapper';
     wrapper.id = id;
@@ -2328,6 +2337,19 @@
       }
 
       const pill = row.querySelector('.week-pill');
+
+      // Fäll ihop/ut lektionens aktiviteter (läget sparas med upplägget)
+      if (!row.querySelector('.lesson-collapse-btn')) {
+        const collapseBtn = document.createElement('button');
+        collapseBtn.className = 'lesson-collapse-btn';
+        collapseBtn.type = 'button';
+        collapseBtn.innerHTML = '<i data-lucide="chevron-down"></i>';
+        pill.before(collapseBtn);
+        const count = document.createElement('span');
+        count.className = 'lesson-collapsed-count';
+        pill.after(count);
+      }
+
       let statusBtn = row.querySelector('.lesson-status-btn');
       if (!statusBtn) {
         statusBtn = document.createElement('button');
@@ -2338,7 +2360,7 @@
           <span class="ls-on"><i data-lucide="circle-check"></i></span>
           <span class="ls-label">Avklarad</span>
         `;
-        pill.after(statusBtn);
+        (row.querySelector('.lesson-collapsed-count') || pill).after(statusBtn);
         syncLessonStatusTitle(row);
       }
 
@@ -2475,7 +2497,28 @@
       const valueEl = timePill.querySelector('.lesson-time-pill-value');
       const duration = valueEl.textContent.trim() ? parseMinutes(valueEl.textContent) : null;
       timePill.classList.toggle('over', !!(duration && sum > duration));
+      syncLessonCollapse(group);
     });
+  }
+
+  // Hopfälld lektion: knappens text och antalet dolda aktiviteter
+  function syncLessonCollapse(group) {
+    const collapsed = group.classList.contains('is-collapsed');
+    const btn = group.querySelector('.lesson-collapse-btn');
+    const count = group.querySelector('.lesson-collapsed-count');
+    const n = group.querySelectorAll('.lesson-activities > .activity-wrapper').length;
+    if (btn) {
+      const label = collapsed ? 'Visa lektionens aktiviteter' : 'Fäll ihop lektionen';
+      btn.title = label;
+      btn.setAttribute('aria-label', label);
+      btn.setAttribute('aria-expanded', String(!collapsed));
+    }
+    if (count) count.textContent = !collapsed ? '' : n === 0 ? 'Inga aktiviteter' : n === 1 ? '1 aktivitet' : `${n} aktiviteter`;
+  }
+
+  function setLessonCollapsed(group, collapsed) {
+    group.classList.toggle('is-collapsed', collapsed);
+    syncLessonCollapse(group);
   }
 
   document.getElementById('structureList').addEventListener('input', e => {

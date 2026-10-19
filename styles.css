@@ -3314,6 +3314,60 @@ body.edit-mode .goal-item:hover .goal-delete { display: grid; place-items: cente
 /* Tom lektion: plusknappen direkt under raden */
 .lesson-group .lesson-activities:empty + .lesson-add-activity { margin-top: 0; }
 
+/* Allt i lektions- och aktivitetsraderna är exakt 24px högt (som i Figma).
+   Kvadratiska knappar är 24×24, taggar 24px höga med text centrerad. */
+.lesson-group .week-pill,
+.lesson-group .lesson-collapse-btn,
+.lesson-group .lesson-status-btn,
+.lesson-group .lesson-schedule-btn,
+.lesson-group .lesson-schedule-btn.is-scheduled,
+.lesson-group .lesson-time-pill,
+.lesson-more-btn,
+.lesson-add-activity,
+.lesson-group .activity-icon,
+.lesson-group .activity-time,
+.lesson-group .activity-more-btn,
+.lesson-group .file-chip-sm,
+.section-add-btn {
+  box-sizing: border-box;
+  height: 24px;
+  min-height: 24px;
+  line-height: 1;
+}
+
+.lesson-group .lesson-collapse-btn,
+.lesson-group .lesson-status-btn,
+.lesson-group .lesson-schedule-btn:not(.is-scheduled),
+.lesson-more-btn,
+.lesson-add-activity,
+.lesson-group .activity-icon,
+.lesson-group .activity-more-btn,
+.section-add-btn { width: 24px; }
+
+.lesson-group .week-pill,
+.lesson-group .lesson-time-pill,
+.lesson-group .activity-time,
+.lesson-group .file-chip-sm {
+  display: inline-flex;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.lesson-group .week-pill { padding: 0 8px; }
+.lesson-group .lesson-time-pill { padding: 0 8px; }
+.lesson-group .lesson-schedule-btn.is-scheduled { padding: 0 8px; }
+
+.lesson-group .lesson-collapse-btn svg,
+.lesson-group .lesson-status-btn svg,
+.lesson-group .lesson-schedule-btn svg,
+.lesson-more-btn svg,
+.lesson-add-activity svg,
+.lesson-group .activity-more-btn svg { width: 16px; height: 16px; }
+
+.lesson-group .activity-icon svg { width: 14px; height: 14px; }
+.section-add-btn svg { width: 18px; height: 18px; }
+
 @media (max-width: 760px) {
   .lesson-group { padding: 10px; }
   .lesson-group .week-row { row-gap: 8px; }

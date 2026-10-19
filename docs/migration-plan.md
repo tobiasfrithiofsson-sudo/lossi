@@ -96,3 +96,8 @@ Lessons can be put on a time slot. Table `lesson_events` (`supabase/calendar.sql
 - `index.html`: Kommande shows the next three scheduled lessons, or a pointer to the calendar.
 - Not built: recurring lessons, drag to move in the calendar, sync with external calendars (Google/Outlook).
 
+## Feedback (added 2026-10-18/19)
+- Testers: Feedback button in the topbar (`feedback.js`) → table `feedback` (`supabase/feedback.sql`; run with the read key from the local-only `supabase/feedback.local.sql`).
+- Tobias: `feedbackboard.html` ("Feedback från testare" in the user menu) lists all feedback with filters, status and notes. Admin = `app_metadata.role = 'admin'`, checked in the database (`supabase/feedback-admin.sql`, run 2026-10-19; after a role change, log out and in again).
+- Claude: `scripts/feedback.sh` reads all feedback and sets status/notes with the secret read key in `.feedback-token` (gitignored).
+

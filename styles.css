@@ -1665,13 +1665,6 @@ body.edit-mode .goal-item:hover .goal-delete { display: grid; place-items: cente
 
 .lesson-group.is-collapsed > .lesson-activities { display: none !important; }
 
-.lesson-collapsed-count {
-  margin-left: 8px;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-}
-.lesson-collapsed-count:empty { display: none; }
 
 .week-pill {
   display: inline-flex;

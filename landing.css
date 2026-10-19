@@ -11,8 +11,6 @@
   --lp-px: 32px;
   --lp-ink: #161412;
   --lp-gradient: linear-gradient(135deg, #FF8A3D, #E24B4A);
-  --lp-pill-bg: #FFE3CF;
-  --lp-pill-dot: #F26B1D;
   --lp-card-bg: #F7F6F3;
   --lp-media-bg: #EFEDE8;
   --lp-soft-bg: #E8F0FD;
@@ -21,7 +19,6 @@
 
 [data-theme="dark"] {
   --lp-ink: #EEECEA;
-  --lp-pill-bg: rgba(242, 107, 29, 0.2);
   --lp-card-bg: #222220;
   --lp-media-bg: #2A2A27;
   --lp-soft-bg: rgba(59, 130, 246, 0.16);
@@ -155,42 +152,23 @@ img { display: block; max-width: 100%; height: auto; }
 .lp-dot { width: 8px; height: 8px; border-radius: 50%; background: #1F9D6B; box-shadow: 0 0 0 4px color-mix(in srgb, #1F9D6B 18%, transparent); }
 
 .lp-headline {
-  font-size: clamp(40px, 7vw, 84px);
-  font-weight: 800;
-  letter-spacing: -0.045em;
-  line-height: 1.04;
+  max-width: 980px;
+  font-size: clamp(30px, 4.6vw, 54px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.16;
   color: var(--lp-ink);
+  text-wrap: balance;
 }
 
-.lp-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.18em;
-  padding: 0.02em 0.32em 0.1em 0.26em;
-  border-radius: 999px;
-  background: var(--lp-pill-bg);
-  font-weight: 500;
-  letter-spacing: -0.035em;
-  white-space: nowrap;
-}
+/* Färgade ord lyfter det viktigaste (som på den tidigare sidan) */
+.hl-purple { color: #7C4FE0; }
+.hl-blue { color: var(--color-primary); }
+.hl-orange { color: #E07A44; }
+[data-theme="dark"] .hl-purple { color: #A78BFA; }
+[data-theme="dark"] .hl-orange { color: #F59A66; }
 
-.lp-pill-dot {
-  width: 0.26em;
-  height: 0.26em;
-  border-radius: 50%;
-  background: var(--lp-pill-dot);
-  margin-top: 0.06em;
-}
-
-.lp-lead {
-  max-width: 640px;
-  margin: 28px auto 0;
-  font-size: clamp(17px, 2vw, 21px);
-  line-height: 1.5;
-  color: var(--color-text-secondary);
-}
-
-.lp-cta-row { display: flex; gap: 12px; margin-top: 32px; flex-wrap: wrap; justify-content: center; }
+.lp-cta-row { display: flex; gap: 12px; margin-top: 36px; flex-wrap: wrap; justify-content: center; }
 
 /* Skärmbilden i ett appfönster, med svävande brickor runt om */
 .lp-stage { position: relative; margin-top: 64px; }

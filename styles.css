@@ -3295,7 +3295,8 @@ body.edit-mode .goal-item:hover .goal-delete { display: grid; place-items: cente
 }
 
 .lesson-group .activity-row { border-radius: var(--radius-sm); }
-.lesson-group .activity-time { border-radius: var(--radius-xs); }
+.lesson-group .activity-time,
+.lesson-group .file-chip-sm { border-radius: var(--radius-xs); }
 
 /* Ikonen som en liten ruta med färgad kant */
 .lesson-group .activity-icon {

@@ -1933,7 +1933,7 @@ body.is-dragging-activity .lesson-activities:empty::before {
   white-space: nowrap;
   background: var(--color-bg-hover);
   border-radius: var(--radius-full);
-  padding: 4px 12px;
+  padding: 4px 6px;
   flex-shrink: 0;
 }
 

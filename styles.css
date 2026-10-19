@@ -372,6 +372,31 @@ body.activity-panel-resizing .page-frame {
 .aside-invite-close:hover { background: var(--color-aside-hover); color: var(--color-text-primary); }
 .aside-invite-close svg { width: 14px; height: 14px; }
 
+/* Antal kollegor som vill redigera ett eget upplägg (sidopanel och översikt) */
+.request-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.plan-row-request {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .aside-invite[role="button"] { cursor: pointer; transition: border-color 0.15s; }
 .aside-invite[role="button"]:hover { border-color: var(--color-text-tertiary); }
 
@@ -3081,6 +3106,41 @@ body.read-mode .class-picker-trigger > svg { display: none; }
 .read-banner-btn { flex-shrink: 0; background: var(--color-bg-primary); }
 .read-banner-btn svg { width: 14px; height: 14px; }
 .read-banner + .plan-header { padding-top: 20px; }
+.read-banner-actions { display: flex; gap: var(--space-2); flex-shrink: 0; }
+.read-banner-actions [hidden] { display: none; }
+.read-banner-btn-primary { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.read-banner-btn-primary svg { width: 14px; height: 14px; }
+
+/* Skaparen: förfrågningar om att få redigera (en rad per person) */
+.request-banner { flex-direction: column; align-items: stretch; gap: var(--space-2); }
+.request-banner + .plan-header { padding-top: 20px; }
+.request-row { display: flex; align-items: center; gap: var(--space-3); }
+
+/* Medskapare: allt utom att ta bort upplägget och lägga in i kalendern */
+body.is-coeditor .owner-only,
+body.is-coeditor .lesson-schedule-btn { display: none !important; }
+
+/* Personer: medskapare under Skapare */
+.read-field-top { align-items: flex-start; }
+.read-field-top .read-field-label { padding-top: 3px; }
+.people-list { display: flex; flex-direction: column; gap: 8px; }
+.person-row { display: flex; align-items: center; gap: 8px; }
+.person-row .author-chip { flex: 1; min-width: 0; }
+.person-remove {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.person-remove:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.person-remove svg { width: 14px; height: 14px; }
+.people-empty { font-size: var(--font-size-base); color: var(--color-text-tertiary); }
 
 
 /* ============================================================
@@ -3333,7 +3393,9 @@ body.read-mode .class-picker-trigger > svg { display: none; }
   .plan-header { padding: 20px 16px 4px; gap: var(--space-3); }
   .read-banner { margin: 16px 16px 0; flex-wrap: wrap; }
   .read-banner-text { flex-basis: calc(100% - 40px); }
-  .read-banner-btn { width: 100%; justify-content: center; }
+  .read-banner-actions { width: 100%; flex-direction: column; }
+  .read-banner-btn, .read-banner-btn-primary { width: 100%; justify-content: center; }
+  .request-row { flex-wrap: wrap; }
   .read-banner + .plan-header { padding-top: 16px; }
   .plan-title { font-size: 21px; }
   .plan-actions { margin-left: 0; flex-wrap: wrap; }

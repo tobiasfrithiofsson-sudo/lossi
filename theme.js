@@ -921,11 +921,24 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') toggleProjectMenu(false);
 });
 
+// Obesvarade förfrågningar om redigeringsrätt per eget upplägg: Map planId → antal
+async function editRequestCounts() {
+  const counts = new Map();
+  try {
+    (await LossiData.listMyEditRequests()).forEach(r => counts.set(r.planId, (counts.get(r.planId) || 0) + 1));
+  } catch (e) {} // t.ex. innan steg 4 i projects.sql körts
+  return counts;
+}
+
+function editRequestBadgeHTML(n) {
+  return n ? `<span class="request-badge" title="${n} ${n === 1 ? 'kollega vill' : 'kollegor vill'} redigera">${n}</span>` : '';
+}
+
 // Upplägg-listan i asiden fylls i när datan hämtats (renderAppShell väntar inte):
 // den inloggades egna upplägg i valt projekt
 async function renderAsidePlans(currentPlanId) {
   const project = await LossiData.currentProject().catch(() => null);
-  const plans = await getPlanSummaries({ projectId: project?.id, mine: true });
+  const [plans, requests] = await Promise.all([getPlanSummaries({ projectId: project?.id, mine: true }), editRequestCounts()]);
   const visiblePlans = plans.slice(0, ASIDE_PLAN_LIMIT);
   // Det öppna upplägget ska alltid synas i listan, även om det är äldre
   if (currentPlanId && !visiblePlans.some(p => p.id === String(currentPlanId))) {
@@ -943,6 +956,7 @@ async function renderAsidePlans(currentPlanId) {
     <a href="upplag.html?id=${p.id}" class="aside-item${p.id === String(currentPlanId) ? ' active' : ''}" data-aside-plan="${p.id}" title="${escapeHTML(p.title)}">
       <span class="aside-plan-icon">${planAvatarImgHTML(p.avatar)}</span>
       <span class="aside-item-text">${escapeHTML(p.title)}</span>
+      ${editRequestBadgeHTML(requests.get(p.id))}
     </a>`).join('');
 }
 

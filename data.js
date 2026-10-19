@@ -159,6 +159,39 @@ const LossiData = (() => {
     return id;
   }
 
+  // ── Medskapare (supabase/projects.sql, steg 4) ──
+  // En rad = { planId, userId, status: 'requested' | 'approved' }. Man ser sina
+  // egna förfrågningar, allt om sina egna upplägg och godkända medskapare i
+  // sina projekt.
+  function toEditor(r) {
+    return { planId: String(r.plan_id), userId: r.user_id, status: r.status };
+  }
+
+  async function listPlanEditors(planId) {
+    return check(await db().from('plan_editors').select('plan_id, user_id, status').eq('plan_id', planId)).map(toEditor);
+  }
+
+  // Obesvarade förfrågningar på den inloggades egna upplägg
+  async function listMyEditRequests() {
+    const user = await LossiAuth.getUser();
+    const rows = check(await db().from('plan_editors').select('plan_id, user_id, status').eq('status', 'requested'));
+    return rows.map(toEditor).filter(e => e.userId !== user?.id);
+  }
+
+  // Returnerar 'requested', 'approved' eller 'owner'
+  async function requestPlanEdit(planId) {
+    return check(await db().rpc('request_plan_edit', { pid: Number(planId) }));
+  }
+
+  async function decidePlanEdit(planId, userId, approve) {
+    check(await db().rpc('decide_plan_edit', { pid: Number(planId), editor: userId, approve }));
+  }
+
+  // Skaparen tar bort en medskapare, eller man drar tillbaka sin egen förfrågan
+  async function removePlanEditor(planId, userId) {
+    check(await db().rpc('remove_plan_editor', { pid: Number(planId), editor: userId }));
+  }
+
   // Gå med i ett projekt med dess inbjudningskod; blir valt projekt. Returnerar projektets id.
   async function joinProject(code) {
     const id = String(check(await db().rpc('join_project', { code })));
@@ -196,7 +229,7 @@ const LossiData = (() => {
     statusListener('saving');
     try {
       const rows = check(await db().from('plans').update(columnsFor(state)).eq('id', id).select('id'));
-      if (!rows.length) throw new Error('Upplägget finns inte längre eller tillhör ett annat konto.');
+      if (!rows.length) throw new Error('Upplägget finns inte längre, eller så har du inte längre rätt att ändra det.');
       lastSaved.set(id, json);
       if (!pending.has(id)) statusListener('saved');
     } catch (e) {
@@ -336,7 +369,8 @@ const LossiData = (() => {
 
   return {
     listPlans, listMyPlans, loadPlan, loadPlanInfo, savePlan,
-    listProjects, currentProject, setCurrentProject, createProject, joinProject, findMember, createPlan, deletePlan, flushOnLeave, onSaveStatus,
+    listProjects, currentProject, setCurrentProject, createProject, joinProject, findMember,
+    listPlanEditors, listMyEditRequests, requestPlanEdit, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,
   };

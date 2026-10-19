@@ -41,14 +41,24 @@
   <!-- Läsläge: någon annans upplägg i projektet (showReadOnlyBanner) -->
   <div class="read-banner" id="readBanner" hidden>
     <div class="read-banner-avatar" id="readBannerAvatar"></div>
-    <div class="read-banner-text">
-      <strong id="readBannerOwner"></strong> har skapat det här upplägget. Du kan läsa och exportera det, men inte ändra.
+    <div class="read-banner-text" id="readBannerText"></div>
+    <div class="read-banner-actions">
+      <button type="button" class="btn-ghost read-banner-btn" id="requestEditBtn" onclick="requestEdit()" hidden>
+        <i data-lucide="pencil"></i>
+        Be om redigeringsrätt
+      </button>
+      <button type="button" class="btn-ghost read-banner-btn" id="cancelRequestBtn" onclick="cancelEditRequest()" hidden>
+        Ångra förfrågan
+      </button>
+      <button type="button" class="btn-ghost read-banner-btn" onclick="duplicatePlan()">
+        <i data-lucide="copy"></i>
+        Duplicera till mina upplägg
+      </button>
     </div>
-    <button type="button" class="btn-ghost read-banner-btn" onclick="duplicatePlan()">
-      <i data-lucide="copy"></i>
-      Duplicera till mina upplägg
-    </button>
   </div>
+
+  <!-- Skaparen: kollegor som bett om att få redigera (renderEditRequests) -->
+  <div class="read-banner request-banner" id="requestBanner" hidden></div>
 
   <!-- Uppläggshuvud över hela bredden (innehåll + Detaljer): avatar + titel till vänster, status/dela/exportera till höger -->
   <div class="plan-header">
@@ -122,8 +132,8 @@
             <span class="edit-only">Duplicera upplägg</span>
             <span class="read-only">Duplicera till mina upplägg</span>
           </button>
-          <div class="menu-popover-sep edit-only"></div>
-          <button class="menu-popover-item menu-popover-item-danger edit-only" onclick="confirmDeletePlan()">
+          <div class="menu-popover-sep edit-only owner-only"></div>
+          <button class="menu-popover-item menu-popover-item-danger edit-only owner-only" onclick="confirmDeletePlan()">
             <i data-lucide="trash-2"></i>
             Ta bort upplägg
           </button>
@@ -901,6 +911,11 @@
               </div>
             </span>
           </div>
+          <!-- Medskapare: får redigera; skaparen kan ta bort dem (renderPlanPeople) -->
+          <div class="read-field read-field-top" id="coEditorsField" hidden>
+            <span class="read-field-label">Medskapare</span>
+            <div class="read-field-value people-list" id="coEditorsList"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1056,6 +1071,10 @@
   // Någon annans upplägg (i ett delat projekt): bara läsa, inget sparas
   let planReadOnly = false;
   let planProjectId = null; // projektet upplägget ligger i (kopior hamnar där också)
+  let planOwnerId = null;
+  let planIsOwner = true;    // false = någon annans upplägg (läsläge eller medskapare)
+  let planEditors = [];      // [{ userId, status }] (LossiData.listPlanEditors)
+  let planUser = null;
   let planDemoKey = null; // följer med när ett demo-upplägg sparas (Kommande-korten hittar det)
   let lessonIdsAssigned = false; // lektioner fick nya id vid laddning → spara när upplägget lästs in
   const planEvents = new Map();  // lessonId → kalenderhändelse för det här upplägget
@@ -1335,7 +1354,7 @@
 
   document.getElementById('structureList').addEventListener('click', e => {
     const btn = e.target.closest('.lesson-schedule-btn');
-    if (!btn || !planLoaded || planReadOnly) return;
+    if (!btn || !planLoaded || planReadOnly || !planIsOwner) return;
     const group = btn.closest('.lesson-group');
     const lessonId = group.dataset.lessonId;
     const valueEl = group.querySelector('.lesson-time-pill-value');
@@ -1395,7 +1414,7 @@
 
   function confirmDeletePlan() {
     closeAllMenuPopovers();
-    if (!planLoaded || planReadOnly) return;
+    if (!planLoaded || planReadOnly || !planIsOwner) return;
     const title = document.getElementById('planTitle').textContent.trim();
     document.getElementById('deletePlanName').textContent = title ? `"${title}"` : 'upplägget';
     document.getElementById('deletePlanError').hidden = true;
@@ -2728,8 +2747,10 @@
 
   // ── Läsläge: någon annans upplägg ──
   // body.read-mode döljer allt som ändrar (styles.css, LÄSLÄGE) och
-  // aktiviteter öppnas i sin läsvy. Inget sparas (saveState).
-  function enterReadOnly(ownerId) {
+  // aktiviteter öppnas i sin läsvy. Inget sparas (saveState). Man kan be
+  // skaparen om redigeringsrätt; godkänd blir man medskapare och redigerar
+  // som vanligt (body.is-coeditor: allt utom att ta bort upplägget).
+  function enterReadOnly() {
     planReadOnly = true;
     document.body.classList.remove('edit-mode');
     document.body.classList.add('read-mode');
@@ -2737,24 +2758,131 @@
       el.setAttribute('contenteditable', 'false');
       el.setAttribute('data-read-locked', '');
     });
-    showPlanOwner(ownerId);
   }
 
-  async function showPlanOwner(ownerId) {
-    const member = await LossiData.findMember(ownerId);
-    const profile = member
-      ? { displayName: member.displayName, avatar: member.avatar, email: member.email }
-      : { displayName: '', avatar: null, email: '' };
-    const name = profileName(profile) || 'En kollega';
+  function personProfile(userId) {
+    if (planUser && userId === planUser.id) return Promise.resolve(LossiAuth.profileOf(planUser));
+    return LossiData.findMember(userId).then(m => m
+      ? { displayName: m.displayName, avatar: m.avatar, email: m.email }
+      : { displayName: '', avatar: null, email: '' });
+  }
+
+  function personChipHTML(profile, fallback = 'En kollega') {
+    return `<div class="author-chip-avatar">${userAvatarHTML(profile)}</div><span>${escapeHTML(profileName(profile) || fallback)}</span>`;
+  }
+
+  // Rutan överst för den som läser någon annans upplägg
+  async function renderReadBanner() {
     const banner = document.getElementById('readBanner');
-    document.getElementById('readBannerOwner').textContent = name;
-    document.getElementById('readBannerAvatar').innerHTML = userAvatarHTML(profile);
+    if (!planReadOnly) { banner.hidden = true; return; }
+    const owner = await personProfile(planOwnerId);
+    const name = escapeHTML(profileName(owner) || 'En kollega');
+    const mine = planEditors.find(e => e.userId === planUser?.id);
+    const requested = mine?.status === 'requested';
+    document.getElementById('readBannerAvatar').innerHTML = userAvatarHTML(owner);
+    document.getElementById('readBannerText').innerHTML = requested
+      ? `Du har bett <strong>${name}</strong> om att få redigera. Du kan ändra så fort hen godkänner.`
+      : `<strong>${name}</strong> har skapat det här upplägget. Du kan läsa och exportera det, men inte ändra.`;
+    document.getElementById('requestEditBtn').hidden = requested;
+    document.getElementById('cancelRequestBtn').hidden = !requested;
     banner.hidden = false;
-    // Skapare under Personer: den riktiga skaparen, inte den inloggade
-    document.getElementById('planOwnerChip').innerHTML = `
-      <div class="author-chip-avatar">${userAvatarHTML(profile)}</div>
-      <span>${escapeHTML(name)}</span>`;
-    lucide.createIcons({ nodes: [banner, document.getElementById('planOwnerChip')] });
+    lucide.createIcons({ nodes: [banner] });
+  }
+
+  async function requestEdit() {
+    const btn = document.getElementById('requestEditBtn');
+    btn.disabled = true;
+    try {
+      const status = await LossiData.requestPlanEdit(planKey);
+      if (status === 'approved') return window.location.reload();
+      planEditors = planEditors.filter(e => e.userId !== planUser.id).concat({ userId: planUser.id, status });
+      renderReadBanner();
+    } catch (e) {
+      console.warn('Kunde inte be om redigeringsrätt:', e);
+      alert('Kunde inte skicka förfrågan. Försök igen om en stund.');
+    }
+    btn.disabled = false;
+  }
+
+  async function cancelEditRequest() {
+    try {
+      await LossiData.removePlanEditor(planKey, planUser.id);
+      planEditors = planEditors.filter(e => e.userId !== planUser.id);
+      renderReadBanner();
+    } catch (e) {
+      console.warn('Kunde inte ångra förfrågan:', e);
+      alert('Kunde inte ångra förfrågan. Försök igen om en stund.');
+    }
+  }
+
+  // Personer i Detaljer: skaparen och medskaparna (skaparen kan ta bort dem)
+  async function renderPlanPeople() {
+    const owner = await personProfile(planOwnerId);
+    const chip = document.getElementById('planOwnerChip');
+    chip.innerHTML = personChipHTML(owner);
+
+    const project = (await LossiData.listProjects().catch(() => [])).find(p => p.id === planProjectId);
+    const approved = planEditors.filter(e => e.status === 'approved');
+    const field = document.getElementById('coEditorsField');
+    // I ett eget projekt finns inga kollegor att dela med
+    field.hidden = !!project?.personal && !approved.length;
+    const list = document.getElementById('coEditorsList');
+    const people = await Promise.all(approved.map(async e => ({ ...e, profile: await personProfile(e.userId) })));
+    list.innerHTML = people.length
+      ? people.map(p => `
+        <div class="person-row">
+          <div class="author-chip">${personChipHTML(p.profile)}</div>
+          ${planIsOwner ? `<button type="button" class="person-remove" onclick="removeCoEditor('${p.userId}')" title="Ta bort som medskapare" aria-label="Ta bort ${escapeHTML(profileName(p.profile) || 'medskaparen')} som medskapare"><i data-lucide="x"></i></button>` : ''}
+        </div>`).join('')
+      : `<span class="people-empty">${planIsOwner ? 'Inga än. Kollegor i projektet kan be om att få redigera.' : 'Inga än'}</span>`;
+    lucide.createIcons({ nodes: [chip, list] });
+    renderEditRequests();
+  }
+
+  // Rutan överst för skaparen: kollegor som vill redigera
+  async function renderEditRequests() {
+    const banner = document.getElementById('requestBanner');
+    const requests = planIsOwner ? planEditors.filter(e => e.status === 'requested') : [];
+    if (!requests.length) { banner.hidden = true; banner.innerHTML = ''; return; }
+    const people = await Promise.all(requests.map(async e => ({ ...e, profile: await personProfile(e.userId) })));
+    banner.innerHTML = people.map(p => `
+      <div class="request-row">
+        <div class="read-banner-avatar">${userAvatarHTML(p.profile)}</div>
+        <div class="read-banner-text"><strong>${escapeHTML(profileName(p.profile) || 'En kollega')}</strong> vill kunna redigera det här upplägget.</div>
+        <div class="read-banner-actions">
+          <button type="button" class="btn-ghost read-banner-btn" onclick="decideEdit('${p.userId}', false)">Neka</button>
+          <button type="button" class="btn-primary read-banner-btn-primary" onclick="decideEdit('${p.userId}', true)"><i data-lucide="check"></i>Godkänn</button>
+        </div>
+      </div>`).join('');
+    banner.hidden = false;
+    lucide.createIcons({ nodes: [banner] });
+  }
+
+  async function decideEdit(userId, approve) {
+    try {
+      await LossiData.decidePlanEdit(planKey, userId, approve);
+      if (approve) planEditors.find(e => e.userId === userId).status = 'approved';
+      else planEditors = planEditors.filter(e => e.userId !== userId);
+      renderPlanPeople();
+      renderAsidePlans(planKey).catch(() => {});
+    } catch (e) {
+      console.warn('Kunde inte svara på förfrågan:', e);
+      alert('Kunde inte spara ditt svar. Försök igen om en stund.');
+    }
+  }
+
+  async function removeCoEditor(userId) {
+    const profile = await personProfile(userId);
+    const name = profileName(profile) || 'medskaparen';
+    if (!confirm(`Ta bort ${name} som medskapare? ${name} kan då bara läsa upplägget.`)) return;
+    try {
+      await LossiData.removePlanEditor(planKey, userId);
+      planEditors = planEditors.filter(e => e.userId !== userId);
+      renderPlanPeople();
+    } catch (e) {
+      console.warn('Kunde inte ta bort medskaparen:', e);
+      alert('Kunde inte ta bort medskaparen. Försök igen om en stund.');
+    }
   }
 
   // ── Start: läs in upplägget och initiera sidan ──
@@ -2786,11 +2914,24 @@
       renderProjectSwitcher();
       renderAsidePlans(planKey).catch(() => {});
     }).catch(() => {});
-    if (user && info.ownerId && info.ownerId !== user.id) {
-      enterReadOnly(info.ownerId);
+    planUser = user;
+    planOwnerId = info.ownerId || user?.id;
+    planIsOwner = !user || !info.ownerId || info.ownerId === user.id;
+    try {
+      planEditors = await LossiData.listPlanEditors(planKey);
+    } catch (e) {
+      console.warn('Kunde inte hämta medskapare:', e); // t.ex. innan steg 4 i projects.sql körts
+    }
+    const myRight = planEditors.find(e => e.userId === user?.id)?.status;
+    if (!planIsOwner && myRight !== 'approved') {
+      enterReadOnly();
+      renderReadBanner();
+      renderPlanPeople();
       planLoaded = true;
       return;
     }
+    if (!planIsOwner) document.body.classList.add('is-coeditor');
+    renderPlanPeople();
     initAllSortables();
     planLoaded = true;
     window.addEventListener('beforeunload', saveState);

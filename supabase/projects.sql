@@ -390,3 +390,188 @@ $$;
 
 revoke all on function public.create_project(text) from public, anon;
 grant execute on function public.create_project(text) to authenticated;
+
+
+-- ── Steg 4: medskapare (redigeringsrätt på begäran) ──
+-- En medlem i projektet kan be skaparen om att få redigera ett upplägg.
+-- Skaparen godkänner (personen blir medskapare) eller nekar (förfrågan tas
+-- bort), och kan när som helst ta bort en medskapare. Medskapare ändrar
+-- innehållet men kan inte ta bort upplägget, byta skapare eller flytta det
+-- till ett annat projekt.
+
+create table if not exists public.plan_editors (
+  plan_id      bigint not null references public.plans (id) on delete cascade,
+  user_id      uuid not null references auth.users (id) on delete cascade,
+  status       text not null default 'requested' check (status in ('requested', 'approved')),
+  requested_at timestamptz not null default now(),
+  decided_at   timestamptz,
+  primary key (plan_id, user_id)
+);
+
+create index if not exists plan_editors_user_id_idx on public.plan_editors (user_id);
+
+-- Är den inloggade godkänd medskapare på upplägget?
+create or replace function public.is_plan_editor(pid bigint)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.plan_editors e
+    where e.plan_id = pid and e.user_id = (select auth.uid()) and e.status = 'approved'
+  );
+$$;
+
+-- Äger den inloggade upplägget?
+create or replace function public.is_plan_owner(pid bigint)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (select 1 from public.plans p where p.id = pid and p.owner_id = (select auth.uid()));
+$$;
+
+alter table public.plan_editors enable row level security;
+
+-- Läsa: sina egna förfrågningar, allt om sina egna upplägg, och godkända
+-- medskapare på upplägg i projekt man är med i (visas under Personer)
+drop policy if exists "Medskapare: läsa" on public.plan_editors;
+create policy "Medskapare: läsa" on public.plan_editors
+  for select to authenticated
+  using (
+    user_id = (select auth.uid())
+    or public.is_plan_owner(plan_id)
+    or (status = 'approved' and exists (
+      select 1 from public.plans p where p.id = plan_id and public.is_project_member(p.project_id)
+    ))
+  );
+
+revoke all on public.plan_editors from anon, authenticated;
+grant select on public.plan_editors to authenticated;
+
+-- Be om redigeringsrätt (medlem i uppläggets projekt, inte skaparen)
+create or replace function public.request_plan_edit(pid bigint)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := (select auth.uid());
+  p record;
+  current_status text;
+begin
+  select id, owner_id, project_id into p from public.plans where id = pid;
+  if uid is null or p.id is null or not public.is_project_member(p.project_id) then
+    raise exception 'Upplägget finns inte' using errcode = 'P0002';
+  end if;
+  if p.owner_id = uid then
+    return 'owner';
+  end if;
+  insert into public.plan_editors (plan_id, user_id, status)
+  values (pid, uid, 'requested')
+  on conflict (plan_id, user_id) do nothing;
+  select status into current_status from public.plan_editors where plan_id = pid and user_id = uid;
+  return current_status;
+end;
+$$;
+
+-- Skaparen godkänner (approve = true) eller nekar (false) en förfrågan
+create or replace function public.decide_plan_edit(pid bigint, editor uuid, approve boolean)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.is_plan_owner(pid) then
+    raise exception 'Bara skaparen kan ändra rättigheter' using errcode = '42501';
+  end if;
+  if approve then
+    update public.plan_editors set status = 'approved', decided_at = now()
+    where plan_id = pid and user_id = editor;
+  else
+    delete from public.plan_editors where plan_id = pid and user_id = editor;
+  end if;
+end;
+$$;
+
+-- Ta bort en medskapare (skaparen), eller dra tillbaka sin egen förfrågan/rätt
+create or replace function public.remove_plan_editor(pid bigint, editor uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not (public.is_plan_owner(pid) or editor = (select auth.uid())) then
+    raise exception 'Bara skaparen kan ta bort medskapare' using errcode = '42501';
+  end if;
+  delete from public.plan_editors where plan_id = pid and user_id = editor;
+end;
+$$;
+
+-- Medskapare får ändra upplägget (skaparens regel "Egna upplägg: ändra" gäller som förut)
+drop policy if exists "Upplägg: medskapare ändrar" on public.plans;
+create policy "Upplägg: medskapare ändrar" on public.plans
+  for update to authenticated
+  using (public.is_plan_editor(id))
+  with check (public.is_plan_editor(id));
+
+-- ...men bara innehållet: skapare och projekt ligger fast för alla utom skaparen
+create or replace function public.keep_plan_owner_and_project()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  -- (utan inloggad användare, t.ex. i SQL Editor, får allt ändras)
+  if (select auth.uid()) is not null and old.owner_id is distinct from (select auth.uid()) then
+    new.owner_id := old.owner_id;
+    new.project_id := old.project_id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists lossi_keep_plan_owner on public.plans;
+create trigger lossi_keep_plan_owner
+  before update on public.plans
+  for each row execute function public.keep_plan_owner_and_project();
+
+-- Lämnar man projektet försvinner ens rättigheter på dess upplägg
+create or replace function public.drop_editor_rights_on_leave()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  delete from public.plan_editors e
+  using public.plans p
+  where e.plan_id = p.id and p.project_id = old.project_id and e.user_id = old.user_id;
+  return old;
+end;
+$$;
+
+drop trigger if exists lossi_drop_editor_rights on public.project_members;
+create trigger lossi_drop_editor_rights
+  after delete on public.project_members
+  for each row execute function public.drop_editor_rights_on_leave();
+
+revoke all on function public.is_plan_editor(bigint) from public, anon;
+revoke all on function public.is_plan_owner(bigint) from public, anon;
+revoke all on function public.request_plan_edit(bigint) from public, anon;
+revoke all on function public.decide_plan_edit(bigint, uuid, boolean) from public, anon;
+revoke all on function public.remove_plan_editor(bigint, uuid) from public, anon;
+revoke all on function public.keep_plan_owner_and_project() from public, anon, authenticated;
+revoke all on function public.drop_editor_rights_on_leave() from public, anon, authenticated;
+grant execute on function public.is_plan_editor(bigint) to authenticated;
+grant execute on function public.is_plan_owner(bigint) to authenticated;
+grant execute on function public.request_plan_edit(bigint) to authenticated;
+grant execute on function public.decide_plan_edit(bigint, uuid, boolean) to authenticated;
+grant execute on function public.remove_plan_editor(bigint, uuid) to authenticated;

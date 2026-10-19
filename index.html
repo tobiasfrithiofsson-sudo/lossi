@@ -100,6 +100,7 @@
   try { ownerFilter = localStorage.getItem('lossi-owner-filter') === 'mine' ? 'mine' : 'all'; } catch (e) {}
   let me = null;
   let projectMembers = [];
+  let editRequests = new Map(); // planId → antal kollegor som vill redigera
 
   function setOwnerFilter(value) {
     ownerFilter = value;
@@ -125,7 +126,8 @@
       const shared = project && !project.personal;
       document.getElementById('ownerFilter').hidden = !shared;
       setOwnerFilter(shared ? ownerFilter : 'all');
-      const plans = await LossiData.listPlans({ projectId: project?.id });
+      const [plans, requests] = await Promise.all([LossiData.listPlans({ projectId: project?.id }), editRequestCounts()]);
+      editRequests = requests;
       empty.textContent = 'Inga upplägg matchar filtret.';
       renderPlanList(plans.slice().reverse().map(p => getPlanSummary(p.id, p.state, p.ownerId)));
     } catch (e) {
@@ -149,6 +151,7 @@
         <div class="plan-row" data-plan-id="${p.id}" data-mine="${mine}" data-subject="${escapeHTML(p.subject)}" data-grade="${escapeHTML(gradeDisplay)}" onclick="window.location='upplag.html?id=${p.id}'">
           <div class="plan-row-icon plan-icon-image">${planAvatarImgHTML(p.avatar)}</div>
           <span class="plan-row-title">${escapeHTML(p.title)}</span>
+          ${mine && editRequests.get(p.id) ? `<span class="plan-row-request">${editRequests.get(p.id) === 1 ? '1 vill redigera' : editRequests.get(p.id) + ' vill redigera'}</span>` : ''}
           <span class="plan-row-meta">${escapeHTML(meta)}</span>
           <div class="plan-row-avatar" title="Skapat av ${escapeHTML(ownerName)}">${userAvatarHTML(owner)}</div>
         </div>`;

@@ -11,6 +11,12 @@
       { id: 3, owner_id: 'u1', project_id: 1, state: { demo: true, demoKey: '3', title: 'Fotosyntes – från molekyl till ekosystem', subject: 'Biologi', grade: '7', avatar: 'compass' } },
       { id: 4, owner_id: 'u2', project_id: 2, state: { demo: true, demoKey: '1', title: 'Kristoffers demokratiupplägg', subject: 'Samhällskunskap', grade: '8', avatar: 'compass' } },
       { id: 5, owner_id: 'u1', project_id: 2, state: { demo: true, demoKey: '3', title: 'Linas fotosyntes för skolan', subject: 'Biologi', grade: '7', avatar: 'sailboat' } },
+      { id: 6, owner_id: 'u2', project_id: 2, state: { demo: true, demoKey: '2', title: 'Kristoffers källkritik', subject: 'Samhällskunskap', grade: '9', avatar: 'lightning' } },
+    ],
+    // Medskapare: Kristoffer vill redigera Linas upplägg 5; Lina är medskapare på Kristoffers 6
+    plan_editors: [
+      { plan_id: 5, user_id: 'u2', status: 'requested' },
+      { plan_id: 6, user_id: 'u1', status: 'approved' },
     ],
     projects: [
       { id: 1, name: 'Mina upplägg', personal_owner: 'u1', created_at: '2026-10-19T10:00:00Z' },
@@ -40,7 +46,10 @@
         rows().push(...ins); res = ins;
       }
       // Som databasens regler: bara skaparen ändrar och tar bort upplägg
-      if (table === 'plans' && (q.op === 'update' || q.op === 'delete')) res = res.filter(r => r.owner_id === user.id);
+      // (medskapare får ändra men inte ta bort)
+      const isEditor = r => (tables.plan_editors || []).some(e => e.plan_id === r.id && e.user_id === user.id && e.status === 'approved');
+      if (table === 'plans' && q.op === 'delete') res = res.filter(r => r.owner_id === user.id);
+      if (table === 'plans' && q.op === 'update') res = res.filter(r => r.owner_id === user.id || isEditor(r));
       if (q.op === 'upsert') {
         const keys = q.onConflict.split(',');
         res = [].concat(q.p).map(p => {
@@ -50,6 +59,7 @@
         });
       }
       if (q.op === 'update') res.forEach(r => Object.assign(r, q.p));
+      if (table === 'plan_editors') res = res.map(r => ({ ...r }));
       if (q.op === 'delete') tables[table] = rows().filter(r => !res.includes(r));
       if (q.order) res = res.slice().sort((a, b) => (a[q.order] > b[q.order] ? 1 : -1));
       if (q.limit) res = res.slice(0, q.limit);
@@ -79,6 +89,27 @@
       if (name === 'project_member_profiles') return { data: memberProfiles, error: null };
       const byCode = code => tables.projects.find(p => p.invite_code && p.invite_code === String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''));
       if (name === 'invite_project_name') return { data: byCode(params.code)?.name || null, error: null };
+      const editors = tables.plan_editors;
+      const findEditor = (pid, uid) => editors.find(e => e.plan_id === Number(pid) && e.user_id === uid);
+      if (name === 'request_plan_edit') {
+        const plan = tables.plans.find(p => p.id === Number(params.pid));
+        if (plan.owner_id === user.id) return { data: 'owner', error: null };
+        if (!findEditor(params.pid, user.id)) editors.push({ plan_id: Number(params.pid), user_id: user.id, status: 'requested' });
+        persist();
+        return { data: findEditor(params.pid, user.id).status, error: null };
+      }
+      if (name === 'decide_plan_edit') {
+        const e = findEditor(params.pid, params.editor);
+        if (params.approve) e.status = 'approved'; else editors.splice(editors.indexOf(e), 1);
+        persist();
+        return { data: null, error: null };
+      }
+      if (name === 'remove_plan_editor') {
+        const e = findEditor(params.pid, params.editor);
+        if (e) editors.splice(editors.indexOf(e), 1);
+        persist();
+        return { data: null, error: null };
+      }
       if (name === 'create_project') {
         const id = Math.max(...tables.projects.map(p => p.id)) + 1;
         tables.projects.push({ id, name: params.project_name.trim(), personal_owner: null, invite_code: 'NY' + String(id).padStart(6, '2'), created_at: new Date().toISOString() });

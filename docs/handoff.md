@@ -29,7 +29,7 @@ Läs den här filen först i en ny session. Detaljer om backend, kalender och fe
 - Testwebbläsaren cachar hårt: `fetch(fil, {cache:'reload'})` innan omladdning.
 
 ## Öppna trådar
-- **Delade projekt (pågår):** modell och steg i `docs/migration-plan.md` under "Projects". Steg 1 klart och körd. Steg 2 (projektväljare, Alla/Bara mina, personlig sidopanel, läsläge) byggt och testat live 2026-10-19 (Sandlådan är skapat som delat projekt via SQL). Steg 3 + 3b (inbjudningskod, Skapa projekt) klara och testade live 2026-10-19; registrering påslagen, e-postbekräftelse av; feedback #2 markerad klar. Nästa: steg 4 begära redigeringsrätt.
+- **Delade projekt (pågår):** modell och steg i `docs/migration-plan.md` under "Projects". Steg 1 klart och körd. Steg 2 (projektväljare, Alla/Bara mina, personlig sidopanel, läsläge) byggt och testat live 2026-10-19 (Sandlådan är skapat som delat projekt via SQL). Steg 3 + 3b (inbjudningskod, Skapa projekt) klara och testade live 2026-10-19; registrering påslagen, e-postbekräftelse av; feedback #2 markerad klar. Steg 4 (medskapare: be om/godkänn/neka/ta bort redigeringsrätt) byggt 2026-10-19 – Tobias ska köra steg 4 i projects.sql. Nästa: steg 5 varning vid samtidig redigering, och kalendern per lärare (schemalägga kollegors lektioner).
 - **Feedback #4 (Albin Ljung):** fick inte fram lektioner i kalendern – nya konton har demo-upplägg utan sparade lektioner och nya upplägg saknar lektioner. Tobias sa "låt det vara" tills vidare.
 - **Fråga till Tobias:** ska "aktivitet" byta namn till "moment" i hela appen (hans Figma säger moment)?
 - **Fråga till Tobias:** ska sajtens startadress (`/`) visa landningssidan i stället för appen?

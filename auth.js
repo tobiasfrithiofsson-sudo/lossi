@@ -50,10 +50,11 @@ const LossiAuth = (() => {
     return data.user;
   }
 
-  // Lärarens egna klasser (t.ex. "7B"), sparade i användarens metadata så att
-  // de finns i alla upplägg och på alla enheter. Returnerar den uppdaterade användaren.
-  async function saveClasses(classes) {
-    const { data, error } = await client.auth.updateUser({ data: { classes } });
+  // Lärarens egna listor, t.ex. klasser ('classes') och ämnen ('subjects'),
+  // sparade i användarens metadata så att de finns i alla upplägg och på alla
+  // enheter. Returnerar den uppdaterade användaren.
+  async function saveUserList(key, values) {
+    const { data, error } = await client.auth.updateUser({ data: { [key]: values } });
     if (error) throw error;
     return data.user;
   }
@@ -97,5 +98,5 @@ const LossiAuth = (() => {
     }
   });
 
-  return { client, getUser, signIn, profileOf, updateProfile, saveClasses, changePassword, signOut, requireUser, safeNext, accessToken };
+  return { client, getUser, signIn, profileOf, updateProfile, saveUserList, changePassword, signOut, requireUser, safeNext, accessToken };
 })();

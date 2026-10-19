@@ -72,6 +72,189 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && document.body.classList.contains('aside-open')) closeAside();
 });
 
+// ── Välj eller skriv in (klass, ämne) ──
+// Ett textfält med förslagslista. Förslagen är lärarens egna värden (sparade i
+// profilen, t.ex. user_metadata.subjects), eventuella standardförslag och
+// värden som redan används i upplägg. Skriver läraren något nytt visas
+// "Lägg till '…'". Egna värden kan tas bort ur listan med ×.
+const CHOICE_MAX_LENGTH = 40;
+
+function normalizeChoice(name) {
+  return String(name || '').replace(/\s+/g, ' ').trim().slice(0, CHOICE_MAX_LENGTH);
+}
+
+function savedChoices(key) {
+  const list = currentUser?.user_metadata?.[key];
+  return Array.isArray(list) ? list : [];
+}
+
+function sameChoice(a, b) {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+// Unika värden (skiftlägesokänsligt), sorterade på svenska
+function mergeChoices(...lists) {
+  const seen = new Map();
+  lists.flat().forEach(v => {
+    const name = normalizeChoice(v);
+    if (name && !seen.has(name.toLowerCase())) seen.set(name.toLowerCase(), name);
+  });
+  return [...seen.values()].sort((a, b) => a.localeCompare(b, 'sv', { numeric: true }));
+}
+
+async function rememberChoice(key, name) {
+  const saved = savedChoices(key);
+  if (!name || saved.some(c => sameChoice(c, name))) return;
+  try {
+    currentUser = await LossiAuth.saveUserList(key, [...saved, name]);
+  } catch (e) {
+    console.warn('Kunde inte spara i profilen:', e);
+  }
+}
+
+async function forgetChoice(key, name) {
+  try {
+    currentUser = await LossiAuth.saveUserList(key, savedChoices(key).filter(c => !sameChoice(c, name)));
+  } catch (e) {
+    console.warn('Kunde inte ta bort ur profilen:', e);
+  }
+}
+
+// Värden som används i lärarens upplägg (t.ex. state.subject), hämtas en gång per sida
+let planChoicesPromise = null;
+function planFieldValues(field) {
+  planChoicesPromise = planChoicesPromise || LossiData.listPlans().catch(() => []);
+  return planChoicesPromise.then(plans => plans.map(p => p.state?.[field]).filter(Boolean));
+}
+
+// Kopplar förslagslistan till ett textfält.
+//   input, list    – fältet och listans element
+//   getItems()     – [{ name, removable }]
+//   getCurrent()   – valt värde (markeras med bock)
+//   onPick(name, isNew), onForget(name)
+//   emptyText      – visas när det inte finns några förslag alls
+//   inline         – listan visas under fältet när det har fokus (Skapa-dialogen);
+//                    annars ligger den i en popover som öppnas på annat sätt
+function createChoiceList({ input, list, getItems, getCurrent = () => '', onPick, onForget, emptyText, inline = false }) {
+  let highlight = 0;
+
+  function options() {
+    const query = normalizeChoice(input.value);
+    const q = query.toLowerCase();
+    const items = getItems();
+    const matches = q ? items.filter(i => i.name.toLowerCase().includes(q)) : items.slice();
+    matches.sort((a, b) => (b.name.toLowerCase().startsWith(q)) - (a.name.toLowerCase().startsWith(q)));
+    const opts = matches.map(i => ({ ...i, type: 'item' }));
+    // Befintliga träffar först (Enter väljer bästa träffen), "Lägg till" sist
+    if (query && !items.some(i => sameChoice(i.name, query))) opts.push({ type: 'add', name: query });
+    return opts;
+  }
+
+  function render() {
+    const opts = options();
+    const current = getCurrent() || '';
+    highlight = Math.max(0, Math.min(highlight, opts.length - 1));
+    list.innerHTML = opts.length
+      ? opts.map((o, i) => o.type === 'add'
+        ? `<div class="choice-option is-add${i === highlight ? ' is-active' : ''}" role="option" data-index="${i}">
+             <i data-lucide="plus"></i><span>Lägg till <strong>${escapeHTML(o.name)}</strong></span>
+           </div>`
+        : `<div class="choice-option${i === highlight ? ' is-active' : ''}${sameChoice(o.name, current) ? ' is-selected' : ''}" role="option" data-index="${i}" aria-selected="${sameChoice(o.name, current)}">
+             <span class="choice-option-name">${escapeHTML(o.name)}</span>
+             ${sameChoice(o.name, current) ? '<i data-lucide="check" class="choice-option-check"></i>' : ''}
+             ${o.removable ? `<button type="button" class="choice-option-forget" data-forget="${escapeHTML(o.name)}" title="Ta bort ur listan" aria-label="Ta bort ${escapeHTML(o.name)} ur listan"><i data-lucide="x"></i></button>` : ''}
+           </div>`).join('')
+      : `<div class="choice-empty">${getItems().length ? 'Inget matchar.' : emptyText}</div>`;
+    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [list] });
+  }
+
+  function pick(index) {
+    const o = options()[index];
+    if (!o) return;
+    onPick(o.name, o.type === 'add');
+    if (inline) { input.value = o.name; close(); }
+  }
+
+  function open() { if (inline) list.hidden = false; render(); }
+  function close() { if (inline) list.hidden = true; }
+
+  input.addEventListener('input', () => { highlight = 0; open(); });
+  input.addEventListener('keydown', e => {
+    const count = options().length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (inline && list.hidden) return open();
+      if (!count) return;
+      highlight = (highlight + (e.key === 'ArrowDown' ? 1 : -1) + count) % count;
+      render();
+      list.querySelector('.is-active')?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      if (inline && list.hidden) return;
+      e.preventDefault();
+      e.stopPropagation();
+      pick(highlight);
+    } else if (e.key === 'Escape') {
+      if (inline && !list.hidden) { e.stopPropagation(); close(); }
+    }
+  });
+  if (inline) {
+    input.addEventListener('focus', () => { highlight = 0; open(); });
+    input.addEventListener('click', () => { if (list.hidden) open(); });
+    input.addEventListener('blur', () => setTimeout(close, 120));
+  }
+  // mousedown i stället för click, så att fältet inte tappar fokus först
+  list.addEventListener('mousedown', async e => {
+    const forget = e.target.closest('.choice-option-forget');
+    if (forget) {
+      e.preventDefault();
+      await onForget?.(forget.dataset.forget);
+      render();
+      input.focus();
+      return;
+    }
+    const option = e.target.closest('.choice-option');
+    if (option) {
+      e.preventDefault();
+      pick(Number(option.dataset.index));
+    }
+  });
+
+  return {
+    render,
+    reset() { input.value = ''; highlight = 0; render(); },
+    open,
+    close,
+  };
+}
+
+// Ämnen: standardförslagen (PLAN_SUBJECTS), lärarens egna och de som används i upplägg.
+// Ett nytt ämne sparas i profilen (user_metadata.subjects) när det väljs.
+let subjectsFromPlans = [];
+function subjectItems() {
+  const saved = savedChoices('subjects');
+  return mergeChoices(PLAN_SUBJECTS, saved, subjectsFromPlans).map(name => ({
+    name,
+    removable: !PLAN_SUBJECTS.some(s => sameChoice(s, name)),
+  }));
+}
+
+function initSubjectChoices(input, list, { inline = false, getCurrent, onPick }) {
+  planFieldValues('subject').then(v => { subjectsFromPlans = v; });
+  return createChoiceList({
+    input, list, inline, getCurrent,
+    getItems: subjectItems,
+    emptyText: 'Skriv namnet på ett ämne och tryck Enter.',
+    onPick: (name, isNew) => {
+      if (isNew) rememberChoice('subjects', name);
+      onPick(name, isNew);
+    },
+    onForget: async name => {
+      subjectsFromPlans = subjectsFromPlans.filter(s => !sameChoice(s, name));
+      await forgetChoice('subjects', name);
+    },
+  });
+}
+
 // ── Logga ut ──
 // Spara först: åtkomsttoken försvinner vid utloggningen, och sidbytet efteråt
 // hinner annars inte skicka ändringar som väntar på att sparas.
@@ -208,6 +391,10 @@ function renderAppShell(options = {}) {
     document.body.insertAdjacentHTML('beforeend', buildCreatePlanModalHTML());
     document.getElementById('createPlanModal').addEventListener('click', e => {
       if (e.target.id === 'createPlanModal') closeCreatePlanModal();
+    });
+    initSubjectChoices(document.getElementById('createPlanSubject'), document.getElementById('createPlanSubjectList'), {
+      inline: true,
+      onPick: () => {},
     });
   }
 
@@ -627,7 +814,7 @@ function buildCreatePlanModalHTML() {
         </div>
       </div>
       <div class="field-group">
-        <label class="field-label">Pedagogisk idé</label>
+        <label class="field-label">Beskrivning</label>
         <div class="field-group-content">
           <div class="editor-wrap">
             <div class="editor-body" contenteditable="true" id="createPlanDescription" data-placeholder="Beskriv upplägget kort"></div>
@@ -637,9 +824,11 @@ function buildCreatePlanModalHTML() {
       <div class="field-group">
         <label class="field-label" for="createPlanSubject">Ämne</label>
         <div class="field-group-content">
-          <select class="field-input" id="createPlanSubject">
-            ${PLAN_SUBJECTS.map(s => `<option>${s}</option>`).join('')}
-          </select>
+          <div class="choice-field">
+            <input class="field-input" type="text" id="createPlanSubject" maxlength="${CHOICE_MAX_LENGTH}" autocomplete="off"
+              placeholder="Välj eller skriv in ett ämne" role="combobox" aria-controls="createPlanSubjectList" aria-autocomplete="list" />
+            <div class="choice-options choice-dropdown" id="createPlanSubjectList" role="listbox" aria-label="Ämnen" hidden></div>
+          </div>
         </div>
       </div>
       <div class="field-group">
@@ -778,6 +967,7 @@ function openCreatePlanModal() {
   name.value = '';
   name.classList.remove('is-invalid');
   document.getElementById('createPlanDescription').innerHTML = '';
+  document.getElementById('createPlanSubject').value = '';
   document.getElementById('createPlanModal').classList.add('open');
   name.focus();
 }
@@ -803,7 +993,7 @@ async function createPlan() {
     title,
     description: document.getElementById('createPlanDescription').innerHTML.trim(),
     klass: '',
-    subject: document.getElementById('createPlanSubject').value,
+    subject: normalizeChoice(document.getElementById('createPlanSubject').value),
     grade: document.getElementById('createPlanGrade').value,
     avatar,
     statusKey: 'status-upcoming',
@@ -820,6 +1010,11 @@ async function createPlan() {
   } catch (e) {
     alert('Kunde inte spara upplägget.');
     return;
+  }
+
+  // Ett ämne som skrivits in men inte valts ur listan sparas också bland lärarens ämnen
+  if (state.subject && !subjectItems().some(i => sameChoice(i.name, state.subject))) {
+    await rememberChoice('subjects', state.subject);
   }
 
   window.location = 'upplag.html?id=' + id;

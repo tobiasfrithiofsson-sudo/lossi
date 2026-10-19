@@ -2051,10 +2051,11 @@ body.edit-mode .activity-more-btn { display: grid; }
 .detail-panel .class-picker-trigger:hover .class-tag-remove { opacity: 0.8; }
 .detail-panel .class-tag-remove:hover { opacity: 1; background: var(--color-border); }
 
-/* Klassväljaren: sökfält + lärarens klasser (upplag.html) */
-.class-menu { width: 260px; padding: 6px; }
+/* Välj eller skriv in (Klass/Ämne under Detaljer, Ämne i Skapa-dialogen;
+   createChoiceList i theme.js) */
+.choice-menu { width: 260px; padding: 6px; }
 
-.class-search {
+.choice-search {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2065,10 +2066,10 @@ body.edit-mode .activity-more-btn { display: grid; }
   background: var(--color-bg-primary);
 }
 
-.class-search:focus-within { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 15%, transparent); }
-.class-search svg { width: 15px; height: 15px; color: var(--color-text-secondary); flex-shrink: 0; }
+.choice-search:focus-within { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 15%, transparent); }
+.choice-search svg { width: 15px; height: 15px; color: var(--color-text-secondary); flex-shrink: 0; }
 
-.class-search input {
+.choice-search input {
   flex: 1;
   min-width: 0;
   height: 34px;
@@ -2080,11 +2081,11 @@ body.edit-mode .activity-more-btn { display: grid; }
   color: var(--color-text-primary);
 }
 
-.class-search input::placeholder { color: var(--color-text-tertiary); }
+.choice-search input::placeholder { color: var(--color-text-tertiary); }
 
-.class-options { max-height: 240px; overflow-y: auto; }
+.choice-options { max-height: 240px; overflow-y: auto; }
 
-.class-option {
+.choice-option {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2095,15 +2096,15 @@ body.edit-mode .activity-more-btn { display: grid; }
   cursor: pointer;
 }
 
-.class-option.is-active { background: var(--color-bg-hover); }
-.class-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.class-option.is-selected .class-option-name { font-weight: 600; }
-.class-option-check { width: 15px; height: 15px; color: var(--color-primary); flex-shrink: 0; }
+.choice-option.is-active { background: var(--color-bg-hover); }
+.choice-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.choice-option.is-selected .choice-option-name { font-weight: 600; }
+.choice-option-check { width: 15px; height: 15px; color: var(--color-primary); flex-shrink: 0; }
 
-.class-option.is-add { color: var(--color-primary); }
-.class-option.is-add svg { width: 15px; height: 15px; flex-shrink: 0; }
+.choice-option.is-add { color: var(--color-primary); }
+.choice-option.is-add svg { width: 15px; height: 15px; flex-shrink: 0; }
 
-.class-option-forget {
+.choice-option-forget {
   display: grid;
   place-items: center;
   width: 22px;
@@ -2117,12 +2118,31 @@ body.edit-mode .activity-more-btn { display: grid; }
   flex-shrink: 0;
 }
 
-.class-option:hover .class-option-forget,
-.class-option.is-active .class-option-forget { opacity: 1; }
-.class-option-forget:hover { background: var(--color-border); color: var(--color-text-primary); }
-.class-option-forget svg { width: 12px; height: 12px; }
+.choice-option:hover .choice-option-forget,
+.choice-option.is-active .choice-option-forget { opacity: 1; }
+.choice-option-forget:hover { background: var(--color-border); color: var(--color-text-primary); }
+.choice-option-forget svg { width: 12px; height: 12px; }
 
-.class-empty { padding: 10px; font-size: var(--font-size-base); color: var(--color-text-secondary); line-height: 1.45; }
+/* I Skapa-dialogen ligger listan direkt under fältet */
+.choice-field { position: relative; }
+.choice-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 6px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+}
+.choice-dropdown[hidden] { display: none; }
+
+/* Tomt ämne under Detaljer */
+.detail-panel .class-tag:empty::before { content: 'Ej angivet'; color: var(--color-text-secondary); }
+
+.choice-empty { padding: 10px; font-size: var(--font-size-base); color: var(--color-text-secondary); line-height: 1.45; }
 
 .class-tag-remove {
   display: grid;

@@ -484,6 +484,10 @@ function buildTopbarHTML(active) {
           Profil
         </button>
         <button class="user-menu-item" id="themeMenuItem" onclick="toggleTheme()"></button>
+        <a class="user-menu-item" href="feedbackboard.html" id="adminFeedbackLink" hidden>
+          <i data-lucide="message-square-heart"></i>
+          Feedback från testare
+        </a>
         <button class="user-menu-item" onclick="openPasswordModal()">
           <i data-lucide="key-round"></i>
           Byt lösenord
@@ -642,6 +646,9 @@ function applyUserProfile(user) {
     account.hidden = false;
   }
   fillUserProfile();
+  // Feedbacksidan syns bara för administratörer (app_metadata sätts i databasen)
+  const adminLink = document.getElementById('adminFeedbackLink');
+  if (adminLink) adminLink.hidden = user.app_metadata?.role !== 'admin';
   // Första gången utan namn: be läraren fylla i profilen (en gång per webbläsare)
   let prompted = false;
   try { prompted = localStorage.getItem('lossi-profile-prompted') === 'true'; } catch (e) {}

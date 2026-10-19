@@ -799,6 +799,7 @@ body.activity-panel-resizing .page-frame {
   font-family: inherit;
 }
 
+.user-menu-item[hidden] { display: none; }
 .user-menu-item:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
 .user-menu-item svg { width: 14px; height: 14px; flex-shrink: 0; }
 .user-menu-sep { height: 1px; background: var(--color-border); margin: 4px 0; }

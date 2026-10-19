@@ -219,6 +219,15 @@ const LossiData = (() => {
     check(await db().from('feedback').insert({ kind, message, page, context }));
   }
 
+  // Administratörer (supabase/feedback-admin.sql): all feedback + ändra status/anteckning
+  async function listAllFeedback() {
+    return check(await db().rpc('feedback_admin_list'));
+  }
+
+  async function updateFeedback(id, status, note) {
+    check(await db().rpc('feedback_admin_update', { p_id: id, p_status: status, p_note: note || '' }));
+  }
+
   // Sidan kan visa "Sparar…/Kunde inte spara" (status: 'saving' | 'saved' | 'error')
   function onSaveStatus(fn) {
     statusListener = fn;
@@ -227,6 +236,6 @@ const LossiData = (() => {
   return {
     listPlans, loadPlan, savePlan, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
-    sendFeedback,
+    sendFeedback, listAllFeedback, updateFeedback,
   };
 })();

@@ -575,3 +575,60 @@ grant execute on function public.is_plan_owner(bigint) to authenticated;
 grant execute on function public.request_plan_edit(bigint) to authenticated;
 grant execute on function public.decide_plan_edit(bigint, uuid, boolean) to authenticated;
 grant execute on function public.remove_plan_editor(bigint, uuid) to authenticated;
+
+
+-- ── Steg 4b: ta bort projekt ──
+-- Bara projektets ägare kan ta bort ett delat projekt (egna projekt går inte).
+-- Inget arbete försvinner: varje upplägg i projektet flyttas tillbaka till
+-- skaparens eget projekt ("Mina upplägg"). Medskaparrätter och medlemskap
+-- tas bort.
+
+-- Regeln som låser skapare/projekt släpper när delete_project flyttar upplägg
+create or replace function public.keep_plan_owner_and_project()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if coalesce(current_setting('lossi.moving_plans', true), '') = 'on' then
+    return new;
+  end if;
+  -- (utan inloggad användare, t.ex. i SQL Editor, får allt ändras)
+  if (select auth.uid()) is not null and old.owner_id is distinct from (select auth.uid()) then
+    new.owner_id := old.owner_id;
+    new.project_id := old.project_id;
+  end if;
+  return new;
+end;
+$$;
+
+create or replace function public.delete_project(pid bigint)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not exists (
+    select 1 from public.project_members m
+    join public.projects p on p.id = m.project_id
+    where m.project_id = pid and m.user_id = (select auth.uid())
+      and m.role = 'owner' and p.personal_owner is null
+  ) then
+    raise exception 'Bara projektets ägare kan ta bort det' using errcode = '42501';
+  end if;
+  delete from public.plan_editors e
+  using public.plans p
+  where e.plan_id = p.id and p.project_id = pid;
+  perform set_config('lossi.moving_plans', 'on', true);
+  update public.plans p
+  set project_id = public.ensure_personal_project(p.owner_id)
+  where p.project_id = pid;
+  perform set_config('lossi.moving_plans', 'off', true);
+  delete from public.projects where id = pid;
+end;
+$$;
+
+revoke all on function public.keep_plan_owner_and_project() from public, anon, authenticated;
+revoke all on function public.delete_project(bigint) from public, anon;
+grant execute on function public.delete_project(bigint) to authenticated;

@@ -256,6 +256,21 @@ body.activity-panel-resizing .page-frame {
 }
 .project-menu-meta { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
 .project-menu-check { width: 16px; height: 16px; color: var(--color-primary); flex-shrink: 0; }
+.project-menu-item.is-danger,
+.project-menu-item.is-danger .project-menu-plain-icon { color: #C2413B; }
+
+/* Ta bort projekt (deleteProjectModal i theme.js) */
+.delete-project-facts {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+.delete-project-facts strong { color: var(--color-text-primary); font-weight: 600; }
 
 .aside-group + .aside-group { margin-top: 20px; }
 

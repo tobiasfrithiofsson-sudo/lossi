@@ -410,7 +410,7 @@ function renderAppShell(options = {}) {
 
   if (!document.getElementById('inviteModal')) {
     document.body.insertAdjacentHTML('beforeend', buildInviteModalsHTML());
-    ['inviteModal', 'joinModal', 'createProjectModal'].forEach(id => document.getElementById(id).addEventListener('click', e => {
+    ['inviteModal', 'joinModal', 'createProjectModal', 'deleteProjectModal'].forEach(id => document.getElementById(id).addEventListener('click', e => {
       if (e.target.id === id) document.getElementById(id).classList.remove('open');
     }));
   }
@@ -585,9 +585,9 @@ function projectMetaText(project) {
 async function renderProjectSwitcher(onProjectChange) {
   const wrap = document.getElementById('projectSwitcher');
   if (!wrap) return;
-  let projects, current;
+  let projects, current, user;
   try {
-    [projects, current] = await Promise.all([LossiData.listProjects(), LossiData.currentProject()]);
+    [projects, current, user] = await Promise.all([LossiData.listProjects(), LossiData.currentProject(), LossiAuth.getUser()]);
   } catch (e) {
     console.warn('Kunde inte hämta projekt:', e);
     wrap.innerHTML = '';
@@ -618,6 +618,11 @@ async function renderProjectSwitcher(onProjectChange) {
         <span class="project-menu-plain-icon"><i data-lucide="user-plus"></i></span>
         <span class="project-menu-text"><span class="project-menu-name">Bjud in till ${escapeHTML(current.name)}</span></span>
       </button>`}
+      ${!current.personal && current.members.some(m => m.userId === user?.id && m.role === 'owner') ? `
+      <button type="button" class="project-menu-item is-danger" onclick="toggleProjectMenu(false); openDeleteProjectModal()">
+        <span class="project-menu-plain-icon"><i data-lucide="trash-2"></i></span>
+        <span class="project-menu-text"><span class="project-menu-name">Ta bort ${escapeHTML(current.name)}</span></span>
+      </button>` : ''}
       <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openCreateProjectModal()">
         <span class="project-menu-plain-icon"><i data-lucide="folder-plus"></i></span>
         <span class="project-menu-text"><span class="project-menu-name">Skapa projekt</span></span>
@@ -742,6 +747,28 @@ function buildInviteModalsHTML() {
   </div>
 </div>
 
+<div class="modal-overlay" id="deleteProjectModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3 id="deleteProjectTitle">Ta bort projektet</h3>
+      <button class="modal-close" onclick="closeDeleteProjectModal()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="invite-lead" id="deleteProjectText"></p>
+      <ul class="delete-project-facts">
+        <li>Alla medlemmar förlorar åtkomsten till projektet, och inbjudningskoden slutar fungera.</li>
+        <li>Inga upplägg försvinner: varje upplägg flyttas tillbaka till skaparens egna <strong>Mina upplägg</strong>.</li>
+        <li>Medskapare förlorar sin redigeringsrätt på uppläggen.</li>
+      </ul>
+      <p class="password-message is-error" id="deleteProjectMessage" role="status" hidden></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeDeleteProjectModal()">Avbryt</button>
+      <button class="btn-danger-solid" id="deleteProjectBtn" onclick="deleteProjectConfirmed()"><i data-lucide="trash-2"></i>Ta bort projektet</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="joinModal">
   <div class="modal modal-sm">
     <div class="modal-header">
@@ -813,6 +840,43 @@ async function copyInvite(what, btn) {
     label.textContent = 'Markera och kopiera';
   }
   setTimeout(() => { label.textContent = 'Kopiera'; }, 2000);
+}
+
+let projectToDelete = null;
+
+async function openDeleteProjectModal() {
+  const project = await LossiData.currentProject().catch(() => null);
+  if (!project || project.personal) return;
+  projectToDelete = project;
+  const others = project.members.length - 1;
+  document.getElementById('deleteProjectTitle').textContent = `Ta bort ${project.name}?`;
+  document.getElementById('deleteProjectText').textContent = others > 0
+    ? `Projektet har ${others} ${others === 1 ? 'medlem' : 'medlemmar'} förutom dig. Det går inte att ångra.`
+    : 'Det går inte att ångra.';
+  document.getElementById('deleteProjectMessage').hidden = true;
+  document.getElementById('deleteProjectBtn').disabled = false;
+  document.getElementById('deleteProjectModal').classList.add('open');
+  lucide.createIcons({ nodes: [document.getElementById('deleteProjectModal')] });
+}
+
+function closeDeleteProjectModal() {
+  document.getElementById('deleteProjectModal').classList.remove('open');
+}
+
+async function deleteProjectConfirmed() {
+  if (!projectToDelete) return;
+  const btn = document.getElementById('deleteProjectBtn');
+  btn.disabled = true;
+  try {
+    await LossiData.deleteProject(projectToDelete.id);
+    window.location.href = 'index.html';
+  } catch (e) {
+    console.warn('Kunde inte ta bort projektet:', e);
+    const msg = document.getElementById('deleteProjectMessage');
+    msg.textContent = 'Kunde inte ta bort projektet. Försök igen om en stund.';
+    msg.hidden = false;
+    btn.disabled = false;
+  }
 }
 
 function openCreateProjectModal() {
@@ -903,7 +967,7 @@ document.addEventListener('input', e => {
 
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  ['inviteModal', 'joinModal', 'createProjectModal'].forEach(id => document.getElementById(id)?.classList.remove('open'));
+  ['inviteModal', 'joinModal', 'createProjectModal', 'deleteProjectModal'].forEach(id => document.getElementById(id)?.classList.remove('open'));
 });
 
 function toggleProjectMenu(open) {

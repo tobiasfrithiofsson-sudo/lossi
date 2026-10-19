@@ -192,6 +192,13 @@ const LossiData = (() => {
     check(await db().rpc('remove_plan_editor', { pid: Number(planId), editor: userId }));
   }
 
+  // Tar bort ett delat projekt (bara ägaren). Uppläggen flyttas till skaparnas egna projekt.
+  async function deleteProject(id) {
+    check(await db().rpc('delete_project', { pid: Number(id) }));
+    projectsPromise = null;
+    try { localStorage.removeItem(CURRENT_PROJECT_KEY); } catch (e) {}
+  }
+
   // Gå med i ett projekt med dess inbjudningskod; blir valt projekt. Returnerar projektets id.
   async function joinProject(code) {
     const id = String(check(await db().rpc('join_project', { code })));
@@ -369,7 +376,7 @@ const LossiData = (() => {
 
   return {
     listPlans, listMyPlans, loadPlan, loadPlanInfo, savePlan,
-    listProjects, currentProject, setCurrentProject, createProject, joinProject, findMember,
+    listProjects, currentProject, setCurrentProject, createProject, deleteProject, joinProject, findMember,
     listPlanEditors, listMyEditRequests, requestPlanEdit, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,

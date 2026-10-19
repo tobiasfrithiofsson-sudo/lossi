@@ -110,6 +110,15 @@
         persist();
         return { data: null, error: null };
       }
+      if (name === 'delete_project') {
+        const pid = Number(params.pid);
+        // Som databasen: egna upplägg till det egna projektet (1), kollegans till deras (99, syns inte här)
+        tables.plan_editors = tables.plan_editors.filter(e => tables.plans.find(p => p.id === e.plan_id)?.project_id !== pid);
+        tables.plans.filter(p => p.project_id === pid).forEach(p => { p.project_id = p.owner_id === user.id ? 1 : 99; });
+        tables.projects = tables.projects.filter(p => p.id !== pid);
+        persist();
+        return { data: null, error: null };
+      }
       if (name === 'create_project') {
         const id = Math.max(...tables.projects.map(p => p.id)) + 1;
         tables.projects.push({ id, name: params.project_name.trim(), personal_owner: null, invite_code: 'NY' + String(id).padStart(6, '2'), created_at: new Date().toISOString() });

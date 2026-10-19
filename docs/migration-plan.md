@@ -101,3 +101,15 @@ Lessons can be put on a time slot. Table `lesson_events` (`supabase/calendar.sql
 - Tobias: `feedbackboard.html` ("Feedback från testare" in the user menu) lists all feedback with filters, status and notes. Admin = `app_metadata.role = 'admin'`, checked in the database (`supabase/feedback-admin.sql`, run 2026-10-19; after a role change, log out and in again).
 - Claude: `scripts/feedback.sh` reads all feedback and sets status/notes with the secret read key in `.feedback-token` (gitignored).
 
+
+## Projects (shared work, started 2026-10-19)
+Tobias's model: a user can be in several projects. Everyone has a personal project ("Mina upplägg", secret plans); a school is a project with many members. The sidebar is personal (only my own plans and calendar events); the overview shows every member's plans in the current project, with a "Bara mina" filter. Others' plans open read-only; the creator can grant edit rights on request (editors change content, only the creator deletes or revokes). An invite code both creates the account and joins the project (all members can see and share it). Each teacher has their own calendar and may schedule colleagues' lessons. Simultaneous editing: a warning ("X is also editing") plus protection against silent overwrites, no live editing.
+
+Steps:
+1. **Database** – `supabase/projects.sql` (written and tested locally with PGlite 2026-10-19; Tobias runs it in the SQL Editor). Tables `projects` (`personal_owner` set = someone's personal project, one per user, deleted with the account) and `project_members` (`role` owner/member). `plans.project_id` (not null, defaults to the logged-in user's personal project via `personal_project_id()`, so the app needs no change). Trigger on `auth.users` creates the personal project for new accounts. RLS: members read each other's plans, only the creator inserts/updates/deletes; projects and members are read-only for users (created by database functions). `is_project_member()` is security definer to avoid recursive policies. No visible change in the app.
+2. Projects in the app: project switcher, overview with filter, personal sidebar, read-only view of others' plans (+ duplicate to mine). `data.js` must then filter the sidebar on `owner_id`.
+3. Invite code (sign-up + join).
+4. Request/approve edit rights (editors table + update policy).
+5. "Someone else is editing" warning + overwrite check on save (`updated_at`).
+
+Calendar change needed before step 2/4: `lesson_events` has `unique (plan_id, lesson_id)` and requires the plan to be your own; must become per user (`unique (owner_id, plan_id, lesson_id)`, plan readable instead of owned).

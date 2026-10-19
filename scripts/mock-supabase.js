@@ -79,6 +79,13 @@
       if (name === 'project_member_profiles') return { data: memberProfiles, error: null };
       const byCode = code => tables.projects.find(p => p.invite_code && p.invite_code === String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''));
       if (name === 'invite_project_name') return { data: byCode(params.code)?.name || null, error: null };
+      if (name === 'create_project') {
+        const id = Math.max(...tables.projects.map(p => p.id)) + 1;
+        tables.projects.push({ id, name: params.project_name.trim(), personal_owner: null, invite_code: 'NY' + String(id).padStart(6, '2'), created_at: new Date().toISOString() });
+        memberProfiles.push({ project_id: id, user_id: 'u1', role: 'owner', display_name: 'Lina Berg', avatar: 'rocket', email: user.email });
+        persist();
+        return { data: id, error: null };
+      }
       if (name === 'join_project') {
         const p = byCode(params.code);
         if (!p) return { data: null, error: { message: 'Ogiltig inbjudningskod', code: 'P0002' } };

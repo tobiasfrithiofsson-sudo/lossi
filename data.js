@@ -151,6 +151,14 @@ const LossiData = (() => {
     try { localStorage.setItem(CURRENT_PROJECT_KEY, String(id)); } catch (e) {}
   }
 
+  // Skapar ett delat projekt (man blir ägare; det får en inbjudningskod) och väljer det
+  async function createProject(name) {
+    const id = String(check(await db().rpc('create_project', { project_name: name })));
+    projectsPromise = null;
+    setCurrentProject(id);
+    return id;
+  }
+
   // Gå med i ett projekt med dess inbjudningskod; blir valt projekt. Returnerar projektets id.
   async function joinProject(code) {
     const id = String(check(await db().rpc('join_project', { code })));
@@ -328,7 +336,7 @@ const LossiData = (() => {
 
   return {
     listPlans, listMyPlans, loadPlan, loadPlanInfo, savePlan,
-    listProjects, currentProject, setCurrentProject, joinProject, findMember, createPlan, deletePlan, flushOnLeave, onSaveStatus,
+    listProjects, currentProject, setCurrentProject, createProject, joinProject, findMember, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,
   };

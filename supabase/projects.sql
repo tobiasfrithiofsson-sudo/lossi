@@ -360,3 +360,33 @@ revoke all on function public.invite_project_name(text) from public;
 revoke all on function public.join_project(text) from public, anon;
 grant execute on function public.invite_project_name(text) to anon, authenticated;
 grant execute on function public.join_project(text) to authenticated;
+
+
+-- ── Steg 3b: alla kan skapa projekt ──
+-- Skaparen blir ägare och första medlem. Projektet får en inbjudningskod
+-- automatiskt (lossi_project_invite_code ovan). Returnerar projektets id.
+create or replace function public.create_project(project_name text)
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := (select auth.uid());
+  clean text := trim(regexp_replace(coalesce(project_name, ''), '\s+', ' ', 'g'));
+  pid bigint;
+begin
+  if uid is null then
+    raise exception 'Inte inloggad';
+  end if;
+  if clean = '' or length(clean) > 60 then
+    raise exception 'Projektnamnet måste vara 1–60 tecken' using errcode = '22023';
+  end if;
+  insert into public.projects (name, created_by) values (clean, uid) returning id into pid;
+  insert into public.project_members (project_id, user_id, role) values (pid, uid, 'owner');
+  return pid;
+end;
+$$;
+
+revoke all on function public.create_project(text) from public, anon;
+grant execute on function public.create_project(text) to authenticated;

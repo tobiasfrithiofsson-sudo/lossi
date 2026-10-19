@@ -410,7 +410,7 @@ function renderAppShell(options = {}) {
 
   if (!document.getElementById('inviteModal')) {
     document.body.insertAdjacentHTML('beforeend', buildInviteModalsHTML());
-    ['inviteModal', 'joinModal'].forEach(id => document.getElementById(id).addEventListener('click', e => {
+    ['inviteModal', 'joinModal', 'createProjectModal'].forEach(id => document.getElementById(id).addEventListener('click', e => {
       if (e.target.id === id) document.getElementById(id).classList.remove('open');
     }));
   }
@@ -618,12 +618,20 @@ async function renderProjectSwitcher(onProjectChange) {
         <span class="project-menu-plain-icon"><i data-lucide="user-plus"></i></span>
         <span class="project-menu-text"><span class="project-menu-name">Bjud in till ${escapeHTML(current.name)}</span></span>
       </button>`}
+      <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openCreateProjectModal()">
+        <span class="project-menu-plain-icon"><i data-lucide="folder-plus"></i></span>
+        <span class="project-menu-text"><span class="project-menu-name">Skapa projekt</span></span>
+      </button>
       <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openJoinModal()">
         <span class="project-menu-plain-icon"><i data-lucide="ticket"></i></span>
         <span class="project-menu-text"><span class="project-menu-name">Gå med med kod</span></span>
       </button>
     </div>`;
   updateInviteCard(current);
+  // Nyss skapat projekt: visa koden direkt så att man kan bjuda in
+  let openInvite = false;
+  try { openInvite = sessionStorage.getItem('lossi-open-invite') === '1'; sessionStorage.removeItem('lossi-open-invite'); } catch (e) {}
+  if (openInvite && !current.personal) openInviteModal();
 
   wrap.querySelectorAll('[data-project-id]').forEach(btn => btn.addEventListener('click', () => {
     const id = btn.dataset.projectId;
@@ -663,8 +671,8 @@ function updateInviteCard(project) {
     title.textContent = 'Bjud in kollegor';
     sub.textContent = `Dela koden till ${project.name}`;
   } else {
-    title.textContent = 'Gå med i ett projekt';
-    sub.textContent = 'Har du fått en kod från en kollega?';
+    title.textContent = 'Samarbeta med kollegor';
+    sub.textContent = 'Skapa ett projekt eller gå med med kod';
   }
 }
 
@@ -672,7 +680,7 @@ async function openInviteOrJoin(e) {
   if (e?.target.closest('.aside-invite-close')) return;
   const project = await LossiData.currentProject().catch(() => null);
   if (project && !project.personal) openInviteModal();
-  else openJoinModal();
+  else toggleProjectMenu(true);
 }
 
 function buildInviteModalsHTML() {
@@ -706,6 +714,30 @@ function buildInviteModalsHTML() {
     </div>
     <div class="modal-footer">
       <button class="btn-primary" onclick="closeInviteModal()">Klar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="createProjectModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Skapa projekt</h3>
+      <button class="modal-close" onclick="closeCreateProjectModal()"><i data-lucide="x"></i></button>
+    </div>
+    <form class="modal-body" id="createProjectForm" onsubmit="event.preventDefault(); createProjectFromModal()">
+      <p class="invite-lead">Ett projekt samlar upplägg som ni delar, t.ex. för en skola eller ett arbetslag. Du får en inbjudningskod som du kan ge till kollegorna.</p>
+      <div class="field-group">
+        <label class="field-label" for="createProjectName">Namn</label>
+        <div class="field-group-content">
+          <input class="field-input" type="text" id="createProjectName" maxlength="60" autocomplete="off" placeholder="T.ex. Norra skolan" oninput="showCreateProjectMessage('')" />
+        </div>
+      </div>
+      <p class="password-message" id="createProjectMessage" role="status" hidden></p>
+      <button type="submit" hidden></button>
+    </form>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeCreateProjectModal()">Avbryt</button>
+      <button class="btn-primary" id="createProjectBtn" onclick="createProjectFromModal()">Skapa projekt</button>
     </div>
   </div>
 </div>
@@ -783,6 +815,46 @@ async function copyInvite(what, btn) {
   setTimeout(() => { label.textContent = 'Kopiera'; }, 2000);
 }
 
+function openCreateProjectModal() {
+  document.getElementById('createProjectForm').reset();
+  showCreateProjectMessage('');
+  document.getElementById('createProjectBtn').disabled = false;
+  document.getElementById('createProjectModal').classList.add('open');
+  document.getElementById('createProjectName').focus();
+}
+
+function closeCreateProjectModal() {
+  document.getElementById('createProjectModal').classList.remove('open');
+}
+
+function showCreateProjectMessage(text) {
+  const el = document.getElementById('createProjectMessage');
+  el.textContent = text;
+  el.classList.toggle('is-error', !!text);
+  el.hidden = !text;
+}
+
+async function createProjectFromModal() {
+  const input = document.getElementById('createProjectName');
+  const name = input.value.trim().replace(/\s+/g, ' ');
+  if (!name) {
+    showCreateProjectMessage('Ge projektet ett namn.');
+    input.focus();
+    return;
+  }
+  const btn = document.getElementById('createProjectBtn');
+  btn.disabled = true;
+  try {
+    await LossiData.createProject(name);
+    try { sessionStorage.setItem('lossi-open-invite', '1'); } catch (e) {}
+    window.location.href = 'index.html';
+  } catch (e) {
+    console.warn('Kunde inte skapa projektet:', e);
+    showCreateProjectMessage('Kunde inte skapa projektet. Försök igen om en stund.');
+    btn.disabled = false;
+  }
+}
+
 function openJoinModal() {
   document.getElementById('joinForm').reset();
   showJoinMessage('');
@@ -831,8 +903,7 @@ document.addEventListener('input', e => {
 
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  document.getElementById('inviteModal')?.classList.remove('open');
-  document.getElementById('joinModal')?.classList.remove('open');
+  ['inviteModal', 'joinModal', 'createProjectModal'].forEach(id => document.getElementById(id)?.classList.remove('open'));
 });
 
 function toggleProjectMenu(open) {

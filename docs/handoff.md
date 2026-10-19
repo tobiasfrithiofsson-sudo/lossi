@@ -29,7 +29,7 @@ Läs den här filen först i en ny session. Detaljer om backend, kalender och fe
 - Testwebbläsaren cachar hårt: `fetch(fil, {cache:'reload'})` innan omladdning.
 
 ## Öppna trådar
-- **Delade projekt (pågår):** modell och steg i `docs/migration-plan.md` under "Projects". Steg 1 klart och körd. Steg 2 (projektväljare, Alla/Bara mina, personlig sidopanel, läsläge) byggt och testat live 2026-10-19 (Sandlådan är skapat som delat projekt via SQL). Steg 3 (inbjudningskod) byggt 2026-10-19 – Tobias ska köra steg 3-delen av projects.sql och sedan slå på registrering och stänga av e-postbekräftelse i Supabase; därefter kan feedback #2 markeras klar. Nästa: steg 4 begära redigeringsrätt.
+- **Delade projekt (pågår):** modell och steg i `docs/migration-plan.md` under "Projects". Steg 1 klart och körd. Steg 2 (projektväljare, Alla/Bara mina, personlig sidopanel, läsläge) byggt och testat live 2026-10-19 (Sandlådan är skapat som delat projekt via SQL). Steg 3 (inbjudningskod) byggt 2026-10-19 – Tobias ska köra steg 3 + 3b (Skapa projekt) i projects.sql och sedan slå på registrering och stänga av e-postbekräftelse i Supabase; därefter kan feedback #2 markeras klar. Nästa: steg 4 begära redigeringsrätt.
 - **Feedback #2 (Mange W):** onboarding otydlig – förslag finns (tydlig text om sluten testperiod på inloggning/landning, eller "Skapa konto" med inbjudningskod). Tobias ville vänta.
 - **Feedback #4 (Albin Ljung):** fick inte fram lektioner i kalendern – nya konton har demo-upplägg utan sparade lektioner och nya upplägg saknar lektioner. Tobias sa "låt det vara" tills vidare.
 - **Fråga till Tobias:** ska "aktivitet" byta namn till "moment" i hela appen (hans Figma säger moment)?

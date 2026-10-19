@@ -1370,20 +1370,20 @@ body.activity-panel-resizing .page-frame {
 .section-head-actions { margin-left: auto; position: relative; }
 
 .section-add-btn {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-primary);
-  color: var(--color-text-secondary);
+  border: none;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--color-text-primary);
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
-.section-add-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.section-add-btn svg { width: 14px; height: 14px; stroke-width: 2.5; }
+.section-add-btn:hover { background: var(--color-aside-hover); color: var(--color-primary); }
+.section-add-btn svg { width: 20px; height: 20px; }
 
 /* Generic popover menu (add-buttons, etc.) */
 .menu-popover {
@@ -3182,5 +3182,143 @@ body.edit-mode .goal-item:hover .goal-delete { display: grid; place-items: cente
   .modal-overlay { padding: 12px; }
   .modal-body .field-group { flex-direction: column; align-items: stretch; gap: 6px; }
   .modal-body .field-label { flex: none; padding-top: 0; text-align: left; font-size: var(--font-size-base); }
+}
+
+
+/* ============================================================
+   STRUKTUR OCH TIDSLINJE – lektionen som box (design 2026-10-19)
+   En lektion och dess aktiviteter ligger i en egen ruta så att det syns
+   var lektionen börjar och slutar. Namn + fäll ihop till vänster,
+   kalender, avklarad, tid och ⋯-meny samlade till höger. Taggar har
+   4px hörn och aktiviteterna 8px mellanrum. Knappen med badge-plus under
+   aktiviteterna lägger till en aktivitet i just den lektionen.
+   ============================================================ */
+
+.lesson-group {
+  margin-bottom: 12px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-aside);
+}
+
+.lesson-group .week-row {
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.lesson-group.is-collapsed .week-row { margin-bottom: 0; }
+
+/* Små, gråa kvadratiska knappar i lektionens rad */
+.lesson-group .lesson-collapse-btn,
+.lesson-group .lesson-status-btn,
+.lesson-group .lesson-schedule-btn:not(.is-scheduled),
+.lesson-add-activity {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: var(--color-aside-hover);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.lesson-group .lesson-collapse-btn:hover,
+.lesson-group .lesson-status-btn:hover,
+.lesson-group .lesson-schedule-btn:not(.is-scheduled):hover,
+.lesson-add-activity:hover { background: var(--color-aside-active); color: var(--color-text-primary); }
+
+.lesson-group .lesson-collapse-btn svg,
+.lesson-group .lesson-status-btn svg,
+.lesson-group .lesson-schedule-btn svg { width: 16px; height: 16px; }
+.lesson-add-activity svg { width: 18px; height: 18px; }
+
+.lesson-group .week-pill {
+  border-radius: var(--radius-xs);
+  background: var(--color-aside-hover);
+  padding: 5px 10px;
+}
+
+.lesson-group .week-pill:hover { background: var(--color-aside-active); }
+
+/* Höger sida: kalender först, med resten efter */
+.lesson-group .lesson-collapse-btn,
+.lesson-group .lesson-status-btn { margin: 0; }
+.lesson-group .week-row .lesson-schedule-btn { margin-left: auto; }
+.lesson-group .lesson-schedule-btn.is-scheduled {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-xs);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+.lesson-group .lesson-schedule-btn.is-scheduled:hover { background: color-mix(in srgb, var(--color-primary) 16%, transparent); }
+
+.lesson-group .lesson-time-pill {
+  margin-left: 0;
+  height: 30px;
+  border-radius: var(--radius-xs);
+  background: var(--color-aside-hover);
+  padding: 0 10px;
+}
+
+.week-row.done .lesson-status-btn { color: #16a34a; }
+
+.lesson-more-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.lesson-more-btn:hover { background: var(--color-aside-hover); color: var(--color-text-primary); }
+.lesson-more-btn svg { width: 18px; height: 18px; }
+
+/* Aktiviteterna: vita kort med 8px mellanrum */
+.lesson-group .lesson-activities { gap: 8px; }
+.lesson-group .activity-wrapper {
+  margin-bottom: 0;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.lesson-group .activity-row { border-radius: var(--radius-sm); }
+.lesson-group .activity-time { border-radius: var(--radius-xs); }
+
+/* Ikonen som en liten ruta med färgad kant */
+.lesson-group .activity-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-xs);
+  border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+}
+
+.lesson-group .activity-icon svg { width: 16px; height: 16px; }
+
+.lesson-add-activity { margin-top: 10px; }
+.lesson-group.is-collapsed > .lesson-add-activity { display: none; }
+
+/* Tom lektion: plusknappen direkt under raden */
+.lesson-group .lesson-activities:empty + .lesson-add-activity { margin-top: 0; }
+
+@media (max-width: 760px) {
+  .lesson-group { padding: 10px; }
+  .lesson-group .week-row { row-gap: 8px; }
+  /* Namn + fäll ihop på första raden, kontrollerna samlade på andra */
+  .lesson-group .week-pill { flex: 1 1 calc(100% - 38px); min-width: 0; }
+  .lesson-group .week-row .lesson-schedule-btn { margin-left: 0; }
+  .lesson-group .lesson-more { margin-left: auto; }
 }
 

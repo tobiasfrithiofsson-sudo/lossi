@@ -160,7 +160,7 @@
         <h2>Centralt innehåll</h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
           <button class="section-add-btn" onclick="addGoal('goalsList')" title="Lägg till centralt innehåll">
-            <i data-lucide="plus"></i>
+            <i data-lucide="badge-plus"></i>
           </button>
         </div>
       </div>
@@ -212,7 +212,7 @@
         <h2>Betygskriterier</h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
           <button class="section-add-btn" onclick="addGoal('criteriaList')" title="Lägg till betygskriterium">
-            <i data-lucide="plus"></i>
+            <i data-lucide="badge-plus"></i>
           </button>
         </div>
       </div>
@@ -230,7 +230,7 @@
         <h2>Struktur och tidslinje</h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
           <button class="section-add-btn" onclick="toggleAppPopover(this)" title="Lägg till">
-            <i data-lucide="plus"></i>
+            <i data-lucide="badge-plus"></i>
           </button>
           <div class="menu-popover" id="structureAddMenu">
             <button class="menu-popover-item" onclick="handleStructureAdd('suggest')">
@@ -956,6 +956,28 @@
       <button class="btn-danger-solid" onclick="deleteActivityConfirmed()">
         <i data-lucide="trash-2"></i>
         Ta bort
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Ta bort lektion ── -->
+<div class="modal-overlay" id="deleteLessonModal" onclick="if (event.target === this) closeDeleteLessonModal()">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Ta bort lektionen?</h3>
+      <button class="modal-close" onclick="closeDeleteLessonModal()">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Är du säker på att du vill ta bort <strong id="deleteLessonName">lektionen</strong>? <span id="deleteLessonExtra"></span>Det går inte att ångra.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeDeleteLessonModal()">Avbryt</button>
+      <button class="btn-danger-solid" onclick="deleteLessonConfirmed()">
+        <i data-lucide="trash-2"></i>
+        Ta bort lektion
       </button>
     </div>
   </div>
@@ -1868,8 +1890,7 @@
 
     const activitiesList = group.querySelector('.lesson-activities');
     style.activities.forEach(a => {
-      activityCounter++;
-      const id = 'act' + activityCounter;
+      const id = nextActivityId();
       const wrapper = document.createElement('div');
       wrapper.className = 'activity-wrapper';
       wrapper.id = id;
@@ -2167,14 +2188,22 @@
     if (e.target.id === 'deleteActivityModal') closeDeleteActivityModal();
   });
 
-  let activityCounter = 5;
-  function addActivity() {
-    activityCounter++;
-    const id = 'act' + activityCounter;
-    // Ny aktivitet hamnar i den sista lektionen — går snabbt att dra till
-    // en annan lektion om det är fel plats.
-    const lessonLists = document.querySelectorAll('.lesson-activities');
-    const list = lessonLists[lessonLists.length - 1];
+  // Nästa lediga aktivitets-id (act1, act2 …), räknat från de som redan finns
+  // på sidan – så att sparade upplägg aldrig får två aktiviteter med samma id.
+  function nextActivityId() {
+    const max = Math.max(0, ...[...document.querySelectorAll('[id^="act"]')]
+      .map(el => /^act(\d+)$/.exec(el.id)?.[1]).filter(Boolean).map(Number));
+    return 'act' + (max + 1);
+  }
+
+  // Ny aktivitet i en viss lektion (+ under lektionens aktiviteter eller
+  // lektionens ⋯-meny), annars i den sista lektionen (Lägg till-menyn).
+  function addActivity(list) {
+    const id = nextActivityId();
+    if (!list) {
+      const lessonLists = document.querySelectorAll('.lesson-activities');
+      list = lessonLists[lessonLists.length - 1];
+    }
     if (!list) return;
     setLessonCollapsed(list.closest('.lesson-group'), false);
     const wrapper = document.createElement('div');
@@ -2200,8 +2229,7 @@
     const original = document.getElementById(id);
     if (!original) return;
 
-    activityCounter++;
-    const newId = 'act' + activityCounter;
+    const newId = nextActivityId();
     const html = original.outerHTML.replace(new RegExp(id + '(?!\\d)', 'g'), newId);
 
     const temp = document.createElement('div');
@@ -2264,17 +2292,20 @@
         pill.after(count);
       }
 
+      // Avklarad: en kryssruta (v2; äldre sparade knappar med cirklar uppgraderas)
       let statusBtn = row.querySelector('.lesson-status-btn');
       if (!statusBtn) {
         statusBtn = document.createElement('button');
         statusBtn.className = 'lesson-status-btn';
         statusBtn.type = 'button';
+        row.append(statusBtn);
+      }
+      if (statusBtn.dataset.v !== '2') {
+        statusBtn.dataset.v = '2';
         statusBtn.innerHTML = `
-          <span class="ls-off"><i data-lucide="circle"></i></span>
-          <span class="ls-on"><i data-lucide="circle-check"></i></span>
-          <span class="ls-label">Avklarad</span>
+          <span class="ls-off"><i data-lucide="square"></i></span>
+          <span class="ls-on"><i data-lucide="square-check"></i></span>
         `;
-        (row.querySelector('.lesson-collapsed-count') || pill).after(statusBtn);
         syncLessonStatusTitle(row);
       }
 
@@ -2295,11 +2326,118 @@
           <span class="lesson-time-pill-value" contenteditable="true" data-placeholder="–" title="Ange lektionens längd i minuter"></span>
           <span class="lesson-time-pill-unit">min</span>
         `;
-        row.querySelector('.lesson-schedule-btn').after(timePill);
+        row.append(timePill);
+      }
+
+      // ⋯-meny för lektionen
+      if (!row.querySelector('.lesson-more')) {
+        row.insertAdjacentHTML('beforeend', `
+          <div class="popover-wrap lesson-more" onclick="event.stopPropagation()">
+            <button type="button" class="lesson-more-btn" onclick="toggleAppPopover(this)" title="Fler alternativ för lektionen" aria-label="Fler alternativ för lektionen">
+              <i data-lucide="ellipsis"></i>
+            </button>
+            <div class="menu-popover">
+              <button type="button" class="menu-popover-item" data-lesson-action="add"><i data-lucide="badge-plus"></i>Lägg till aktivitet</button>
+              <button type="button" class="menu-popover-item" data-lesson-action="duplicate"><i data-lucide="copy"></i>Duplicera lektion</button>
+              <div class="menu-popover-sep"></div>
+              <button type="button" class="menu-popover-item menu-popover-item-danger" data-lesson-action="delete"><i data-lucide="trash-2"></i>Ta bort lektion</button>
+            </div>
+          </div>`);
+      }
+
+      // Fast ordning: namn + fäll ihop till vänster, resten samlat till höger
+      const order = ['.week-pill', '.lesson-collapse-btn', '.lesson-collapsed-count', '.lesson-schedule-btn', '.lesson-status-btn', '.lesson-time-pill', '.lesson-more'];
+      order.forEach(sel => { const el = row.querySelector(':scope > ' + sel); if (el) row.append(el); });
+
+      // + under lektionens aktiviteter: lägg till en aktivitet i just den här lektionen
+      if (group && !group.querySelector(':scope > .lesson-add-activity')) {
+        group.insertAdjacentHTML('beforeend', `
+          <button type="button" class="lesson-add-activity" title="Lägg till aktivitet i lektionen" aria-label="Lägg till aktivitet i lektionen">
+            <i data-lucide="badge-plus"></i>
+          </button>`);
+        lucide.createIcons({ nodes: [group.querySelector(':scope > .lesson-add-activity')] });
       }
 
       lucide.createIcons({ nodes: [row] });
     });
+  }
+
+  // ── Lektionens egna åtgärder (+ under aktiviteterna och ⋯-menyn) ──
+  let pendingDeleteLesson = null;
+
+  document.getElementById('structureList').addEventListener('click', e => {
+    const addBtn = e.target.closest('.lesson-add-activity');
+    const action = e.target.closest('[data-lesson-action]');
+    if (!addBtn && !action) return;
+    const group = (addBtn || action).closest('.lesson-group');
+    closeAllMenuPopovers();
+    if (addBtn || action.dataset.lessonAction === 'add') addActivity(group.querySelector('.lesson-activities'));
+    else if (action.dataset.lessonAction === 'duplicate') duplicateLesson(group);
+    else if (action.dataset.lessonAction === 'delete') confirmDeleteLesson(group);
+  }, true); // capture: ⋯-menyn stoppar klicket på väg upp (stopPropagation)
+
+  // Kopian hamnar direkt efter originalet, med nytt lektions-id och nya
+  // aktivitets-id:n. Den ligger inte i kalendern (det gör bara originalet).
+  function duplicateLesson(group) {
+    const clone = group.cloneNode(true);
+    clone.dataset.lessonId = newLessonId();
+    clone.classList.remove('is-collapsed');
+    // Kopian måste ligga på sidan innan nya aktivitets-id:n räknas fram
+    group.after(clone);
+    clone.querySelectorAll('.activity-wrapper').forEach(wrapper => {
+      const oldId = wrapper.id;
+      const newId = nextActivityId();
+      const temp = document.createElement('div');
+      temp.innerHTML = wrapper.outerHTML.replace(new RegExp(oldId + '(?!\\d)', 'g'), newId);
+      wrapper.replaceWith(temp.firstElementChild);
+    });
+    const pill = clone.querySelector('.week-pill');
+    if (pill) pill.textContent = pill.textContent.trim() + ' (kopia)';
+    // Kopian ligger inte i kalendern; den får en egen, tom kalenderknapp
+    clone.querySelector('.lesson-schedule-btn')?.remove();
+    ensureLessonControls(clone);
+    initActivitySortable(clone.querySelector('.lesson-activities'));
+    lucide.createIcons({ nodes: [clone] });
+    recalcLessonTimes();
+    renderLessonSchedules();
+    saveState();
+  }
+
+  function confirmDeleteLesson(group) {
+    pendingDeleteLesson = group;
+    const name = group.querySelector('.week-pill')?.textContent.trim();
+    const count = group.querySelectorAll('.activity-wrapper').length;
+    document.getElementById('deleteLessonName').textContent = name ? `"${name}"` : 'lektionen';
+    document.getElementById('deleteLessonExtra').textContent = count
+      ? `Lektionens ${count === 1 ? 'aktivitet' : count + ' aktiviteter'} tas också bort. `
+      : '';
+    document.getElementById('deleteLessonModal').classList.add('open');
+  }
+
+  function closeDeleteLessonModal() {
+    document.getElementById('deleteLessonModal').classList.remove('open');
+    pendingDeleteLesson = null;
+  }
+
+  async function deleteLessonConfirmed() {
+    const group = pendingDeleteLesson;
+    closeDeleteLessonModal();
+    if (!group) return;
+    const lessonId = group.dataset.lessonId;
+    if (openActivityId && group.querySelector('#' + CSS.escape(openActivityId))) closeActivityPanel();
+    group.remove();
+    recalcLessonTimes();
+    saveState();
+    // Ligger lektionen i kalendern tas den bort därifrån också
+    if (lessonId && planEvents.has(lessonId)) {
+      try {
+        await LossiData.unscheduleLesson(planKey, lessonId);
+        planEvents.delete(lessonId);
+        if (typeof renderAsideEvents === 'function') renderAsideEvents();
+      } catch (e) {
+        console.warn('Kunde inte ta bort lektionen ur kalendern:', e);
+      }
+    }
   }
 
   function syncLessonStatusTitle(row) {

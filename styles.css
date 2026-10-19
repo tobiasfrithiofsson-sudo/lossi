@@ -2210,6 +2210,8 @@ body.edit-mode .activity-more-btn { display: grid; }
   transition: transform 0.2s ease;
 }
 
+/* Skuggan bara när panelen är öppen – annars syns den som en grå kant till höger */
+.activity-panel:not(.open) { box-shadow: none; }
 .activity-panel.open { transform: translateX(0); }
 
 /* No transition while actively dragging the resize handle */

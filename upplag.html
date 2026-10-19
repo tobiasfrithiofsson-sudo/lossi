@@ -38,6 +38,18 @@
 <div class="page-frame">
 
 
+  <!-- Läsläge: någon annans upplägg i projektet (showReadOnlyBanner) -->
+  <div class="read-banner" id="readBanner" hidden>
+    <div class="read-banner-avatar" id="readBannerAvatar"></div>
+    <div class="read-banner-text">
+      <strong id="readBannerOwner"></strong> har skapat det här upplägget. Du kan läsa och exportera det, men inte ändra.
+    </div>
+    <button type="button" class="btn-ghost read-banner-btn" onclick="duplicatePlan()">
+      <i data-lucide="copy"></i>
+      Duplicera till mina upplägg
+    </button>
+  </div>
+
   <!-- Uppläggshuvud över hela bredden (innehåll + Detaljer): avatar + titel till vänster, status/dela/exportera till höger -->
   <div class="plan-header">
     <div class="plan-title-row">
@@ -107,10 +119,11 @@
         <div class="menu-popover" id="planMoreMenu">
           <button class="menu-popover-item" onclick="duplicatePlan()">
             <i data-lucide="copy"></i>
-            Duplicera upplägg
+            <span class="edit-only">Duplicera upplägg</span>
+            <span class="read-only">Duplicera till mina upplägg</span>
           </button>
-          <div class="menu-popover-sep"></div>
-          <button class="menu-popover-item menu-popover-item-danger" onclick="confirmDeletePlan()">
+          <div class="menu-popover-sep edit-only"></div>
+          <button class="menu-popover-item menu-popover-item-danger edit-only" onclick="confirmDeletePlan()">
             <i data-lucide="trash-2"></i>
             Ta bort upplägg
           </button>
@@ -882,7 +895,7 @@
           <div class="read-field">
             <span class="read-field-label">Skapare</span>
             <span class="read-field-value">
-              <div class="author-chip">
+              <div class="author-chip" id="planOwnerChip">
                 <div class="author-chip-avatar" data-user-avatar></div>
                 <span data-user-name></span>
               </div>
@@ -1040,6 +1053,9 @@
   // Inget sparas förrän upplägget lästs in, annars kunde sidans demo-innehåll
   // skriva över det sparade upplägget.
   let planLoaded = false;
+  // Någon annans upplägg (i ett delat projekt): bara läsa, inget sparas
+  let planReadOnly = false;
+  let planProjectId = null; // projektet upplägget ligger i (kopior hamnar där också)
   let planDemoKey = null; // följer med när ett demo-upplägg sparas (Kommande-korten hittar det)
   let lessonIdsAssigned = false; // lektioner fick nya id vid laddning → spara när upplägget lästs in
   const planEvents = new Map();  // lessonId → kalenderhändelse för det här upplägget
@@ -1272,7 +1288,7 @@
   }
 
   function saveState() {
-    if (!planLoaded) return;
+    if (!planLoaded || planReadOnly) return;
     LossiData.savePlan(planKey, collectState()).catch(e => console.warn('Kunde inte spara upplägget:', e));
   }
 
@@ -1319,7 +1335,7 @@
 
   document.getElementById('structureList').addEventListener('click', e => {
     const btn = e.target.closest('.lesson-schedule-btn');
-    if (!btn || !planLoaded) return;
+    if (!btn || !planLoaded || planReadOnly) return;
     const group = btn.closest('.lesson-group');
     const lessonId = group.dataset.lessonId;
     const valueEl = group.querySelector('.lesson-time-pill-value');
@@ -1359,12 +1375,16 @@
     closeAllMenuPopovers();
     if (planActionBusy || !planLoaded) return;
     planActionBusy = true;
+    // I läsläge är fälten låsta; kopian ska gå att redigera
+    const locked = [...document.querySelectorAll('[data-read-locked]')];
+    locked.forEach(el => { el.setAttribute('contenteditable', 'true'); el.removeAttribute('data-read-locked'); });
     const state = collectState();
+    locked.forEach(el => { el.setAttribute('contenteditable', 'false'); el.setAttribute('data-read-locked', ''); });
     delete state.demoKey;
     state.title = (state.title || 'Namnlöst upplägg') + ' (kopia)';
     state.createdAt = new Date().toISOString();
     try {
-      const id = await LossiData.createPlan(state);
+      const id = await LossiData.createPlan(state, planProjectId);
       window.location = 'upplag.html?id=' + id;
     } catch (e) {
       console.warn('Kunde inte duplicera upplägget:', e);
@@ -1375,7 +1395,7 @@
 
   function confirmDeletePlan() {
     closeAllMenuPopovers();
-    if (!planLoaded) return;
+    if (!planLoaded || planReadOnly) return;
     const title = document.getElementById('planTitle').textContent.trim();
     document.getElementById('deletePlanName').textContent = title ? `"${title}"` : 'upplägget';
     document.getElementById('deletePlanError').hidden = true;
@@ -2706,11 +2726,43 @@
 
   LossiData.onSaveStatus(showSaveStatus);
 
+  // ── Läsläge: någon annans upplägg ──
+  // body.read-mode döljer allt som ändrar (styles.css, LÄSLÄGE) och
+  // aktiviteter öppnas i sin läsvy. Inget sparas (saveState).
+  function enterReadOnly(ownerId) {
+    planReadOnly = true;
+    document.body.classList.remove('edit-mode');
+    document.body.classList.add('read-mode');
+    document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+      el.setAttribute('contenteditable', 'false');
+      el.setAttribute('data-read-locked', '');
+    });
+    showPlanOwner(ownerId);
+  }
+
+  async function showPlanOwner(ownerId) {
+    const member = await LossiData.findMember(ownerId);
+    const profile = member
+      ? { displayName: member.displayName, avatar: member.avatar, email: member.email }
+      : { displayName: '', avatar: null, email: '' };
+    const name = profileName(profile) || 'En kollega';
+    const banner = document.getElementById('readBanner');
+    document.getElementById('readBannerOwner').textContent = name;
+    document.getElementById('readBannerAvatar').innerHTML = userAvatarHTML(profile);
+    banner.hidden = false;
+    // Skapare under Personer: den riktiga skaparen, inte den inloggade
+    document.getElementById('planOwnerChip').innerHTML = `
+      <div class="author-chip-avatar">${userAvatarHTML(profile)}</div>
+      <span>${escapeHTML(name)}</span>`;
+    lucide.createIcons({ nodes: [banner, document.getElementById('planOwnerChip')] });
+  }
+
   // ── Start: läs in upplägget och initiera sidan ──
   (async function boot() {
-    let state;
+    let state, info, user;
     try {
-      state = await LossiData.loadPlan(planKey);
+      [info, user] = await Promise.all([LossiData.loadPlanInfo(planKey), LossiAuth.getUser()]);
+      state = info?.state;
     } catch (e) {
       console.warn('Kunde inte läsa upplägget:', e);
       alert('Kunde inte hämta upplägget. Kontrollera uppkopplingen och ladda om sidan.');
@@ -2722,10 +2774,23 @@
       return;
     }
     planDemoKey = state.demoKey || null;
+    planProjectId = info.projectId;
     if (state.demo) applyDemoState(state);
     else applyState(state);
     document.title = document.getElementById('planTitle').textContent.trim() + ' | Lossi';
     recalcLessonTimes();
+    // Upplägget öppnas i sitt eget projekt: sidopanelen visar det projektet
+    LossiData.currentProject().then(project => {
+      if (!planProjectId || project?.id === planProjectId) return;
+      LossiData.setCurrentProject(planProjectId);
+      renderProjectSwitcher();
+      renderAsidePlans(planKey).catch(() => {});
+    }).catch(() => {});
+    if (user && info.ownerId && info.ownerId !== user.id) {
+      enterReadOnly(info.ownerId);
+      planLoaded = true;
+      return;
+    }
     initAllSortables();
     planLoaded = true;
     window.addEventListener('beforeunload', saveState);

@@ -1,7 +1,8 @@
 // ── Datalager ──
 // All läsning och skrivning av upplägg går via LossiData. Sidorna vet inte
-// var datan bor: i Supabase-tabellen plans (supabase/schema.sql), där
-// databasens regler ser till att varje lärare bara når sina egna upplägg.
+// var datan bor: i Supabase-tabellen plans (supabase/schema.sql). Varje
+// upplägg ligger i ett projekt (supabase/projects.sql); databasens regler
+// låter medlemmar läsa varandras upplägg, men bara skaparen ändra.
 // Kräver auth.js (LossiAuth.client).
 //
 // Ett upplägg = ett id + ett state-objekt (formen sätts av saveState() i
@@ -50,32 +51,112 @@ const LossiData = (() => {
     });
   }
 
-  async function fetchPlans() {
-    return check(await db().from('plans').select('id, state').order('id'));
+  // Har den inloggade inga egna upplägg och har aldrig fått demona: lägg in dem
+  // (i det egna projektet, databasens standardval). Högst en gång per sidladdning.
+  async function ensureDemoPlans() {
+    if (seeding) return seeding;
+    seeding = (async () => {
+      const user = await LossiAuth.getUser();
+      if (!user || user.user_metadata?.demo_seeded) return;
+      const own = check(await db().from('plans').select('id').eq('owner_id', user.id).limit(1));
+      if (!own.length) check(await db().from('plans').insert(demoRows()));
+      await markSeeded();
+    })();
+    return seeding;
   }
 
-  // [{ id, state }], äldst först
-  async function listPlans() {
-    let rows = await fetchPlans();
-    const user = await LossiAuth.getUser();
-    const seeded = !!user?.user_metadata?.demo_seeded;
-    if (!rows.length && !seeded) {
-      seeding = seeding || db().from('plans').insert(demoRows()).then(check).then(markSeeded);
-      await seeding;
-      rows = await fetchPlans();
-    } else if (rows.length && !seeded && !seeding) {
-      // Konton från innan flaggan fanns
-      seeding = markSeeded();
+  const PLAN_COLUMNS = 'id, state, owner_id, project_id';
+
+  function toPlan(r) {
+    return { id: String(r.id), state: r.state, ownerId: r.owner_id, projectId: r.project_id != null ? String(r.project_id) : null };
+  }
+
+  // [{ id, state, ownerId, projectId }], äldst först.
+  //   projectId – bara upplägg i det projektet (annars alla man får se)
+  //   mine      – bara den inloggades egna upplägg
+  async function listPlans({ projectId, mine = false } = {}) {
+    await ensureDemoPlans();
+    let query = db().from('plans').select(PLAN_COLUMNS);
+    if (projectId) query = query.eq('project_id', projectId);
+    if (mine) {
+      const user = await LossiAuth.getUser();
+      query = query.eq('owner_id', user?.id);
     }
-    return rows.map(r => ({ id: String(r.id), state: r.state }));
+    return check(await query.order('id')).map(toPlan);
   }
 
-  // null om upplägget inte finns eller tillhör någon annan
-  async function loadPlan(id) {
+  // Den inloggades egna upplägg, i alla projekt (kalender, egna klasser/ämnen)
+  function listMyPlans() {
+    return listPlans({ mine: true });
+  }
+
+  // { state, ownerId, projectId }, eller null om upplägget inte finns eller inte syns för en
+  async function loadPlanInfo(id) {
     if (!/^\d+$/.test(String(id))) return null;
-    const row = check(await db().from('plans').select('state').eq('id', id).maybeSingle());
-    if (row) lastSaved.set(String(id), JSON.stringify(row.state));
-    return row ? row.state : null;
+    const row = check(await db().from('plans').select(PLAN_COLUMNS).eq('id', id).maybeSingle());
+    if (!row) return null;
+    lastSaved.set(String(id), JSON.stringify(row.state));
+    const plan = toPlan(row);
+    return { state: plan.state, ownerId: plan.ownerId, projectId: plan.projectId };
+  }
+
+  async function loadPlan(id) {
+    return (await loadPlanInfo(id))?.state || null;
+  }
+
+  // ── Projekt (supabase/projects.sql) ──
+  // Ett projekt = { id, name, personal, members: [{ userId, role, displayName, avatar, email }] }.
+  // Alla har ett eget projekt (personal); delade projekt har flera medlemmar.
+  // Det valda projektet kommer man ihåg i webbläsaren.
+  const CURRENT_PROJECT_KEY = 'lossi-project';
+  let projectsPromise = null;
+
+  async function fetchProjects() {
+    const rows = check(await db().from('projects').select('id, name, personal_owner, created_at').order('created_at'));
+    // Namn och avatar på medlemmarna; saknas funktionen än visas bara projekten
+    let members = [];
+    try {
+      members = check(await db().rpc('project_member_profiles')) || [];
+    } catch (e) {
+      console.warn('Kunde inte hämta projektens medlemmar:', e);
+    }
+    const projects = rows.map(r => ({
+      id: String(r.id),
+      name: r.name,
+      personal: !!r.personal_owner,
+      members: members.filter(m => String(m.project_id) === String(r.id)).map(m => ({
+        userId: m.user_id, role: m.role, displayName: m.display_name || '', avatar: m.avatar || null, email: m.email || '',
+      })),
+    }));
+    // Det egna projektet först, sedan delade i den ordning man gick med
+    return projects.sort((a, b) => Number(b.personal) - Number(a.personal));
+  }
+
+  function listProjects() {
+    projectsPromise = projectsPromise || fetchProjects().catch(e => { projectsPromise = null; throw e; });
+    return projectsPromise;
+  }
+
+  // Det valda projektet (eller det egna om inget valts / valet inte längre finns)
+  async function currentProject() {
+    const projects = await listProjects();
+    let saved = null;
+    try { saved = localStorage.getItem(CURRENT_PROJECT_KEY); } catch (e) {}
+    return projects.find(p => p.id === saved) || projects.find(p => p.personal) || projects[0] || null;
+  }
+
+  function setCurrentProject(id) {
+    try { localStorage.setItem(CURRENT_PROJECT_KEY, String(id)); } catch (e) {}
+  }
+
+  // Namn och avatar för en användare i något av ens projekt
+  async function findMember(userId) {
+    const projects = await listProjects().catch(() => []);
+    for (const p of projects) {
+      const m = p.members.find(x => x.userId === userId);
+      if (m) return m;
+    }
+    return null;
   }
 
   // ── Spara ──
@@ -162,9 +243,11 @@ const LossiData = (() => {
     lastSaved.delete(id);
   }
 
-  // Sparar ett nytt upplägg och returnerar dess id
-  async function createPlan(state) {
-    const row = check(await db().from('plans').insert(columnsFor(state)).select('id').single());
+  // Sparar ett nytt upplägg och returnerar dess id. Utan projekt hamnar det i det egna.
+  async function createPlan(state, projectId) {
+    const columns = columnsFor(state);
+    if (projectId) columns.project_id = Number(projectId);
+    const row = check(await db().from('plans').insert(columns).select('id').single());
     return String(row.id);
   }
 
@@ -234,7 +317,8 @@ const LossiData = (() => {
   }
 
   return {
-    listPlans, loadPlan, savePlan, createPlan, deletePlan, flushOnLeave, onSaveStatus,
+    listPlans, listMyPlans, loadPlan, loadPlanInfo, savePlan,
+    listProjects, currentProject, setCurrentProject, findMember, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,
   };

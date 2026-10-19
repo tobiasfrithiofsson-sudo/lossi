@@ -93,7 +93,8 @@
   let showWeekend = false;
   try { showWeekend = localStorage.getItem('lossi-cal-weekend') === 'true'; } catch (e) {}
   let anchor = todayAnchor(); // en dag i perioden som visas
-  let plans = [];
+  let plans = [];       // alla upplägg man ser (för att visa namn på händelserna)
+  let myPlans = [];     // egna upplägg: bara deras lektioner kan läggas in än så länge
   let allEvents = [];   // alla lärarens händelser (för "redan inlagd" i dialogen)
   let shown = [];       // händelser i perioden, kopplade till upplägg/lektion
   let selected = null;
@@ -137,8 +138,9 @@
 
   async function load() {
     try {
-      [plans, allEvents] = await Promise.all([
+      [plans, myPlans, allEvents] = await Promise.all([
         LossiData.listPlans(),
+        LossiData.listMyPlans(),
         LossiData.listEvents(new Date(2000, 0, 1), new Date(2100, 0, 1)),
       ]);
       document.getElementById('calNotice').hidden = true;
@@ -268,14 +270,14 @@
 
   // Från kalendern: välj upplägg och lektion
   function addLesson(start) {
-    if (!plans.length) return alert('Skapa ett upplägg först, så kan du lägga in dess lektioner här.');
+    if (!myPlans.length) return alert('Skapa ett upplägg först, så kan du lägga in dess lektioner här.');
     if (!start) {
       start = new Date(Math.max(periodDays()[0].getTime(), Date.now()));
       start.setMinutes(0, 0, 0);
       start.setHours(Math.max(start.getHours() + 1, 8));
     }
     // Upplägg med lektioner först (demo-upplägg som aldrig öppnats har inga än)
-    const sorted = plans.slice().reverse().sort((a, b) => (lessonsFromState(b.state).length > 0) - (lessonsFromState(a.state).length > 0));
+    const sorted = myPlans.slice().reverse().sort((a, b) => (lessonsFromState(b.state).length > 0) - (lessonsFromState(a.state).length > 0));
     openScheduleModal({ plans: sorted, eventsByKey: eventsByKey(), start, onSaved: afterChange });
   }
 

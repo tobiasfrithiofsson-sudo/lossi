@@ -184,3 +184,26 @@ create policy "Egna upplägg: ändra" on public.plans
   with check ((select auth.uid()) = owner_id and public.is_project_member(project_id));
 
 -- "Egna upplägg: ta bort" från schema.sql gäller oförändrad.
+
+
+-- ── Steg 2: namn och avatar på medlemmarna ──
+-- Profilerna ligger i auth.users, som inloggade inte kan läsa. Funktionen
+-- visar namn, avatar och e-post för medlemmarna i de projekt man själv är med i.
+create or replace function public.project_member_profiles()
+returns table (project_id bigint, user_id uuid, role text, display_name text, avatar text, email text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select m.project_id, m.user_id, m.role,
+         nullif(trim(u.raw_user_meta_data->>'display_name'), ''),
+         u.raw_user_meta_data->>'avatar',
+         u.email::text
+  from public.project_members m
+  join auth.users u on u.id = m.user_id
+  where public.is_project_member(m.project_id);
+$$;
+
+revoke all on function public.project_member_profiles() from public, anon;
+grant execute on function public.project_member_profiles() to authenticated;

@@ -123,7 +123,7 @@ async function forgetChoice(key, name) {
 // Värden som används i lärarens upplägg (t.ex. state.subject), hämtas en gång per sida
 let planChoicesPromise = null;
 function planFieldValues(field) {
-  planChoicesPromise = planChoicesPromise || LossiData.listPlans().catch(() => []);
+  planChoicesPromise = planChoicesPromise || LossiData.listMyPlans().catch(() => []);
   return planChoicesPromise.then(plans => plans.map(p => p.state?.[field]).filter(Boolean));
 }
 
@@ -336,11 +336,12 @@ const DEMO_PLANS = {
 };
 
 // Det som listor (aside, översikt) behöver veta om ett upplägg
-function getPlanSummary(id, state) {
+function getPlanSummary(id, state, ownerId = null) {
   state = state || {};
   const demo = DEMO_PLANS[state.demoKey] || {};
   return {
     id,
+    ownerId,
     demoKey: state.demoKey || null,
     title: state.title || demo.title || 'Namnlöst upplägg',
     subject: state.subject || demo.subject || '',
@@ -349,10 +350,10 @@ function getPlanSummary(id, state) {
   };
 }
 
-// Senast skapade först
-async function getPlanSummaries() {
-  const plans = await LossiData.listPlans();
-  return plans.reverse().map(p => getPlanSummary(p.id, p.state));
+// Senast skapade först (samma filter som LossiData.listPlans)
+async function getPlanSummaries(filter) {
+  const plans = await LossiData.listPlans(filter);
+  return plans.reverse().map(p => getPlanSummary(p.id, p.state, p.ownerId));
 }
 
 function escapeHTML(text) {
@@ -362,9 +363,10 @@ function escapeHTML(text) {
 // ── App-skal: topbar + aside ──
 // Byggs här så att index.html och upplag.html delar exakt samma innehåll.
 // Sidan anropar renderAppShell() först i sitt script, före lucide.createIcons().
-// Projekt och team är platshållare tills de tjänsterna finns. Kommande
-// händelser fylls från kalendern av renderAsideEvents() i schedule.js.
-const APP_PROJECT = { name: 'Sandlådan' };
+// Sidopanelen är personlig: den visar den inloggades egna upplägg i valt
+// projekt (projektväljaren överst) och egna kalenderhändelser, aldrig andras.
+// Team och inbjudan är platshållare. Kommande händelser fylls från kalendern
+// av renderAsideEvents() i schedule.js.
 const APP_TEAMS = [
   { name: 'Astronomerna', emoji: '🚀' },
   { name: 'Dricka kaffe?', emoji: '☕' },
@@ -383,6 +385,7 @@ function renderAppShell(options = {}) {
   }
   if (aside) {
     aside.innerHTML = buildAsideHTML();
+    renderProjectSwitcher(options.onProjectChange);
     renderAsidePlans(options.currentPlanId).catch(e => console.warn('Kunde inte hämta upplägg till sidopanelen:', e));
     if (typeof renderAsideEvents === 'function') renderAsideEvents();
   }
@@ -508,10 +511,12 @@ function buildAsideHTML() {
 
   return `
   <div class="aside-scroll">
-    <div class="aside-project is-soon" title="Projekt kommer snart: samla upplägg och dela dem med kollegor">
-      <div class="aside-project-icon"><i data-lucide="award"></i></div>
-      <span class="aside-project-name">${escapeHTML(APP_PROJECT.name)}</span>
-      <span class="soon-badge">Snart</span>
+    <!-- Projektväljare (renderProjectSwitcher) -->
+    <div class="aside-project-wrap" id="projectSwitcher">
+      <div class="aside-project">
+        <div class="aside-project-icon"></div>
+        <span class="aside-project-name"></span>
+      </div>
     </div>
 
     <div class="aside-group">
@@ -553,10 +558,98 @@ function buildAsideHTML() {
   </div>`}`;
 }
 
-// Uppdatera ett uppläggs titel/bild i asiden utan att bygga om allt
-// Upplägg-listan i asiden fylls i när datan hämtats (renderAppShell väntar inte)
+// ── Projektväljaren överst i sidopanelen ──
+// Visar valt projekt; en meny listar alla projekt man är med i. Att byta
+// projekt sparas i webbläsaren och laddar om sidan (eller anropar
+// onProjectChange, om sidan själv vill rita om, som översikten).
+const PROJECT_COLORS = ['--color-avatar-6', '--color-avatar-2', '--color-avatar-3', '--color-avatar-4', '--color-avatar-5', '--color-avatar-1'];
+
+function projectIconHTML(project) {
+  const color = project.personal ? '--color-avatar-6' : PROJECT_COLORS[(Number(project.id) % (PROJECT_COLORS.length - 1)) + 1];
+  return `<span class="aside-project-icon" style="background: var(${color})"><i data-lucide="${project.personal ? 'lock' : 'users'}"></i></span>`;
+}
+
+function projectMetaText(project) {
+  if (project.personal) return 'Bara du';
+  const n = project.members.length;
+  return n ? `${n} ${n === 1 ? 'medlem' : 'medlemmar'}` : 'Delat projekt';
+}
+
+async function renderProjectSwitcher(onProjectChange) {
+  const wrap = document.getElementById('projectSwitcher');
+  if (!wrap) return;
+  let projects, current;
+  try {
+    [projects, current] = await Promise.all([LossiData.listProjects(), LossiData.currentProject()]);
+  } catch (e) {
+    console.warn('Kunde inte hämta projekt:', e);
+    wrap.innerHTML = '';
+    return;
+  }
+  if (!current) { wrap.innerHTML = ''; return; }
+
+  wrap.innerHTML = `
+    <button type="button" class="aside-project aside-project-btn" onclick="toggleProjectMenu()" aria-haspopup="menu" aria-expanded="false" title="Byt projekt">
+      ${projectIconHTML(current)}
+      <span class="aside-project-name">${escapeHTML(current.name)}</span>
+      <i data-lucide="chevrons-up-down" class="aside-project-chevron"></i>
+    </button>
+    <div class="project-menu" id="projectMenu" role="menu">
+      <div class="menu-popover-label">Dina projekt</div>
+      ${projects.map(p => `
+        <button type="button" class="project-menu-item${p.id === current.id ? ' is-current' : ''}" role="menuitemradio" aria-checked="${p.id === current.id}" data-project-id="${p.id}">
+          ${projectIconHTML(p)}
+          <span class="project-menu-text">
+            <span class="project-menu-name">${escapeHTML(p.name)}</span>
+            <span class="project-menu-meta">${escapeHTML(projectMetaText(p))}</span>
+          </span>
+          ${p.id === current.id ? '<i data-lucide="check" class="project-menu-check"></i>' : ''}
+        </button>`).join('')}
+      <div class="menu-popover-sep"></div>
+      <div class="project-menu-item is-soon" title="Kommer snart: gå med i en skolas projekt med en inbjudningskod">
+        <span class="project-menu-plain-icon"><i data-lucide="ticket"></i></span>
+        <span class="project-menu-text"><span class="project-menu-name">Gå med med kod</span></span>
+        <span class="soon-badge">Snart</span>
+      </div>
+    </div>`;
+
+  wrap.querySelectorAll('[data-project-id]').forEach(btn => btn.addEventListener('click', () => {
+    const id = btn.dataset.projectId;
+    toggleProjectMenu(false);
+    if (id === current.id) return;
+    LossiData.setCurrentProject(id);
+    if (onProjectChange) {
+      const project = projects.find(p => p.id === id);
+      renderProjectSwitcher(onProjectChange);
+      renderAsidePlans();
+      onProjectChange(project);
+    } else {
+      window.location.href = 'index.html';
+    }
+  }));
+  if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [wrap] });
+}
+
+function toggleProjectMenu(open) {
+  const menu = document.getElementById('projectMenu');
+  if (!menu) return;
+  const show = open === undefined ? !menu.classList.contains('open') : open;
+  menu.classList.toggle('open', show);
+  menu.previousElementSibling?.setAttribute('aria-expanded', String(show));
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#projectSwitcher')) toggleProjectMenu(false);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') toggleProjectMenu(false);
+});
+
+// Upplägg-listan i asiden fylls i när datan hämtats (renderAppShell väntar inte):
+// den inloggades egna upplägg i valt projekt
 async function renderAsidePlans(currentPlanId) {
-  const plans = await getPlanSummaries();
+  const project = await LossiData.currentProject().catch(() => null);
+  const plans = await getPlanSummaries({ projectId: project?.id, mine: true });
   const visiblePlans = plans.slice(0, ASIDE_PLAN_LIMIT);
   // Det öppna upplägget ska alltid synas i listan, även om det är äldre
   if (currentPlanId && !visiblePlans.some(p => p.id === String(currentPlanId))) {
@@ -566,6 +659,10 @@ async function renderAsidePlans(currentPlanId) {
 
   const list = document.querySelector('.aside-plan-list');
   if (!list) return;
+  if (!visiblePlans.length) {
+    list.innerHTML = '<div class="aside-item is-placeholder aside-empty">Inga egna upplägg här än</div>';
+    return;
+  }
   list.innerHTML = visiblePlans.map(p => `
     <a href="upplag.html?id=${p.id}" class="aside-item${p.id === String(currentPlanId) ? ' active' : ''}" data-aside-plan="${p.id}" title="${escapeHTML(p.title)}">
       <span class="aside-plan-icon">${planAvatarImgHTML(p.avatar)}</span>
@@ -573,6 +670,7 @@ async function renderAsidePlans(currentPlanId) {
     </a>`).join('');
 }
 
+// Uppdatera ett uppläggs titel/bild i asiden utan att bygga om allt
 function updateAsidePlan(id, { title, avatar } = {}) {
   const item = document.querySelector(`[data-aside-plan="${id}"]`);
   if (!item) return;
@@ -1013,7 +1111,8 @@ async function createPlan() {
 
   let id;
   try {
-    id = await LossiData.createPlan(state);
+    const project = await LossiData.currentProject().catch(() => null);
+    id = await LossiData.createPlan(state, project?.id);
   } catch (e) {
     alert('Kunde inte spara upplägget.');
     return;

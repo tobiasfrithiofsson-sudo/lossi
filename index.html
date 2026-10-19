@@ -41,7 +41,7 @@
     <div class="upcoming-list" id="upcomingList"></div>
   </div>
 
-  <!-- Upplägg: alla sparade/skapade upplägg, samlade för överblick -->
+  <!-- Upplägg: alla upplägg i valt projekt (allas, eller bara mina), samlade för överblick -->
   <div class="plan-section" id="sec-plans">
     <div class="section-head" onclick="toggleSection('sec-plans')">
       <button class="chevron-btn" tabindex="-1">
@@ -52,6 +52,11 @@
     <div class="section-body">
 
       <div class="filter-bar">
+        <!-- Alla i projektet / bara mina (döljs i det egna projektet, där allt är ens eget) -->
+        <div class="filter-toggle" id="ownerFilter" role="group" aria-label="Visa upplägg" hidden>
+          <button type="button" data-owner="all" aria-pressed="true" onclick="setOwnerFilter('all')">Alla</button>
+          <button type="button" data-owner="mine" aria-pressed="false" onclick="setOwnerFilter('mine')">Bara mina</button>
+        </div>
         <div class="filter-select">
           <i data-lucide="book-open"></i>
           <select id="filterSubject" onchange="filterPlans()">
@@ -85,27 +90,71 @@
 
 <script>
   LossiAuth.requireUser().then(applyUserProfile);
-  renderAppShell({ active: 'plans' });
+  renderAppShell({ active: 'plans', onProjectChange: () => loadPlanList() });
   lucide.createIcons();
   syncThemeIcons();
 
-  // ── Upplägg-listan: alla upplägg i registret, senast skapade först ──
+  // ── Upplägg-listan: alla upplägg i valt projekt, senast skapade först ──
+  // Varje rad visar skaparens avatar. Andras upplägg öppnas i läsläge.
+  let ownerFilter = 'all';
+  try { ownerFilter = localStorage.getItem('lossi-owner-filter') === 'mine' ? 'mine' : 'all'; } catch (e) {}
+  let me = null;
+  let projectMembers = [];
+
+  function setOwnerFilter(value) {
+    ownerFilter = value;
+    try { localStorage.setItem('lossi-owner-filter', value); } catch (e) {}
+    document.querySelectorAll('#ownerFilter button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.owner === value)));
+    filterPlans();
+  }
+
+  // Profil (namn, avatar) för skaparen av ett upplägg
+  function ownerProfile(ownerId) {
+    if (me && ownerId === me.id) return LossiAuth.profileOf(me);
+    const m = projectMembers.find(x => x.userId === ownerId);
+    return m ? { displayName: m.displayName, avatar: m.avatar, email: m.email } : { displayName: '', avatar: null, email: '' };
+  }
+
+  async function loadPlanList() {
+    const empty = document.getElementById('planListEmpty');
+    try {
+      const [user, project] = await Promise.all([LossiAuth.getUser(), LossiData.currentProject()]);
+      me = user;
+      projectMembers = project?.members || [];
+      // I det egna projektet är allt ens eget: inget Alla/Bara mina
+      const shared = project && !project.personal;
+      document.getElementById('ownerFilter').hidden = !shared;
+      setOwnerFilter(shared ? ownerFilter : 'all');
+      const plans = await LossiData.listPlans({ projectId: project?.id });
+      empty.textContent = 'Inga upplägg matchar filtret.';
+      renderPlanList(plans.slice().reverse().map(p => getPlanSummary(p.id, p.state, p.ownerId)));
+    } catch (e) {
+      console.warn('Kunde inte hämta upplägg:', e);
+      document.querySelectorAll('#planList .plan-row').forEach(r => r.remove());
+      empty.textContent = 'Kunde inte hämta upplägg. Ladda om sidan för att försöka igen.';
+      empty.style.display = 'flex';
+    }
+  }
+
   function renderPlanList(plans) {
     const list = document.getElementById('planList');
     list.querySelectorAll('.plan-row').forEach(r => r.remove());
     const rows = plans.map(p => {
       const gradeDisplay = p.grade ? 'Åk ' + p.grade : '';
       const meta = [p.subject, gradeDisplay].filter(Boolean).join(' · ');
+      const mine = me && p.ownerId === me.id;
+      const owner = ownerProfile(p.ownerId);
+      const ownerName = mine ? 'Du' : (profileName(owner) || 'Okänd');
       return `
-        <div class="plan-row" data-plan-id="${p.id}" data-subject="${escapeHTML(p.subject)}" data-grade="${escapeHTML(gradeDisplay)}" onclick="window.location='upplag.html?id=${p.id}'">
+        <div class="plan-row" data-plan-id="${p.id}" data-mine="${mine}" data-subject="${escapeHTML(p.subject)}" data-grade="${escapeHTML(gradeDisplay)}" onclick="window.location='upplag.html?id=${p.id}'">
           <div class="plan-row-icon plan-icon-image">${planAvatarImgHTML(p.avatar)}</div>
           <span class="plan-row-title">${escapeHTML(p.title)}</span>
           <span class="plan-row-meta">${escapeHTML(meta)}</span>
-          <div class="plan-row-avatar" data-user-avatar data-user-title></div>
+          <div class="plan-row-avatar" title="Skapat av ${escapeHTML(ownerName)}">${userAvatarHTML(owner)}</div>
         </div>`;
     }).join('');
     document.getElementById('planListEmpty').insertAdjacentHTML('beforebegin', rows);
-    fillUserProfile(list);
+    lucide.createIcons({ nodes: [list] });
     rebuildFilterOptions();
     filterPlans();
   }
@@ -157,15 +206,9 @@
     gradeSelect.value = grades.includes(currentGrade) ? currentGrade : '';
   }
 
-  LossiData.listPlans().then(plans => {
-    renderPlanList(plans.slice().reverse().map(p => getPlanSummary(p.id, p.state)));
-    renderUpcoming(plans);
-  }).catch(e => {
-    console.warn('Kunde inte hämta upplägg:', e);
-    const empty = document.getElementById('planListEmpty');
-    empty.textContent = 'Kunde inte hämta dina upplägg. Ladda om sidan för att försöka igen.';
-    empty.style.display = 'flex';
-  });
+  loadPlanList();
+  // Kommande gäller lärarens egen kalender, i alla projekt
+  LossiData.listPlans().then(renderUpcoming).catch(e => console.warn('Kunde inte hämta kommande lektioner:', e));
 
   function toggleSection(id) {
     document.getElementById(id).classList.toggle('collapsed');
@@ -179,7 +222,8 @@
     rows.forEach(row => {
       const matchesSubject = !subject || row.dataset.subject === subject;
       const matchesGrade = !grade || row.dataset.grade === grade;
-      const visible = matchesSubject && matchesGrade;
+      const matchesOwner = ownerFilter === 'all' || row.dataset.mine === 'true';
+      const visible = matchesSubject && matchesGrade && matchesOwner;
       row.style.display = visible ? '' : 'none';
       if (visible) visibleCount++;
     });

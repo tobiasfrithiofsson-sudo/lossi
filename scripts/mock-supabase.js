@@ -3,14 +3,26 @@
   const user = { id: 'u1', email: 'tobias.frithiofsson@gmail.com', app_metadata: { role: 'admin' }, user_metadata: { display_name: 'Lina Berg', avatar: 'rocket', demo_seeded: true } };
   const session = { user, access_token: 'mock' };
   const saved = JSON.parse(sessionStorage.getItem('mockDb') || 'null');
+  // Projekt: lärarens egna (1) och ett delat (2) där kollegan Kristoffer (u2) också är med
   const tables = saved || {
     plans: [
-      { id: 1, state: { demo: true, demoKey: '1', title: 'Demokrati – grunderna och processerna', subject: 'Samhällskunskap', grade: '7–9', avatar: 'sailboat' } },
-      { id: 2, state: { demo: true, demoKey: '2', title: 'Källkritik i det digitala samhället', subject: 'Samhällskunskap', grade: '9', avatar: 'lightning' } },
-      { id: 3, state: { demo: true, demoKey: '3', title: 'Fotosyntes – från molekyl till ekosystem', subject: 'Biologi', grade: '7', avatar: 'compass' } },
+      { id: 1, owner_id: 'u1', project_id: 1, state: { demo: true, demoKey: '1', title: 'Demokrati – grunderna och processerna', subject: 'Samhällskunskap', grade: '7–9', avatar: 'sailboat' } },
+      { id: 2, owner_id: 'u1', project_id: 1, state: { demo: true, demoKey: '2', title: 'Källkritik i det digitala samhället', subject: 'Samhällskunskap', grade: '9', avatar: 'lightning' } },
+      { id: 3, owner_id: 'u1', project_id: 1, state: { demo: true, demoKey: '3', title: 'Fotosyntes – från molekyl till ekosystem', subject: 'Biologi', grade: '7', avatar: 'compass' } },
+      { id: 4, owner_id: 'u2', project_id: 2, state: { demo: true, demoKey: '1', title: 'Kristoffers demokratiupplägg', subject: 'Samhällskunskap', grade: '8', avatar: 'compass' } },
+      { id: 5, owner_id: 'u1', project_id: 2, state: { demo: true, demoKey: '3', title: 'Linas fotosyntes för skolan', subject: 'Biologi', grade: '7', avatar: 'sailboat' } },
+    ],
+    projects: [
+      { id: 1, name: 'Mina upplägg', personal_owner: 'u1', created_at: '2026-10-19T10:00:00Z' },
+      { id: 2, name: 'Sandlådan', personal_owner: null, created_at: '2026-10-19T11:00:00Z' },
     ],
     lesson_events: [],
   };
+  const memberProfiles = [
+    { project_id: 1, user_id: 'u1', role: 'owner', display_name: 'Lina Berg', avatar: 'rocket', email: user.email },
+    { project_id: 2, user_id: 'u1', role: 'owner', display_name: 'Lina Berg', avatar: 'rocket', email: user.email },
+    { project_id: 2, user_id: 'u2', role: 'member', display_name: 'Kristoffer Ek', avatar: 'cat', email: 'kristoffer@skola.se' },
+  ];
   const persist = () => sessionStorage.setItem('mockDb', JSON.stringify(tables));
   window.__mockDb = tables;
   function builder(table) {
@@ -19,7 +31,14 @@
     const run = () => {
       let res = rows().filter(r => q.f.every(fn => fn(r)));
       const nextId = () => Math.max(0, ...rows().map(r => r.id)) + 1;
-      if (q.op === 'insert') { const ins = [].concat(q.p).map(p => ({ id: nextId(), ...p })); rows().push(...ins); res = ins; }
+      if (q.op === 'insert') {
+        // Som databasen: skaparen är den inloggade, projektet det egna om inget anges
+        const defaults = table === 'plans' ? { owner_id: user.id, project_id: 1 } : {};
+        const ins = [].concat(q.p).map(p => ({ id: nextId(), ...defaults, ...p }));
+        rows().push(...ins); res = ins;
+      }
+      // Som databasens regler: bara skaparen ändrar och tar bort upplägg
+      if (table === 'plans' && (q.op === 'update' || q.op === 'delete')) res = res.filter(r => r.owner_id === user.id);
       if (q.op === 'upsert') {
         const keys = q.onConflict.split(',');
         res = [].concat(q.p).map(p => {
@@ -55,6 +74,7 @@
     from: t => builder(t),
     rpc: async (name, params) => {
       const fb = window.__mockFeedback = window.__mockFeedback || [];
+      if (name === 'project_member_profiles') return { data: memberProfiles, error: null };
       if (name === 'feedback_admin_list') return { data: fb, error: null };
       if (name === 'feedback_admin_update') { const f = fb.find(x => x.id === params.p_id); Object.assign(f, { status: params.p_status, note: params.p_note || null }); return { data: null, error: null }; }
       return { data: null, error: { code: 'PGRST202' } };

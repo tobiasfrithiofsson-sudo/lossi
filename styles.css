@@ -176,6 +176,87 @@ body.activity-panel-resizing .page-frame {
 
 .aside-project-icon svg { width: 18px; height: 18px; }
 
+/* ── Projektväljaren (renderProjectSwitcher i theme.js) ── */
+.aside-project-wrap { position: relative; margin-bottom: 24px; }
+.aside-project-wrap .aside-project { margin-bottom: 0; }
+.aside-project-wrap:empty { display: none; }
+.aside-project-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.aside-project-btn:hover,
+.aside-project-btn[aria-expanded="true"] { background: var(--color-aside-hover); }
+.aside-project-btn .aside-project-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aside-project-chevron { width: 16px; height: 16px; color: var(--color-text-tertiary); flex-shrink: 0; }
+
+.project-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 200;
+  padding-bottom: 4px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.project-menu.open { display: block; }
+
+.project-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.project-menu-item:hover { background: var(--color-bg-hover); }
+.project-menu-item.is-soon { cursor: default; opacity: 0.6; }
+.project-menu-item.is-soon:hover { background: none; }
+.project-menu-item .aside-project-icon { width: 28px; height: 28px; }
+.project-menu-item .aside-project-icon svg { width: 16px; height: 16px; }
+.project-menu-plain-icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+.project-menu-plain-icon svg { width: 16px; height: 16px; }
+.project-menu-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.project-menu-name {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-menu-meta { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
+.project-menu-check { width: 16px; height: 16px; color: var(--color-primary); flex-shrink: 0; }
+
 .aside-group + .aside-group { margin-top: 20px; }
 
 .aside-label {
@@ -2865,6 +2946,29 @@ a.upcoming-card { text-decoration: none; color: inherit; }
 
 .filter-select:hover { border-color: var(--color-text-secondary); }
 .filter-select:focus-within { border-color: var(--color-primary); }
+
+/* Alla / Bara mina på översikten (segmenterad knapp, samma höjd som filtren) */
+.filter-toggle {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 2px;
+}
+.filter-toggle[hidden] { display: none; }
+.filter-toggle button {
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.filter-toggle button:hover { color: var(--color-text-primary); }
+.filter-toggle button[aria-pressed="true"] { background: var(--color-aside-active); color: var(--color-text-primary); font-weight: 500; }
 .filter-select svg { width: 14px; height: 14px; color: var(--color-text-tertiary); flex-shrink: 0; }
 
 .filter-select select {
@@ -2894,6 +2998,44 @@ body.edit-mode .activity-row:hover .drag-handle { opacity: 1; }
 body.edit-mode .goal-item:hover .drag-handle { opacity: 1; }
 body.edit-mode .week-row:hover .drag-handle { opacity: 1; }
 body.edit-mode .goal-item:hover .goal-delete { display: grid; place-items: center; }
+
+/* ── LÄSLÄGE: någon annans upplägg (enterReadOnly i upplag.html) ──
+   Allt som ändrar döljs eller går inte att klicka på; fäll ihop,
+   aktiviteternas läsvy och export fungerar som vanligt. */
+body.read-mode .section-add-btn,
+body.read-mode .lesson-add-activity,
+body.read-mode .lesson-more,
+body.read-mode .lesson-schedule-btn,
+body.read-mode .activity-more-btn,
+body.read-mode .goal-delete,
+body.read-mode .drag-handle,
+body.read-mode .plan-actions .popover-wrap:has(#shareMenu) { display: none !important; }
+body.read-mode #planIcon,
+body.read-mode #statusBtn,
+body.read-mode .lesson-status-btn,
+body.read-mode .class-picker-trigger { pointer-events: none; cursor: default; }
+body.read-mode #statusBtn svg,
+body.read-mode .class-picker-trigger > svg { display: none; }
+
+.read-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 24px 40px 0;
+  padding: 10px 12px 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-light);
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+}
+.read-banner[hidden] { display: none; }
+.read-banner strong { color: var(--color-text-primary); font-weight: 600; }
+.read-banner-avatar { width: 28px; height: 28px; flex-shrink: 0; }
+.read-banner-avatar .user-face-initials { font-size: 11px; }
+.read-banner-text { flex: 1; min-width: 0; }
+.read-banner-btn { flex-shrink: 0; background: var(--color-bg-primary); }
+.read-banner-btn svg { width: 14px; height: 14px; }
+.read-banner + .plan-header { padding-top: 20px; }
 
 
 /* ============================================================
@@ -3136,11 +3278,18 @@ body.edit-mode .goal-item:hover .goal-delete { display: grid; place-items: cente
   .upcoming-card { width: auto; flex: 1 1 140px; }
   .plan-row-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .plan-row-meta { display: none; }
+  .filter-bar { flex-wrap: wrap; }
+  .filter-toggle { flex: 1 1 100%; }
+  .filter-toggle button { flex: 1; }
   .filter-select { flex: 1 1 0; min-width: 0; padding: 8px 12px; }
   .filter-select select { min-width: 0; width: 100%; }
 
   /* Uppläggssidan: innehåll först, Detaljer under */
   .plan-header { padding: 20px 16px 4px; gap: var(--space-3); }
+  .read-banner { margin: 16px 16px 0; flex-wrap: wrap; }
+  .read-banner-text { flex-basis: calc(100% - 40px); }
+  .read-banner-btn { width: 100%; justify-content: center; }
+  .read-banner + .plan-header { padding-top: 16px; }
   .plan-title { font-size: 21px; }
   .plan-actions { margin-left: 0; flex-wrap: wrap; }
   .page-body { flex-direction: column; }

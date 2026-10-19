@@ -3,8 +3,9 @@
 // den: i dag Supabase Auth med e-post + lösenord, kanske Better Auth senare
 // (se docs/migration-plan.md). Kräver supabase-js (CDN) och config.js.
 //
-// Prototypen skickar inga mail: Tobias skapar konton i Supabase-panelen
-// (Authentication → Users → Add user) och ger testaren lösenordet.
+// Prototypen skickar inga mail. Konton skapas med en inbjudningskod från ett
+// projekt (login.html, Skapa konto); databasen stoppar konton utan giltig kod
+// (supabase/projects.sql, steg 3).
 //
 // Skyddade sidor har class="auth-pending" på <html> (döljer sidan) och anropar
 // LossiAuth.requireUser() först: utloggade skickas till login.html, inloggade
@@ -28,6 +29,26 @@ const LossiAuth = (() => {
   async function signIn(email, password) {
     const { error } = await client.auth.signInWithPassword({ email, password });
     if (error) throw error;
+  }
+
+  // Projektnamnet som en inbjudningskod leder till, eller null om koden inte finns
+  async function inviteProjectName(code) {
+    const { data, error } = await client.rpc('invite_project_name', { code });
+    if (error) throw error;
+    return data || null;
+  }
+
+  // Nytt konto med inbjudningskod: databasen kontrollerar koden, skapar lärarens
+  // egna projekt och gör hen till medlem i kodens projekt. Loggar in direkt.
+  async function signUpWithCode({ code, displayName, email, password }) {
+    const { data, error } = await client.auth.signUp({
+      email,
+      password,
+      options: { data: { invite_code: code, display_name: displayName } },
+    });
+    if (error) throw error;
+    if (!data.session) throw new Error('Email not confirmed');
+    return data.user;
   }
 
   // Lärarens namn och avatar. Sparas i Supabase-användarens metadata
@@ -98,5 +119,5 @@ const LossiAuth = (() => {
     }
   });
 
-  return { client, getUser, signIn, profileOf, updateProfile, saveUserList, changePassword, signOut, requireUser, safeNext, accessToken };
+  return { client, getUser, signIn, inviteProjectName, signUpWithCode, profileOf, updateProfile, saveUserList, changePassword, signOut, requireUser, safeNext, accessToken };
 })();

@@ -14,7 +14,9 @@
     ],
     projects: [
       { id: 1, name: 'Mina upplägg', personal_owner: 'u1', created_at: '2026-10-19T10:00:00Z' },
-      { id: 2, name: 'Sandlådan', personal_owner: null, created_at: '2026-10-19T11:00:00Z' },
+      { id: 2, name: 'Sandlådan', personal_owner: null, invite_code: 'K7P4M2QX', created_at: '2026-10-19T11:00:00Z' },
+      // Ett projekt man inte är med i än (för Gå med med kod); filtreras bort tills man gått med
+      { id: 3, name: 'Norra skolan', personal_owner: null, invite_code: 'NRSK2026', created_at: '2026-10-19T12:00:00Z', _hidden: true },
     ],
     lesson_events: [],
   };
@@ -29,7 +31,7 @@
     const q = { f: [], op: 'select' };
     const rows = () => (tables[table] = tables[table] || []);
     const run = () => {
-      let res = rows().filter(r => q.f.every(fn => fn(r)));
+      let res = rows().filter(r => q.f.every(fn => fn(r)) && !r._hidden);
       const nextId = () => Math.max(0, ...rows().map(r => r.id)) + 1;
       if (q.op === 'insert') {
         // Som databasen: skaparen är den inloggade, projektet det egna om inget anges
@@ -75,16 +77,33 @@
     rpc: async (name, params) => {
       const fb = window.__mockFeedback = window.__mockFeedback || [];
       if (name === 'project_member_profiles') return { data: memberProfiles, error: null };
+      const byCode = code => tables.projects.find(p => p.invite_code && p.invite_code === String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''));
+      if (name === 'invite_project_name') return { data: byCode(params.code)?.name || null, error: null };
+      if (name === 'join_project') {
+        const p = byCode(params.code);
+        if (!p) return { data: null, error: { message: 'Ogiltig inbjudningskod', code: 'P0002' } };
+        if (p._hidden) { delete p._hidden; memberProfiles.push({ project_id: p.id, user_id: 'u1', role: 'member', display_name: 'Lina Berg', avatar: 'rocket', email: user.email }); persist(); }
+        return { data: p.id, error: null };
+      }
       if (name === 'feedback_admin_list') return { data: fb, error: null };
       if (name === 'feedback_admin_update') { const f = fb.find(x => x.id === params.p_id); Object.assign(f, { status: params.p_status, note: params.p_note || null }); return { data: null, error: null }; }
       return { data: null, error: { code: 'PGRST202' } };
     },
     auth: {
-      getSession: async () => ({ data: { session } }),
+      // sessionStorage mockLoggedOut = utloggad (för att testa login.html)
+      getSession: async () => ({ data: { session: sessionStorage.getItem('mockLoggedOut') ? null : session } }),
       onAuthStateChange: cb => { setTimeout(() => cb('INITIAL_SESSION', session)); return { data: { subscription: { unsubscribe() {} } } }; },
       updateUser: async ({ data }) => { Object.assign(user.user_metadata, data || {}); return { data: { user }, error: null }; },
       signOut: async () => ({ error: null }),
       signInWithPassword: async () => ({ error: null }),
+      signUp: async ({ email, options }) => {
+        const code = String(options?.data?.invite_code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (!tables.projects.some(p => p.invite_code === code)) return { data: {}, error: { message: 'Database error saving new user', status: 500 } };
+        if (email === 'finns@skola.se') return { data: {}, error: { message: 'User already registered', status: 422 } };
+        sessionStorage.setItem('mockSignUp', JSON.stringify({ email, options }));
+        sessionStorage.removeItem('mockLoggedOut');
+        return { data: { user, session }, error: null };
+      },
     },
   }) };
 })();

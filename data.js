@@ -112,7 +112,8 @@ const LossiData = (() => {
   let projectsPromise = null;
 
   async function fetchProjects() {
-    const rows = check(await db().from('projects').select('id, name, personal_owner, created_at').order('created_at'));
+    // Alla kolumner: invite_code finns först när steg 3 i projects.sql körts
+    const rows = check(await db().from('projects').select('*').order('created_at'));
     // Namn och avatar på medlemmarna; saknas funktionen än visas bara projekten
     let members = [];
     try {
@@ -124,6 +125,7 @@ const LossiData = (() => {
       id: String(r.id),
       name: r.name,
       personal: !!r.personal_owner,
+      inviteCode: r.invite_code || null,
       members: members.filter(m => String(m.project_id) === String(r.id)).map(m => ({
         userId: m.user_id, role: m.role, displayName: m.display_name || '', avatar: m.avatar || null, email: m.email || '',
       })),
@@ -147,6 +149,14 @@ const LossiData = (() => {
 
   function setCurrentProject(id) {
     try { localStorage.setItem(CURRENT_PROJECT_KEY, String(id)); } catch (e) {}
+  }
+
+  // Gå med i ett projekt med dess inbjudningskod; blir valt projekt. Returnerar projektets id.
+  async function joinProject(code) {
+    const id = String(check(await db().rpc('join_project', { code })));
+    projectsPromise = null;
+    setCurrentProject(id);
+    return id;
   }
 
   // Namn och avatar för en användare i något av ens projekt
@@ -318,7 +328,7 @@ const LossiData = (() => {
 
   return {
     listPlans, listMyPlans, loadPlan, loadPlanInfo, savePlan,
-    listProjects, currentProject, setCurrentProject, findMember, createPlan, deletePlan, flushOnLeave, onSaveStatus,
+    listProjects, currentProject, setCurrentProject, joinProject, findMember, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,
   };

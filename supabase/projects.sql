@@ -207,3 +207,156 @@ $$;
 
 revoke all on function public.project_member_profiles() from public, anon;
 grant execute on function public.project_member_profiles() to authenticated;
+
+
+-- ── Steg 3: inbjudningskod ──
+-- Varje delat projekt har en kod (8 tecken, utan lättförväxlade tecken som
+-- 0/O och 1/I). Alla medlemmar ser koden och kan dela den. Med koden kan
+-- man skapa ett konto (login.html) eller, om man redan har ett, gå med i
+-- projektet (Gå med med kod i projektväljaren). Egna projekt har ingen kod.
+--
+-- Konton kan bara skapas med en giltig kod: regeln lossi_require_invite_code
+-- stoppar alla andra nya konton, även de som skapas i Supabase-panelen.
+
+create or replace function public.new_invite_code()
+returns text
+language sql
+volatile
+set search_path = ''
+as $$
+  select string_agg(substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', (get_byte(b, i) % 31) + 1, 1), '' order by i)
+  from (select uuid_send(gen_random_uuid()) as b) r, generate_series(0, 7) i;
+$$;
+
+-- Skrivs med eller utan bindestreck/mellanslag, stora eller små bokstäver
+create or replace function public.normalize_invite_code(code text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select nullif(upper(regexp_replace(coalesce(code, ''), '[^A-Za-z0-9]', '', 'g')), '');
+$$;
+
+alter table public.projects add column if not exists invite_code text unique;
+
+update public.projects
+set invite_code = public.new_invite_code()
+where personal_owner is null and invite_code is null;
+
+-- Nya delade projekt får en kod direkt (egna projekt aldrig)
+create or replace function public.set_project_invite_code()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.personal_owner is not null then
+    new.invite_code := null;
+  elsif new.invite_code is null then
+    new.invite_code := public.new_invite_code();
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists lossi_project_invite_code on public.projects;
+create trigger lossi_project_invite_code
+  before insert or update of invite_code, personal_owner on public.projects
+  for each row execute function public.set_project_invite_code();
+
+-- Projektet som en kod hör till (null om koden inte finns)
+create or replace function public.project_for_invite_code(code text)
+returns bigint
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select id from public.projects
+  where personal_owner is null and invite_code = public.normalize_invite_code(code);
+$$;
+
+-- För sidan Skapa konto: projektets namn, så att man ser vart koden leder
+create or replace function public.invite_project_name(code text)
+returns text
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select name from public.projects where id = public.project_for_invite_code(code);
+$$;
+
+-- Inloggade med en kod: gå med i projektet. Returnerar projektets id.
+create or replace function public.join_project(code text)
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  pid bigint := public.project_for_invite_code(code);
+begin
+  if (select auth.uid()) is null then
+    raise exception 'Inte inloggad';
+  end if;
+  if pid is null then
+    raise exception 'Ogiltig inbjudningskod' using errcode = 'P0002';
+  end if;
+  insert into public.project_members (project_id, user_id, role)
+  values (pid, (select auth.uid()), 'member')
+  on conflict do nothing;
+  return pid;
+end;
+$$;
+
+-- Nya konton måste ha en giltig kod (skickas med som invite_code när kontot skapas)
+create or replace function public.require_invite_code()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if public.project_for_invite_code(new.raw_user_meta_data->>'invite_code') is null then
+    raise exception 'Ogiltig inbjudningskod' using errcode = 'P0002';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists lossi_require_invite_code on auth.users;
+create trigger lossi_require_invite_code
+  before insert on auth.users
+  for each row execute function public.require_invite_code();
+
+-- Nya konton: eget projekt + medlem i projektet som koden hör till
+create or replace function public.create_personal_project_for_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  pid bigint := public.project_for_invite_code(new.raw_user_meta_data->>'invite_code');
+begin
+  perform public.ensure_personal_project(new.id);
+  if pid is not null then
+    insert into public.project_members (project_id, user_id, role)
+    values (pid, new.id, 'member')
+    on conflict do nothing;
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.new_invite_code() from public, anon, authenticated;
+revoke all on function public.set_project_invite_code() from public, anon, authenticated;
+revoke all on function public.project_for_invite_code(text) from public, anon, authenticated;
+revoke all on function public.require_invite_code() from public, anon, authenticated;
+revoke all on function public.create_personal_project_for_new_user() from public, anon, authenticated;
+revoke all on function public.invite_project_name(text) from public;
+revoke all on function public.join_project(text) from public, anon;
+grant execute on function public.invite_project_name(text) to anon, authenticated;
+grant execute on function public.join_project(text) to authenticated;

@@ -372,6 +372,51 @@ body.activity-panel-resizing .page-frame {
 .aside-invite-close:hover { background: var(--color-aside-hover); color: var(--color-text-primary); }
 .aside-invite-close svg { width: 14px; height: 14px; }
 
+.aside-invite[role="button"] { cursor: pointer; transition: border-color 0.15s; }
+.aside-invite[role="button"]:hover { border-color: var(--color-text-tertiary); }
+
+/* Bjud in / Gå med (inviteModal, joinModal i theme.js) */
+.invite-lead { font-size: var(--font-size-base); color: var(--color-text-secondary); line-height: 1.5; }
+.invite-lead strong { color: var(--color-text-primary); font-weight: 600; }
+.invite-field { display: flex; flex-direction: column; gap: 6px; }
+.invite-field[hidden] { display: none; }
+.invite-label { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-text-secondary); }
+.invite-copy-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-hover);
+}
+.invite-code {
+  flex: 1;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.invite-link {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: all;
+}
+.invite-copy-btn { flex-shrink: 0; padding: 6px 12px; background: var(--color-bg-primary); }
+.invite-copy-btn svg { width: 14px; height: 14px; }
+.invite-members { display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; }
+.invite-member { display: flex; align-items: center; gap: 8px; font-size: var(--font-size-base); color: var(--color-text-primary); }
+.invite-member-avatar { width: 24px; height: 24px; flex-shrink: 0; }
+.invite-member-avatar .user-face-initials { font-size: 10px; }
+.invite-code-input { text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.invite-code-input::placeholder { letter-spacing: normal; font-weight: 400; }
+
 
 /* ============================================================
    TOPNAV  (Upplägg, Material, Skapa i app-topbaren)

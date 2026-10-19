@@ -408,6 +408,13 @@ function renderAppShell(options = {}) {
     });
   }
 
+  if (!document.getElementById('inviteModal')) {
+    document.body.insertAdjacentHTML('beforeend', buildInviteModalsHTML());
+    ['inviteModal', 'joinModal'].forEach(id => document.getElementById(id).addEventListener('click', e => {
+      if (e.target.id === id) document.getElementById(id).classList.remove('open');
+    }));
+  }
+
   if (!document.getElementById('passwordModal')) {
     document.body.insertAdjacentHTML('beforeend', buildPasswordModalHTML());
     document.getElementById('passwordModal').addEventListener('click', e => {
@@ -548,13 +555,13 @@ function buildAsideHTML() {
   </div>
 
   ${inviteDismissed ? '' : `
-  <div class="aside-invite is-soon" title="Inbjudningar kommer snart">
+  <div class="aside-invite" role="button" tabindex="0" onclick="openInviteOrJoin(event)" onkeydown="if (event.key === 'Enter') openInviteOrJoin(event)">
     <i data-lucide="user-plus" class="aside-invite-icon"></i>
     <div class="aside-invite-text">
-      <div class="aside-invite-title">Bjud in kollegor <span class="soon-badge">Snart</span></div>
-      <div class="aside-invite-sub">Snart kan du samarbeta med ditt team</div>
+      <div class="aside-invite-title" id="asideInviteTitle">Bjud in kollegor</div>
+      <div class="aside-invite-sub" id="asideInviteSub">Samarbeta med ditt team</div>
     </div>
-    <button class="aside-invite-close" onclick="dismissInvite()" title="Dölj"><i data-lucide="x"></i></button>
+    <button class="aside-invite-close" onclick="event.stopPropagation(); dismissInvite()" title="Dölj"><i data-lucide="x"></i></button>
   </div>`}`;
 }
 
@@ -606,12 +613,17 @@ async function renderProjectSwitcher(onProjectChange) {
           ${p.id === current.id ? '<i data-lucide="check" class="project-menu-check"></i>' : ''}
         </button>`).join('')}
       <div class="menu-popover-sep"></div>
-      <div class="project-menu-item is-soon" title="Kommer snart: gå med i en skolas projekt med en inbjudningskod">
+      ${current.personal ? '' : `
+      <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openInviteModal()">
+        <span class="project-menu-plain-icon"><i data-lucide="user-plus"></i></span>
+        <span class="project-menu-text"><span class="project-menu-name">Bjud in till ${escapeHTML(current.name)}</span></span>
+      </button>`}
+      <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openJoinModal()">
         <span class="project-menu-plain-icon"><i data-lucide="ticket"></i></span>
         <span class="project-menu-text"><span class="project-menu-name">Gå med med kod</span></span>
-        <span class="soon-badge">Snart</span>
-      </div>
+      </button>
     </div>`;
+  updateInviteCard(current);
 
   wrap.querySelectorAll('[data-project-id]').forEach(btn => btn.addEventListener('click', () => {
     const id = btn.dataset.projectId;
@@ -629,6 +641,199 @@ async function renderProjectSwitcher(onProjectChange) {
   }));
   if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [wrap] });
 }
+
+// ── Bjud in och gå med (inbjudningskod, supabase/projects.sql steg 3) ──
+// Alla medlemmar i ett delat projekt ser dess kod och en länk som öppnar
+// Skapa konto med koden ifylld. Egna projekt kan man inte bjuda in till.
+function inviteLink(code) {
+  return new URL('login.html?kod=' + encodeURIComponent(code), window.location.href).href;
+}
+
+function formatInviteCode(code) {
+  const raw = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+  return raw.length > 4 ? raw.slice(0, 4) + '-' + raw.slice(4) : raw;
+}
+
+// Kortet längst ner i sidopanelen: bjud in till valt projekt, eller gå med i ett
+function updateInviteCard(project) {
+  const title = document.getElementById('asideInviteTitle');
+  const sub = document.getElementById('asideInviteSub');
+  if (!title || !sub) return;
+  if (project && !project.personal) {
+    title.textContent = 'Bjud in kollegor';
+    sub.textContent = `Dela koden till ${project.name}`;
+  } else {
+    title.textContent = 'Gå med i ett projekt';
+    sub.textContent = 'Har du fått en kod från en kollega?';
+  }
+}
+
+async function openInviteOrJoin(e) {
+  if (e?.target.closest('.aside-invite-close')) return;
+  const project = await LossiData.currentProject().catch(() => null);
+  if (project && !project.personal) openInviteModal();
+  else openJoinModal();
+}
+
+function buildInviteModalsHTML() {
+  return `
+<div class="modal-overlay" id="inviteModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3 id="inviteModalTitle">Bjud in kollegor</h3>
+      <button class="modal-close" onclick="closeInviteModal()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="invite-lead">Kollegor som får koden kan skapa ett konto och hamnar direkt i projektet. Har de redan ett konto väljer de <strong>Gå med med kod</strong> i projektväljaren.</p>
+      <div class="invite-field">
+        <span class="invite-label">Inbjudningskod</span>
+        <div class="invite-copy-row">
+          <span class="invite-code" id="inviteCode"></span>
+          <button class="btn-ghost invite-copy-btn" onclick="copyInvite('code', this)"><i data-lucide="copy"></i><span>Kopiera</span></button>
+        </div>
+      </div>
+      <div class="invite-field">
+        <span class="invite-label">Eller skicka länken</span>
+        <div class="invite-copy-row">
+          <span class="invite-link" id="inviteLink"></span>
+          <button class="btn-ghost invite-copy-btn" onclick="copyInvite('link', this)"><i data-lucide="copy"></i><span>Kopiera</span></button>
+        </div>
+      </div>
+      <div class="invite-field" id="inviteMembersField">
+        <span class="invite-label" id="inviteMembersLabel">Medlemmar</span>
+        <div class="invite-members" id="inviteMembers"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="closeInviteModal()">Klar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="joinModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Gå med i ett projekt</h3>
+      <button class="modal-close" onclick="closeJoinModal()"><i data-lucide="x"></i></button>
+    </div>
+    <form class="modal-body" id="joinForm" onsubmit="event.preventDefault(); joinWithCode()">
+      <div class="field-group">
+        <label class="field-label" for="joinCode">Inbjudningskod</label>
+        <div class="field-group-content">
+          <input class="field-input invite-code-input" type="text" id="joinCode" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-1234" />
+        </div>
+      </div>
+      <p class="password-message" id="joinMessage" role="status" hidden></p>
+      <button type="submit" hidden></button>
+    </form>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeJoinModal()">Avbryt</button>
+      <button class="btn-primary" id="joinBtn" onclick="joinWithCode()">Gå med</button>
+    </div>
+  </div>
+</div>`;
+}
+
+let inviteProject = null;
+
+async function openInviteModal() {
+  let project;
+  try {
+    project = await LossiData.currentProject();
+  } catch (e) {
+    alert('Kunde inte hämta projektet. Ladda om sidan och försök igen.');
+    return;
+  }
+  if (!project || project.personal) return openJoinModal();
+  if (!project.inviteCode) {
+    alert('Projektet har ingen inbjudningskod än.');
+    return;
+  }
+  inviteProject = project;
+  document.getElementById('inviteModalTitle').textContent = `Bjud in till ${project.name}`;
+  document.getElementById('inviteCode').textContent = formatInviteCode(project.inviteCode);
+  document.getElementById('inviteLink').textContent = inviteLink(project.inviteCode);
+  const members = project.members;
+  document.getElementById('inviteMembersField').hidden = !members.length;
+  document.getElementById('inviteMembersLabel').textContent = `Medlemmar (${members.length})`;
+  const list = document.getElementById('inviteMembers');
+  list.innerHTML = members.map(m => {
+    const profile = { displayName: m.displayName, avatar: m.avatar, email: m.email };
+    return `<div class="invite-member"><span class="invite-member-avatar">${userAvatarHTML(profile)}</span><span>${escapeHTML(profileName(profile) || 'Okänd')}</span></div>`;
+  }).join('');
+  document.querySelectorAll('#inviteModal .invite-copy-btn span').forEach(el => { el.textContent = 'Kopiera'; });
+  document.getElementById('inviteModal').classList.add('open');
+  lucide.createIcons({ nodes: [document.getElementById('inviteModal')] });
+}
+
+function closeInviteModal() {
+  document.getElementById('inviteModal').classList.remove('open');
+}
+
+async function copyInvite(what, btn) {
+  if (!inviteProject) return;
+  const text = what === 'link' ? inviteLink(inviteProject.inviteCode) : formatInviteCode(inviteProject.inviteCode);
+  const label = btn.querySelector('span');
+  try {
+    await navigator.clipboard.writeText(text);
+    label.textContent = 'Kopierad!';
+  } catch (e) {
+    label.textContent = 'Markera och kopiera';
+  }
+  setTimeout(() => { label.textContent = 'Kopiera'; }, 2000);
+}
+
+function openJoinModal() {
+  document.getElementById('joinForm').reset();
+  showJoinMessage('');
+  document.getElementById('joinBtn').disabled = false;
+  document.getElementById('joinModal').classList.add('open');
+  document.getElementById('joinCode').focus();
+}
+
+function closeJoinModal() {
+  document.getElementById('joinModal').classList.remove('open');
+}
+
+function showJoinMessage(text, isError) {
+  const el = document.getElementById('joinMessage');
+  el.textContent = text;
+  el.classList.toggle('is-error', !!isError);
+  el.hidden = !text;
+}
+
+async function joinWithCode() {
+  const input = document.getElementById('joinCode');
+  const code = input.value;
+  if (code.replace(/[^A-Za-z0-9]/g, '').length < 8) {
+    showJoinMessage('Skriv inbjudningskoden (8 tecken).', true);
+    input.focus();
+    return;
+  }
+  const btn = document.getElementById('joinBtn');
+  btn.disabled = true;
+  try {
+    await LossiData.joinProject(code);
+    window.location.href = 'index.html';
+  } catch (e) {
+    console.warn('Kunde inte gå med i projektet:', e);
+    showJoinMessage(/inbjudningskod/i.test(e?.message || '') ? 'Koden finns inte. Kontrollera att du skrivit rätt.' : 'Något gick fel. Försök igen om en stund.', true);
+    btn.disabled = false;
+  }
+}
+
+document.addEventListener('input', e => {
+  if (e.target.id !== 'joinCode') return;
+  const formatted = formatInviteCode(e.target.value);
+  if (formatted !== e.target.value) e.target.value = formatted;
+  showJoinMessage('');
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  document.getElementById('inviteModal')?.classList.remove('open');
+  document.getElementById('joinModal')?.classList.remove('open');
+});
 
 function toggleProjectMenu(open) {
   const menu = document.getElementById('projectMenu');

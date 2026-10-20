@@ -69,7 +69,7 @@ begin
   select id into pid from public.projects where personal_owner = uid;
   if pid is null then
     insert into public.projects (name, personal_owner, created_by)
-    values ('Mina upplägg', uid, uid)
+    values ('Sandlådan', uid, uid)
     on conflict (personal_owner) do nothing
     returning id into pid;
     if pid is null then
@@ -661,3 +661,43 @@ $$;
 
 revoke all on function public.rename_project(bigint, text) from public, anon;
 grant execute on function public.rename_project(bigint, text) to authenticated;
+
+
+-- ── Steg 4d: det första projektet är ett projekt som alla andra ──
+-- Alla får ett första projekt ("Sandlådan") när kontot skapas. Det går att
+-- bjuda in till det och byta namn på det, precis som andra projekt. Det enda
+-- som skiljer: det kan inte tas bort, eftersom nya upplägg hamnar där som
+-- standard och upplägg från borttagna projekt flyttas dit (personal_owner
+-- markerar vilket projekt som är ens första).
+
+create or replace function public.set_project_invite_code()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.invite_code is null then
+    new.invite_code := public.new_invite_code();
+  end if;
+  return new;
+end;
+$$;
+
+create or replace function public.project_for_invite_code(code text)
+returns bigint
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select id from public.projects where invite_code = public.normalize_invite_code(code);
+$$;
+
+-- Koder till de första projekt som saknar en
+update public.projects set invite_code = public.new_invite_code() where invite_code is null;
+
+-- Det gamla standardnamnet byts till Sandlådan (namn som läraren själv valt lämnas)
+update public.projects set name = 'Sandlådan' where personal_owner is not null and name = 'Mina upplägg';
+
+revoke all on function public.set_project_invite_code() from public, anon, authenticated;
+revoke all on function public.project_for_invite_code(text) from public, anon, authenticated;

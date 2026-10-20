@@ -3,7 +3,7 @@
   const user = { id: 'u1', email: 'tobias.frithiofsson@gmail.com', app_metadata: { role: 'admin' }, user_metadata: { display_name: 'Lina Berg', avatar: 'rocket', demo_seeded: true } };
   const session = { user, access_token: 'mock' };
   const saved = JSON.parse(sessionStorage.getItem('mockDb') || 'null');
-  // Projekt: lärarens egna (1) och ett delat (2) där kollegan Kristoffer (u2) också är med
+  // Projekt: lärarens första (1, Sandlådan) och ett till (2) där kollegan Kristoffer (u2) också är med
   const tables = saved || {
     plans: [
       { id: 1, owner_id: 'u1', project_id: 1, state: { demo: true, demoKey: '1', title: 'Demokrati – grunderna och processerna', subject: 'Samhällskunskap', grade: '7–9', avatar: 'sailboat' } },
@@ -19,8 +19,8 @@
       { plan_id: 6, user_id: 'u1', status: 'approved' },
     ],
     projects: [
-      { id: 1, name: 'Mina upplägg', personal_owner: 'u1', created_at: '2026-10-19T10:00:00Z' },
-      { id: 2, name: 'Sandlådan', personal_owner: null, invite_code: 'K7P4M2QX', created_at: '2026-10-19T11:00:00Z' },
+      { id: 1, name: 'Sandlådan', personal_owner: 'u1', invite_code: 'SND2PQ7K', created_at: '2026-10-19T10:00:00Z' },
+      { id: 2, name: 'Engelska skolan', personal_owner: null, invite_code: 'K7P4M2QX', created_at: '2026-10-19T11:00:00Z' },
       // Ett projekt man inte är med i än (för Gå med med kod); filtreras bort tills man gått med
       { id: 3, name: 'Norra skolan', personal_owner: null, invite_code: 'NRSK2026', created_at: '2026-10-19T12:00:00Z', _hidden: true },
     ],

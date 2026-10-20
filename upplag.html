@@ -2669,8 +2669,8 @@
     const project = (await LossiData.listProjects().catch(() => [])).find(p => p.id === planProjectId);
     const approved = planEditors.filter(e => e.status === 'approved');
     const field = document.getElementById('coEditorsField');
-    // I ett eget projekt finns inga kollegor att dela med
-    field.hidden = !!project?.personal && !approved.length;
+    // Är man ensam i projektet finns inga kollegor att dela med
+    field.hidden = !!project && project.members.length <= 1 && !approved.length;
     const list = document.getElementById('coEditorsList');
     const people = await Promise.all(approved.map(async e => ({ ...e, profile: await personProfile(e.userId) })));
     list.innerHTML = people.length

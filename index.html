@@ -124,8 +124,8 @@
       const [user, project] = await Promise.all([LossiAuth.getUser(), LossiData.currentProject()]);
       me = user;
       projectMembers = project?.members || [];
-      // I det egna projektet är allt ens eget: inget Alla/Bara mina
-      const shared = project && !project.personal;
+      // Är man ensam i projektet är allt ens eget: inget Alla/Bara mina
+      const shared = !!project && project.members.length > 1;
       document.getElementById('ownerFilter').hidden = !shared;
       setOwnerFilter(shared ? ownerFilter : 'all');
       const [plans, requests] = await Promise.all([LossiData.listPlans({ projectId: project?.id }), editRequestCounts()]);

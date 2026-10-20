@@ -571,15 +571,16 @@ function buildAsideHTML() {
 // onProjectChange, om sidan själv vill rita om, som översikten).
 const PROJECT_COLORS = ['--color-avatar-6', '--color-avatar-2', '--color-avatar-3', '--color-avatar-4', '--color-avatar-5', '--color-avatar-1'];
 
+// Alla projekt är likadana; det första (personal) kan bara inte tas bort
 function projectIconHTML(project) {
-  const color = project.personal ? '--color-avatar-6' : PROJECT_COLORS[(Number(project.id) % (PROJECT_COLORS.length - 1)) + 1];
-  return `<span class="aside-project-icon" style="background: var(${color})"><i data-lucide="${project.personal ? 'lock' : 'users'}"></i></span>`;
+  const color = PROJECT_COLORS[Number(project.id) % PROJECT_COLORS.length];
+  return `<span class="aside-project-icon" style="background: var(${color})"><i data-lucide="users"></i></span>`;
 }
 
 function projectMetaText(project) {
-  if (project.personal) return 'Bara du';
   const n = project.members.length;
-  return n ? `${n} ${n === 1 ? 'medlem' : 'medlemmar'}` : 'Delat projekt';
+  if (n === 1) return 'Bara du';
+  return n ? `${n} medlemmar` : 'Projekt';
 }
 
 // Sidans onProjectChange (översikten ritar om i stället för att ladda om), så att namnbytet kan rita om väljaren
@@ -617,11 +618,10 @@ async function renderProjectSwitcher(onProjectChange) {
           ${p.id === current.id ? '<i data-lucide="check" class="project-menu-check"></i>' : ''}
         </button>`).join('')}
       <div class="menu-popover-sep"></div>
-      ${current.personal ? '' : `
       <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openInviteModal()">
         <span class="project-menu-plain-icon"><i data-lucide="user-plus"></i></span>
         <span class="project-menu-text"><span class="project-menu-name">Bjud in till ${escapeHTML(current.name)}</span></span>
-      </button>`}
+      </button>
       ${current.members.some(m => m.userId === user?.id && m.role === 'owner') || (current.personal && !current.members.length) ? `
       <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openRenameProjectModal()">
         <span class="project-menu-plain-icon"><i data-lucide="pencil"></i></span>
@@ -645,7 +645,7 @@ async function renderProjectSwitcher(onProjectChange) {
   // Nyss skapat projekt: visa koden direkt så att man kan bjuda in
   let openInvite = false;
   try { openInvite = sessionStorage.getItem('lossi-open-invite') === '1'; sessionStorage.removeItem('lossi-open-invite'); } catch (e) {}
-  if (openInvite && !current.personal) openInviteModal();
+  if (openInvite) openInviteModal();
 
   wrap.querySelectorAll('[data-project-id]').forEach(btn => btn.addEventListener('click', () => {
     const id = btn.dataset.projectId;
@@ -682,19 +682,14 @@ function updateInviteCard(project) {
   const title = document.getElementById('asideInviteTitle');
   const sub = document.getElementById('asideInviteSub');
   if (!title || !sub) return;
-  if (project && !project.personal) {
-    title.textContent = 'Bjud in kollegor';
-    sub.textContent = `Dela koden till ${project.name}`;
-  } else {
-    title.textContent = 'Samarbeta med kollegor';
-    sub.textContent = 'Skapa ett projekt eller gå med med kod';
-  }
+  title.textContent = 'Bjud in kollegor';
+  sub.textContent = project ? `Dela koden till ${project.name}` : 'Samarbeta med ditt team';
 }
 
 async function openInviteOrJoin(e) {
   if (e?.target.closest('.aside-invite-close')) return;
   const project = await LossiData.currentProject().catch(() => null);
-  if (project && !project.personal) openInviteModal();
+  if (project) openInviteModal();
   else toggleProjectMenu(true);
 }
 
@@ -767,7 +762,7 @@ function buildInviteModalsHTML() {
       <p class="invite-lead" id="deleteProjectText"></p>
       <ul class="delete-project-facts">
         <li>Alla medlemmar förlorar åtkomsten till projektet, och inbjudningskoden slutar fungera.</li>
-        <li>Inga upplägg försvinner: varje upplägg flyttas tillbaka till skaparens egna <strong>Mina upplägg</strong>.</li>
+        <li>Inga upplägg försvinner: varje upplägg flyttas tillbaka till skaparens första projekt (det man fick när kontot skapades).</li>
         <li>Medskapare förlorar sin redigeringsrätt på uppläggen.</li>
       </ul>
       <p class="password-message is-error" id="deleteProjectMessage" role="status" hidden></p>
@@ -836,7 +831,7 @@ async function openInviteModal() {
     alert('Kunde inte hämta projektet. Ladda om sidan och försök igen.');
     return;
   }
-  if (!project || project.personal) return openJoinModal();
+  if (!project) return openJoinModal();
   if (!project.inviteCode) {
     alert('Projektet har ingen inbjudningskod än.');
     return;

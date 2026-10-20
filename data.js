@@ -105,8 +105,9 @@ const LossiData = (() => {
   }
 
   // ── Projekt (supabase/projects.sql) ──
-  // Ett projekt = { id, name, personal, members: [{ userId, role, displayName, avatar, email }] }.
-  // Alla har ett eget projekt (personal); delade projekt har flera medlemmar.
+  // Ett projekt = { id, name, personal, inviteCode, members: [{ userId, role, displayName, avatar, email }] }.
+  // Alla får ett första projekt när kontot skapas (personal: nya upplägg hamnar
+  // där som standard och det kan inte tas bort); annars är alla projekt likadana.
   // Det valda projektet kommer man ihåg i webbläsaren.
   const CURRENT_PROJECT_KEY = 'lossi-project';
   let projectsPromise = null;

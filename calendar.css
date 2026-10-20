@@ -41,7 +41,6 @@
   gap: var(--space-2);
 }
 
-.cal-nav .btn-primary svg { width: 15px; height: 15px; }
 
 .cal-weekend-btn.is-active {
   background: var(--color-primary-light);

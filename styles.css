@@ -238,7 +238,6 @@ body.activity-panel-resizing .page-frame {
 .notif-text strong { color: var(--color-text-primary); font-weight: 600; }
 .notif-time { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
 .notif-actions { display: flex; gap: 6px; margin-top: 6px; }
-.notif-action { padding: 4px 12px; font-size: var(--font-size-sm); }
 .notif-done { font-size: var(--font-size-xs); color: var(--color-text-tertiary); margin-top: 2px; }
 .notif-link { font-size: var(--font-size-sm); font-weight: 500; color: var(--color-primary); text-decoration: none; margin-top: 4px; align-self: flex-start; }
 .notif-link:hover { text-decoration: underline; }
@@ -571,7 +570,7 @@ body.activity-panel-resizing .page-frame {
   white-space: nowrap;
   user-select: all;
 }
-.invite-copy-btn { flex-shrink: 0; padding: 6px 12px; background: var(--color-bg-primary); }
+.invite-copy-btn { flex-shrink: 0; background: var(--color-bg-primary); }
 .invite-code { white-space: nowrap; }
 .invite-email-row { display: flex; gap: 8px; }
 .invite-email-row .field-input { flex: 1; min-width: 0; }
@@ -1622,7 +1621,7 @@ body.activity-panel-resizing .page-frame {
 
 .share-popover-row { display: flex; gap: 8px; }
 .share-popover-row .field-input { flex: 1; }
-.share-popover-row .btn-primary { padding: 9px 14px; white-space: nowrap; }
+.share-popover-row .btn-primary { white-space: nowrap; }
 
 .plan-meta {
   display: flex;
@@ -3329,8 +3328,7 @@ body.read-mode .class-picker-trigger > svg { display: none; }
 .read-banner + .plan-header { padding-top: 20px; }
 .read-banner-actions { display: flex; gap: var(--space-2); flex-shrink: 0; }
 .read-banner-actions [hidden] { display: none; }
-.read-banner-btn-primary { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.read-banner-btn-primary svg { width: 14px; height: 14px; }
+.read-banner-btn-primary { flex-shrink: 0; }
 
 /* Skaparen: förfrågningar om att få redigera (en rad per person) */
 .request-banner { flex-direction: column; align-items: stretch; gap: var(--space-2); }
@@ -3468,8 +3466,6 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 }
 @keyframes btn-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .btn-spinner { animation-duration: 2s; } }
-.ai-actions .btn-primary { display: inline-flex; align-items: center; gap: 6px; }
-.ai-actions .btn-primary svg { width: 14px; height: 14px; }
 .ai-prompt, .ai-paste {
   width: 100%;
   resize: vertical;
@@ -3668,6 +3664,69 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 
 
 /* ============================================================
+   KNAPPAR – en knapp är en knapp: samma höjd för alla sorter
+   ============================================================
+   Textknappar: 500 i vikt, 6px 8px luft, 6px mellan ikon och text.
+   Ikonknappar är lika höga som textknapparna (och kvadratiska).
+   Den här delen ligger sist (före mobil) så att den gäller över
+   knapparnas äldre, enskilda storlekar längre upp. */
+:root { --btn-height: 32px; --btn-icon: 16px; }
+
+.btn-primary,
+.btn-ghost,
+.btn-danger,
+.btn-danger-solid,
+.status-btn,
+.topnav-create,
+.feedback-btn,
+.browse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--btn-height);
+  box-sizing: border-box;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.btn-primary svg,
+.btn-ghost svg,
+.btn-danger svg,
+.btn-danger-solid svg,
+.status-btn svg,
+.feedback-btn svg,
+.browse-btn svg { width: var(--btn-icon); height: var(--btn-icon); flex-shrink: 0; }
+
+.icon-btn,
+.notif-btn,
+.modal-close {
+  display: inline-grid;
+  place-items: center;
+  width: var(--btn-height);
+  height: var(--btn-height);
+  box-sizing: border-box;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.icon-btn svg,
+.notif-btn svg,
+.modal-close svg { width: var(--btn-icon); height: var(--btn-icon); }
+
+.btn-primary:disabled,
+.btn-ghost:disabled,
+.btn-danger:disabled,
+.btn-danger-solid:disabled { opacity: 0.6; cursor: default; }
+
+
+/* ============================================================
    MOBIL (≤ 760 px)
    Desktop påverkas inte. Sidopanelen blir en meny som glider in från
    vänster (☰ i topbaren), Detaljer hamnar under innehållet och
@@ -3699,7 +3758,7 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
   .topnav-link.is-soon,
   .topnav-calendar { display: none; }
   .topnav { margin-left: 0; }
-  .feedback-btn { padding: 8px; margin-right: 0; }
+  .feedback-btn { width: var(--btn-height); padding: 0; margin-right: 0; }
   .feedback-btn-label { display: none; }
 
   /* Sidopanelen som utdragbar meny */

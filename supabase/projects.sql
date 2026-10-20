@@ -701,3 +701,99 @@ update public.projects set name = 'Sandlådan' where personal_owner is not null 
 
 revoke all on function public.set_project_invite_code() from public, anon, authenticated;
 revoke all on function public.project_for_invite_code(text) from public, anon, authenticated;
+
+
+-- ── Steg 4e: projektinställningar ──
+-- Projektet får en avatar (samma uppsättning som lärarnas profilbilder,
+-- t.ex. "rocket"; tomt = projektets första bokstav). Ägaren kan ta bort
+-- medlemmar och medlemmar kan lämna. Inga upplägg försvinner: den som
+-- lämnar (eller tas bort) får sina upplägg i projektet flyttade till sitt
+-- första projekt.
+
+alter table public.projects add column if not exists avatar text
+  check (avatar is null or avatar ~ '^[a-z0-9-]{1,30}$');
+
+create or replace function public.set_project_avatar(pid bigint, avatar_id text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not exists (
+    select 1 from public.project_members m
+    where m.project_id = pid and m.user_id = (select auth.uid()) and m.role = 'owner'
+  ) then
+    raise exception 'Bara projektets ägare kan byta avatar' using errcode = '42501';
+  end if;
+  update public.projects set avatar = nullif(trim(avatar_id), '') where id = pid;
+end;
+$$;
+
+-- Gemensamt för "ta bort medlem" och "lämna": flytta personens upplägg och ta bort medlemskapet
+create or replace function public.drop_project_member(pid bigint, member uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform set_config('lossi.moving_plans', 'on', true);
+  update public.plans p
+  set project_id = public.ensure_personal_project(member)
+  where p.project_id = pid and p.owner_id = member;
+  perform set_config('lossi.moving_plans', 'off', true);
+  delete from public.project_members where project_id = pid and user_id = member;
+end;
+$$;
+
+-- Ägaren tar bort en medlem (inte en annan ägare, inte sig själv)
+create or replace function public.remove_project_member(pid bigint, member uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not exists (
+    select 1 from public.project_members m
+    where m.project_id = pid and m.user_id = (select auth.uid()) and m.role = 'owner'
+  ) then
+    raise exception 'Bara projektets ägare kan ta bort medlemmar' using errcode = '42501';
+  end if;
+  if member = (select auth.uid()) or exists (
+    select 1 from public.project_members m where m.project_id = pid and m.user_id = member and m.role = 'owner'
+  ) then
+    raise exception 'Ägare kan inte tas bort' using errcode = '42501';
+  end if;
+  perform public.drop_project_member(pid, member);
+end;
+$$;
+
+-- En medlem lämnar projektet (ägaren kan inte lämna; ta bort projektet i stället)
+create or replace function public.leave_project(pid bigint)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := (select auth.uid());
+begin
+  if not exists (select 1 from public.project_members m where m.project_id = pid and m.user_id = uid) then
+    raise exception 'Du är inte med i projektet' using errcode = 'P0002';
+  end if;
+  if exists (select 1 from public.project_members m where m.project_id = pid and m.user_id = uid and m.role = 'owner') then
+    raise exception 'Ägaren kan inte lämna projektet' using errcode = '42501';
+  end if;
+  perform public.drop_project_member(pid, uid);
+end;
+$$;
+
+revoke all on function public.set_project_avatar(bigint, text) from public, anon;
+revoke all on function public.drop_project_member(bigint, uuid) from public, anon, authenticated;
+revoke all on function public.remove_project_member(bigint, uuid) from public, anon;
+revoke all on function public.leave_project(bigint) from public, anon;
+grant execute on function public.set_project_avatar(bigint, text) to authenticated;
+grant execute on function public.remove_project_member(bigint, uuid) to authenticated;
+grant execute on function public.leave_project(bigint) to authenticated;

@@ -127,6 +127,7 @@ const LossiData = (() => {
       name: r.name,
       personal: !!r.personal_owner,
       inviteCode: r.invite_code || null,
+      avatar: r.avatar || null,
       members: members.filter(m => String(m.project_id) === String(r.id)).map(m => ({
         userId: m.user_id, role: m.role, displayName: m.display_name || '', avatar: m.avatar || null, email: m.email || '',
       })),
@@ -198,6 +199,25 @@ const LossiData = (() => {
     const saved = check(await db().rpc('rename_project', { pid: Number(id), project_name: name }));
     projectsPromise = null;
     return saved;
+  }
+
+  // Projektets avatar (id ur USER_AVATARS i theme.js; null = första bokstaven). Bara ägaren.
+  async function setProjectAvatar(id, avatar) {
+    check(await db().rpc('set_project_avatar', { pid: Number(id), avatar_id: avatar || '' }));
+    projectsPromise = null;
+  }
+
+  // Ägaren tar bort en medlem; personens upplägg flyttas till hens första projekt
+  async function removeProjectMember(id, userId) {
+    check(await db().rpc('remove_project_member', { pid: Number(id), member: userId }));
+    projectsPromise = null;
+  }
+
+  // Lämna projektet (inte ägaren); ens upplägg där flyttas till ens första projekt
+  async function leaveProject(id) {
+    check(await db().rpc('leave_project', { pid: Number(id) }));
+    projectsPromise = null;
+    try { localStorage.removeItem(CURRENT_PROJECT_KEY); } catch (e) {}
   }
 
   // Tar bort ett delat projekt (bara ägaren). Uppläggen flyttas till skaparnas egna projekt.
@@ -478,7 +498,7 @@ const LossiData = (() => {
 
   return {
     listPlans, listMyPlans, loadPlan, loadPlanInfo, savePlan,
-    listProjects, currentProject, setCurrentProject, createProject, renameProject, deleteProject, joinProject, findMember,
+    listProjects, currentProject, setCurrentProject, createProject, renameProject, setProjectAvatar, removeProjectMember, leaveProject, deleteProject, joinProject, findMember,
     listPlanEditors, listMyEditRequests, requestPlanEdit, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,

@@ -30,6 +30,7 @@
     { project_id: 1, user_id: 'u1', role: 'owner', display_name: 'Lina Berg', avatar: 'rocket', email: user.email },
     { project_id: 2, user_id: 'u1', role: 'owner', display_name: 'Lina Berg', avatar: 'rocket', email: user.email },
     { project_id: 2, user_id: 'u2', role: 'member', display_name: 'Kristoffer Ek', avatar: 'cat', email: 'kristoffer@skola.se' },
+    { project_id: 2, user_id: 'u3', role: 'member', display_name: 'Mange W', avatar: null, email: 'mange@skola.se' },
   ];
   const persist = () => sessionStorage.setItem('mockDb', JSON.stringify(tables));
   window.__mockDb = tables;
@@ -128,6 +129,20 @@
       if (name === 'remove_plan_editor') {
         const e = findEditor(params.pid, params.editor);
         if (e) editors.splice(editors.indexOf(e), 1);
+        persist();
+        return { data: null, error: null };
+      }
+      if (name === 'set_project_avatar') {
+        tables.projects.find(x => x.id === Number(params.pid)).avatar = params.avatar_id || null;
+        persist();
+        return { data: null, error: null };
+      }
+      if (name === 'remove_project_member' || name === 'leave_project') {
+        const uid = name === 'leave_project' ? user.id : params.member;
+        const i = memberProfiles.findIndex(m => m.project_id === Number(params.pid) && m.user_id === uid);
+        if (i >= 0) memberProfiles.splice(i, 1);
+        tables.plans.filter(p => p.project_id === Number(params.pid) && p.owner_id === uid).forEach(p => { p.project_id = uid === user.id ? 1 : 99; });
+        if (uid === user.id) tables.projects.find(x => x.id === Number(params.pid))._hidden = true;
         persist();
         return { data: null, error: null };
       }

@@ -410,7 +410,7 @@ function renderAppShell(options = {}) {
 
   if (!document.getElementById('inviteModal')) {
     document.body.insertAdjacentHTML('beforeend', buildInviteModalsHTML());
-    ['inviteModal', 'joinModal', 'createProjectModal', 'deleteProjectModal', 'renameProjectModal'].forEach(id => document.getElementById(id).addEventListener('click', e => {
+    ['inviteModal', 'joinModal', 'createProjectModal', 'deleteProjectModal', 'projectSettingsModal'].forEach(id => document.getElementById(id).addEventListener('click', e => {
       if (e.target.id === id) document.getElementById(id).classList.remove('open');
     }));
   }
@@ -571,16 +571,29 @@ function buildAsideHTML() {
 // onProjectChange, om sidan själv vill rita om, som översikten).
 const PROJECT_COLORS = ['--color-avatar-6', '--color-avatar-2', '--color-avatar-3', '--color-avatar-4', '--color-avatar-5', '--color-avatar-1'];
 
-// Alla projekt är likadana; det första (personal) kan bara inte tas bort
+// Alla projekt är likadana; det första (personal) kan bara inte tas bort.
+// Projektets avatar: en ur USER_AVATARS (ikon på färgtoning), eller projektets
+// första bokstav. Utan vald avatar får projektet en färg efter sitt id.
+function projectAvatarHTML(project, avatarId = project.avatar, extraClass = '') {
+  const chosen = USER_AVATARS.find(a => a.id === avatarId && a.icon);
+  const colors = chosen || USER_AVATARS[1 + (Number(project.id) % (USER_AVATARS.length - 1))];
+  const letter = (String(project.name || '?').trim()[0] || '?').toUpperCase();
+  const inner = chosen ? `<i data-lucide="${chosen.icon}"></i>` : `<span class="project-avatar-letter">${escapeHTML(letter)}</span>`;
+  return `<span class="project-avatar ${extraClass}" style="--face-a:${colors.a};--face-b:${colors.b}">${inner}</span>`;
+}
+
 function projectIconHTML(project) {
-  const color = PROJECT_COLORS[Number(project.id) % PROJECT_COLORS.length];
-  return `<span class="aside-project-icon" style="background: var(${color})"><i data-lucide="users"></i></span>`;
+  return projectAvatarHTML(project, project.avatar, 'aside-project-icon');
 }
 
 function projectMetaText(project) {
   const n = project.members.length;
   if (n === 1) return 'Bara du';
   return n ? `${n} medlemmar` : 'Projekt';
+}
+
+function isProjectOwner(project, user) {
+  return project.members.some(m => m.userId === user?.id && m.role === 'owner') || (project.personal && !project.members.length);
 }
 
 // Sidans onProjectChange (översikten ritar om i stället för att ladda om), så att namnbytet kan rita om väljaren
@@ -607,38 +620,32 @@ async function renderProjectSwitcher(onProjectChange) {
       <i data-lucide="chevrons-up-down" class="aside-project-chevron"></i>
     </button>
     <div class="project-menu" id="projectMenu" role="menu">
-      <div class="menu-popover-label">Dina projekt</div>
+      <div class="project-menu-head">
+        ${projectAvatarHTML(current, current.avatar, 'project-menu-head-avatar')}
+        <span class="project-menu-text">
+          <span class="project-menu-head-name">${escapeHTML(current.name)}</span>
+          <span class="project-menu-meta">${escapeHTML(projectMetaText(current))}</span>
+        </span>
+      </div>
+      <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openProjectSettings()">
+        <i data-lucide="settings" class="project-menu-glyph"></i><span class="project-menu-name">Inställningar</span>
+      </button>
+      <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openInviteModal()">
+        <i data-lucide="user-plus" class="project-menu-glyph"></i><span class="project-menu-name">Bjud in medlemmar</span>
+      </button>
+      <div class="menu-popover-sep"></div>
+      <div class="project-menu-label">Dina projekt</div>
       ${projects.map(p => `
-        <button type="button" class="project-menu-item${p.id === current.id ? ' is-current' : ''}" role="menuitemradio" aria-checked="${p.id === current.id}" data-project-id="${p.id}">
-          ${projectIconHTML(p)}
-          <span class="project-menu-text">
-            <span class="project-menu-name">${escapeHTML(p.name)}</span>
-            <span class="project-menu-meta">${escapeHTML(projectMetaText(p))}</span>
-          </span>
+        <button type="button" class="project-menu-item${p.id === current.id ? ' is-current' : ''}" role="menuitemradio" aria-checked="${p.id === current.id}" data-project-id="${p.id}" title="${escapeHTML(p.name)} · ${escapeHTML(projectMetaText(p))}">
+          ${projectAvatarHTML(p, p.avatar, 'project-menu-avatar')}
+          <span class="project-menu-name">${escapeHTML(p.name)}</span>
           ${p.id === current.id ? '<i data-lucide="check" class="project-menu-check"></i>' : ''}
         </button>`).join('')}
-      <div class="menu-popover-sep"></div>
-      <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openInviteModal()">
-        <span class="project-menu-plain-icon"><i data-lucide="user-plus"></i></span>
-        <span class="project-menu-text"><span class="project-menu-name">Bjud in till ${escapeHTML(current.name)}</span></span>
-      </button>
-      ${current.members.some(m => m.userId === user?.id && m.role === 'owner') || (current.personal && !current.members.length) ? `
-      <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openRenameProjectModal()">
-        <span class="project-menu-plain-icon"><i data-lucide="pencil"></i></span>
-        <span class="project-menu-text"><span class="project-menu-name">Byt namn på ${escapeHTML(current.name)}</span></span>
-      </button>` : ''}
-      ${!current.personal && current.members.some(m => m.userId === user?.id && m.role === 'owner') ? `
-      <button type="button" class="project-menu-item is-danger" onclick="toggleProjectMenu(false); openDeleteProjectModal()">
-        <span class="project-menu-plain-icon"><i data-lucide="trash-2"></i></span>
-        <span class="project-menu-text"><span class="project-menu-name">Ta bort ${escapeHTML(current.name)}</span></span>
-      </button>` : ''}
-      <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openCreateProjectModal()">
-        <span class="project-menu-plain-icon"><i data-lucide="folder-plus"></i></span>
-        <span class="project-menu-text"><span class="project-menu-name">Skapa projekt</span></span>
+      <button type="button" class="project-menu-item is-accent" onclick="toggleProjectMenu(false); openCreateProjectModal()">
+        <i data-lucide="plus" class="project-menu-glyph"></i><span class="project-menu-name">Nytt projekt</span>
       </button>
       <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openJoinModal()">
-        <span class="project-menu-plain-icon"><i data-lucide="ticket"></i></span>
-        <span class="project-menu-text"><span class="project-menu-name">Gå med med kod</span></span>
+        <i data-lucide="ticket" class="project-menu-glyph"></i><span class="project-menu-name">Gå med med kod</span>
       </button>
     </div>`;
   updateInviteCard(current);
@@ -774,26 +781,13 @@ function buildInviteModalsHTML() {
   </div>
 </div>
 
-<div class="modal-overlay" id="renameProjectModal">
-  <div class="modal modal-sm">
+<div class="modal-overlay" id="projectSettingsModal">
+  <div class="modal modal-md">
     <div class="modal-header">
-      <h3>Byt namn på projektet</h3>
-      <button class="modal-close" onclick="closeRenameProjectModal()"><i data-lucide="x"></i></button>
+      <h3>Projektinställningar</h3>
+      <button class="modal-close" onclick="closeProjectSettings()"><i data-lucide="x"></i></button>
     </div>
-    <form class="modal-body" id="renameProjectForm" onsubmit="event.preventDefault(); renameProjectFromModal()">
-      <div class="field-group">
-        <label class="field-label" for="renameProjectName">Namn</label>
-        <div class="field-group-content">
-          <input class="field-input" type="text" id="renameProjectName" maxlength="60" autocomplete="off" oninput="showRenameProjectMessage('')" />
-        </div>
-      </div>
-      <p class="password-message" id="renameProjectMessage" role="status" hidden></p>
-      <button type="submit" hidden></button>
-    </form>
-    <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeRenameProjectModal()">Avbryt</button>
-      <button class="btn-primary" id="renameProjectBtn" onclick="renameProjectFromModal()">Spara</button>
-    </div>
+    <div class="modal-body project-settings" id="projectSettingsBody"></div>
   </div>
 </div>
 
@@ -861,61 +855,192 @@ async function copyInvite(what, btn) {
   if (!inviteProject) return;
   const text = what === 'link' ? inviteLink(inviteProject.inviteCode) : formatInviteCode(inviteProject.inviteCode);
   const label = btn.querySelector('span');
+  label.dataset.label = label.dataset.label || label.textContent;
   try {
     await navigator.clipboard.writeText(text);
     label.textContent = 'Kopierad!';
   } catch (e) {
     label.textContent = 'Markera och kopiera';
   }
-  setTimeout(() => { label.textContent = 'Kopiera'; }, 2000);
+  setTimeout(() => { label.textContent = label.dataset.label; }, 2000);
 }
 
-let projectToRename = null;
+// ── Projektinställningar ──
+// Allmänt (avatar + namn, ägaren ändrar), Medlemmar (ägaren kan ta bort),
+// Bjud in (kod + länk) och längst ner Ta bort projektet / Lämna projektet.
+let settingsProject = null;
+let settingsUser = null;
+let settingsAvatar = null;
 
-async function openRenameProjectModal() {
-  const project = await LossiData.currentProject().catch(() => null);
-  if (!project) return;
-  projectToRename = project;
-  const input = document.getElementById('renameProjectName');
-  input.value = project.name;
-  showRenameProjectMessage('');
-  document.getElementById('renameProjectBtn').disabled = false;
-  document.getElementById('renameProjectModal').classList.add('open');
-  input.focus();
-  input.select();
-}
-
-function closeRenameProjectModal() {
-  document.getElementById('renameProjectModal').classList.remove('open');
-}
-
-function showRenameProjectMessage(text) {
-  const el = document.getElementById('renameProjectMessage');
-  el.textContent = text;
-  el.classList.toggle('is-error', !!text);
-  el.hidden = !text;
-}
-
-async function renameProjectFromModal() {
-  if (!projectToRename) return;
-  const input = document.getElementById('renameProjectName');
-  const name = input.value.trim().replace(/\s+/g, ' ');
-  if (!name) {
-    showRenameProjectMessage('Ge projektet ett namn.');
-    input.focus();
+async function openProjectSettings() {
+  try {
+    [settingsProject, settingsUser] = await Promise.all([LossiData.currentProject(), LossiAuth.getUser()]);
+  } catch (e) {
+    alert('Kunde inte hämta projektet. Ladda om sidan och försök igen.');
     return;
   }
-  if (name === projectToRename.name) return closeRenameProjectModal();
-  const btn = document.getElementById('renameProjectBtn');
+  if (!settingsProject) return;
+  settingsAvatar = settingsProject.avatar;
+  inviteProject = settingsProject;
+  renderProjectSettings();
+  document.getElementById('projectSettingsModal').classList.add('open');
+}
+
+function closeProjectSettings() {
+  document.getElementById('projectSettingsModal').classList.remove('open');
+}
+
+function renderProjectSettings() {
+  const p = settingsProject;
+  const owner = isProjectOwner(p, settingsUser);
+  const members = p.members.slice().sort((a, b) => (b.role === 'owner') - (a.role === 'owner'));
+  const body = document.getElementById('projectSettingsBody');
+  body.innerHTML = `
+    <section class="settings-section">
+      <h4 class="settings-heading">Allmänt</h4>
+      <div class="settings-general">
+        <span class="settings-avatar-preview" id="settingsAvatarPreview">${projectAvatarHTML(p, settingsAvatar)}</span>
+        <div class="settings-name">
+          <label class="invite-label" for="settingsName">Namn</label>
+          <input class="field-input" type="text" id="settingsName" maxlength="60" autocomplete="off" value="${escapeHTML(p.name)}" ${owner ? '' : 'disabled'} oninput="onSettingsNameInput()" />
+        </div>
+      </div>
+      ${owner ? `
+      <div class="settings-avatar-grid" role="radiogroup" aria-label="Projektets avatar">
+        ${USER_AVATARS.map(a => `
+          <button type="button" class="settings-avatar-option${(settingsAvatar || 'initials') === a.id ? ' is-selected' : ''}" role="radio" aria-checked="${(settingsAvatar || 'initials') === a.id}" title="${escapeHTML(a.id === 'initials' ? 'Bokstav' : a.label)}" onclick="pickSettingsAvatar('${a.id}')">
+            ${projectAvatarHTML(p, a.id === 'initials' ? null : a.id)}
+          </button>`).join('')}
+      </div>
+      <div class="settings-actions">
+        <p class="password-message" id="settingsMessage" role="status" hidden></p>
+        <button type="button" class="btn-primary" id="settingsSaveBtn" onclick="saveProjectSettings()" disabled>Spara</button>
+      </div>` : '<p class="settings-note">Bara projektets ägare kan ändra namn och avatar.</p>'}
+    </section>
+
+    <section class="settings-section">
+      <h4 class="settings-heading">Medlemmar <span class="settings-count">${members.length}</span></h4>
+      <div class="settings-members">
+        ${members.map(m => {
+          const profile = { displayName: m.displayName, avatar: m.avatar, email: m.email };
+          const me = m.userId === settingsUser?.id;
+          return `
+          <div class="settings-member">
+            <span class="settings-member-avatar">${userAvatarHTML(profile)}</span>
+            <span class="settings-member-text">
+              <span class="settings-member-name">${escapeHTML(profileName(profile) || 'Okänd')}${me ? ' <span class="settings-you">(du)</span>' : ''}</span>
+              <span class="settings-member-email">${escapeHTML(m.email || '')}</span>
+            </span>
+            <span class="settings-role">${m.role === 'owner' ? 'Ägare' : 'Medlem'}</span>
+            ${owner && m.role !== 'owner' ? `<button type="button" class="settings-member-remove" onclick="removeMemberFromSettings('${m.userId}')">Ta bort</button>` : ''}
+          </div>`;
+        }).join('') || '<p class="settings-note">Inga medlemmar att visa.</p>'}
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h4 class="settings-heading">Bjud in</h4>
+      <p class="settings-note">Kollegor som får koden kan skapa ett konto och hamnar direkt i projektet. Har de redan ett konto väljer de <strong>Gå med med kod</strong> i projektväljaren.</p>
+      ${p.inviteCode ? `
+      <div class="invite-copy-row">
+        <span class="invite-code">${escapeHTML(formatInviteCode(p.inviteCode))}</span>
+        <button class="btn-ghost invite-copy-btn" onclick="copyInvite('code', this)"><i data-lucide="copy"></i><span>Kopiera kod</span></button>
+      </div>
+      <div class="invite-copy-row">
+        <span class="invite-link">${escapeHTML(inviteLink(p.inviteCode))}</span>
+        <button class="btn-ghost invite-copy-btn" onclick="copyInvite('link', this)"><i data-lucide="copy"></i><span>Kopiera länk</span></button>
+      </div>` : '<p class="settings-note">Projektet har ingen inbjudningskod än.</p>'}
+    </section>
+
+    <section class="settings-section settings-danger">
+      ${owner
+        ? (p.personal
+          ? '<p class="settings-note">Det här är ditt första projekt. Det kan inte tas bort, eftersom nya upplägg hamnar här och upplägg från borttagna projekt flyttas hit.</p>'
+          : `<div class="settings-danger-row"><span><strong>Ta bort projektet</strong><span class="settings-note">Uppläggen flyttas tillbaka till respektive skapare.</span></span><button type="button" class="btn-danger" onclick="closeProjectSettings(); openDeleteProjectModal()"><i data-lucide="trash-2"></i>Ta bort</button></div>`)
+        : `<div class="settings-danger-row"><span><strong>Lämna projektet</strong><span class="settings-note">Dina upplägg här flyttas till ditt första projekt.</span></span><button type="button" class="btn-danger" onclick="leaveProjectFromSettings()"><i data-lucide="log-out"></i>Lämna</button></div>`}
+    </section>`;
+  lucide.createIcons({ nodes: [body] });
+}
+
+function settingsChanged() {
+  const name = document.getElementById('settingsName')?.value.trim().replace(/\s+/g, ' ');
+  return !!name && (name !== settingsProject.name || (settingsAvatar || null) !== (settingsProject.avatar || null));
+}
+
+function onSettingsNameInput() {
+  const btn = document.getElementById('settingsSaveBtn');
+  if (btn) btn.disabled = !settingsChanged();
+  const msg = document.getElementById('settingsMessage');
+  if (msg) msg.hidden = true;
+  // Bokstaven i förhandsvisningen följer namnet
+  document.getElementById('settingsAvatarPreview').innerHTML = projectAvatarHTML({ ...settingsProject, name: document.getElementById('settingsName').value }, settingsAvatar);
+  lucide.createIcons({ nodes: [document.getElementById('settingsAvatarPreview')] });
+}
+
+function pickSettingsAvatar(id) {
+  settingsAvatar = id === 'initials' ? null : id;
+  document.querySelectorAll('.settings-avatar-option').forEach(b => {
+    const on = b.getAttribute('onclick').includes(`'${id}'`);
+    b.classList.toggle('is-selected', on);
+    b.setAttribute('aria-checked', String(on));
+  });
+  onSettingsNameInput();
+}
+
+async function saveProjectSettings() {
+  const p = settingsProject;
+  const name = document.getElementById('settingsName').value.trim().replace(/\s+/g, ' ');
+  const msg = document.getElementById('settingsMessage');
+  if (!name) {
+    msg.textContent = 'Ge projektet ett namn.';
+    msg.className = 'password-message is-error';
+    msg.hidden = false;
+    return;
+  }
+  const btn = document.getElementById('settingsSaveBtn');
   btn.disabled = true;
   try {
-    await LossiData.renameProject(projectToRename.id, name);
-    closeRenameProjectModal();
+    if (name !== p.name) await LossiData.renameProject(p.id, name);
+    if ((settingsAvatar || null) !== (p.avatar || null)) await LossiData.setProjectAvatar(p.id, settingsAvatar);
+    settingsProject = await LossiData.currentProject();
+    renderProjectSwitcher(projectSwitcherOnChange);
+    renderProjectSettings();
+    const saved = document.getElementById('settingsMessage');
+    saved.textContent = 'Sparat.';
+    saved.className = 'password-message';
+    saved.hidden = false;
+  } catch (e) {
+    console.warn('Kunde inte spara projektet:', e);
+    msg.textContent = 'Kunde inte spara. Försök igen om en stund.';
+    msg.className = 'password-message is-error';
+    msg.hidden = false;
+    btn.disabled = false;
+  }
+}
+
+async function removeMemberFromSettings(userId) {
+  const m = settingsProject.members.find(x => x.userId === userId);
+  const name = profileName({ displayName: m?.displayName || '', email: m?.email || '' }) || 'medlemmen';
+  if (!confirm(`Ta bort ${name} från ${settingsProject.name}? ${name} förlorar åtkomsten, och hens upplägg här flyttas till hens första projekt.`)) return;
+  try {
+    await LossiData.removeProjectMember(settingsProject.id, userId);
+    settingsProject = await LossiData.currentProject();
+    renderProjectSettings();
     renderProjectSwitcher(projectSwitcherOnChange);
   } catch (e) {
-    console.warn('Kunde inte byta namn på projektet:', e);
-    showRenameProjectMessage('Kunde inte spara namnet. Försök igen om en stund.');
-    btn.disabled = false;
+    console.warn('Kunde inte ta bort medlemmen:', e);
+    alert('Kunde inte ta bort medlemmen. Försök igen om en stund.');
+  }
+}
+
+async function leaveProjectFromSettings() {
+  if (!confirm(`Lämna ${settingsProject.name}? Dina upplägg här flyttas till ditt första projekt, och du behöver en ny kod för att gå med igen.`)) return;
+  try {
+    await LossiData.leaveProject(settingsProject.id);
+    window.location.href = 'index.html';
+  } catch (e) {
+    console.warn('Kunde inte lämna projektet:', e);
+    alert('Kunde inte lämna projektet. Försök igen om en stund.');
   }
 }
 
@@ -1044,7 +1169,7 @@ document.addEventListener('input', e => {
 
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  ['inviteModal', 'joinModal', 'createProjectModal', 'deleteProjectModal', 'renameProjectModal'].forEach(id => document.getElementById(id)?.classList.remove('open'));
+  ['inviteModal', 'joinModal', 'createProjectModal', 'deleteProjectModal', 'projectSettingsModal'].forEach(id => document.getElementById(id)?.classList.remove('open'));
 });
 
 function toggleProjectMenu(open) {

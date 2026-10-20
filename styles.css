@@ -3278,6 +3278,12 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 .person-remove:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
 .person-remove svg { width: 14px; height: 14px; }
 .people-empty { font-size: var(--font-size-base); color: var(--color-text-tertiary); }
+.co-editor-add { margin-top: 6px; }
+.co-editor-add[hidden] { display: none; }
+#coEditorsList:empty + .co-editor-add { margin-top: 0; }
+.co-editor-add .class-tag { display: inline-flex; align-items: center; gap: 4px; }
+.co-editor-add .class-tag svg { width: 13px; height: 13px; }
+.choice-option-meta { display: block; font-size: var(--font-size-xs); color: var(--color-text-tertiary); overflow: hidden; text-overflow: ellipsis; }
 
 
 /* ============================================================

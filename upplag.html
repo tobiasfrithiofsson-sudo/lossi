@@ -894,10 +894,26 @@
               </div>
             </span>
           </div>
-          <!-- Medskapare: får redigera; skaparen kan ta bort dem (renderPlanPeople) -->
+          <!-- Medskapare: får redigera. Visas när projektet har minst två medlemmar;
+               skaparen väljer bland medlemmarna (som Klass) och kan ta bort dem (renderPlanPeople) -->
           <div class="read-field read-field-top" id="coEditorsField" hidden>
             <span class="read-field-label">Medskapare</span>
-            <div class="read-field-value people-list" id="coEditorsList"></div>
+            <div class="read-field-value">
+              <div class="people-list" id="coEditorsList"></div>
+              <div class="popover-wrap co-editor-add" id="coEditorAdd" onclick="event.stopPropagation()" hidden>
+                <div class="class-picker-trigger" onclick="openChoiceMenu(this, coEditorChoices)" title="Välj medlemmar som får redigera upplägget">
+                  <span class="class-tag is-empty"><i data-lucide="plus"></i>Lägg till medskapare</span>
+                </div>
+                <div class="menu-popover choice-menu" id="coEditorMenu">
+                  <div class="choice-search">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="coEditorInput" placeholder="Sök bland medlemmarna…" autocomplete="off" maxlength="60"
+                      role="combobox" aria-expanded="true" aria-controls="coEditorOptions" aria-autocomplete="list" />
+                  </div>
+                  <div class="choice-options" id="coEditorOptions" role="listbox" aria-label="Projektets medlemmar"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1697,7 +1713,7 @@
     setTimeout(() => menu.querySelector('input').focus(), 0);
   }
 
-  ['classInput', 'subjectInput'].forEach(id => {
+  ['classInput', 'subjectInput', 'coEditorInput'].forEach(id => {
     document.getElementById(id).addEventListener('keydown', e => {
       if (e.key === 'Escape') closeAllMenuPopovers();
     });
@@ -2688,10 +2704,12 @@
     chip.innerHTML = personChipHTML(owner);
 
     const project = (await LossiData.listProjects().catch(() => [])).find(p => p.id === planProjectId);
+    planProjectMembers = project?.members || [];
     const approved = planEditors.filter(e => e.status === 'approved');
     const field = document.getElementById('coEditorsField');
-    // Är man ensam i projektet finns inga kollegor att dela med
-    field.hidden = !!project && project.members.length <= 1 && !approved.length;
+    // Medskapare är bara relevant när projektet har minst två medlemmar
+    field.hidden = planProjectMembers.length < 2 && !approved.length;
+    document.getElementById('coEditorAdd').hidden = !planIsOwner || planReadOnly || planProjectMembers.length < 2;
     const list = document.getElementById('coEditorsList');
     const people = await Promise.all(approved.map(async e => ({ ...e, profile: await personProfile(e.userId) })));
     list.innerHTML = people.length
@@ -2700,8 +2718,8 @@
           <div class="author-chip">${personChipHTML(p.profile)}</div>
           ${planIsOwner ? `<button type="button" class="person-remove" onclick="removeCoEditor('${p.userId}')" title="Ta bort som medskapare" aria-label="Ta bort ${escapeHTML(profileName(p.profile) || 'medskaparen')} som medskapare"><i data-lucide="x"></i></button>` : ''}
         </div>`).join('')
-      : `<span class="people-empty">${planIsOwner ? 'Inga än. Kollegor i projektet kan be om att få redigera.' : 'Inga än'}</span>`;
-    lucide.createIcons({ nodes: [chip, list] });
+      : (planIsOwner ? '' : '<span class="people-empty">Inga än</span>');
+    lucide.createIcons({ nodes: [chip, list, document.getElementById('coEditorAdd')] });
     renderEditRequests();
   }
 
@@ -2734,6 +2752,54 @@
     } catch (e) {
       console.warn('Kunde inte svara på förfrågan:', e);
       alert('Kunde inte spara ditt svar. Försök igen om en stund.');
+    }
+  }
+
+  // Välj medskapare bland projektets medlemmar (samma lista som Klass, men utan "Lägg till …")
+  let planProjectMembers = [];
+
+  function memberLabel(m) {
+    return profileName({ displayName: m.displayName, email: m.email || '' }) || 'Okänd';
+  }
+
+  function coEditorCandidates() {
+    const taken = new Set(planEditors.filter(e => e.status === 'approved').map(e => e.userId));
+    return planProjectMembers.filter(m => m.userId !== planOwnerId && !taken.has(m.userId));
+  }
+
+  const coEditorChoices = createChoiceList({
+    input: document.getElementById('coEditorInput'),
+    list: document.getElementById('coEditorOptions'),
+    allowAdd: false,
+    getItems: () => coEditorCandidates().map(m => ({ name: memberLabel(m), meta: m.email })),
+    emptyText: 'Alla i projektet är redan medskapare.',
+    onPick: name => {
+      const member = coEditorCandidates().find(m => memberLabel(m) === name);
+      if (member) addCoEditor(member.userId);
+    },
+  });
+
+  async function addCoEditor(userId) {
+    try {
+      await LossiData.addPlanEditor(planKey, userId);
+      const existing = planEditors.find(e => e.userId === userId);
+      if (existing) existing.status = 'approved';
+      else planEditors.push({ userId, status: 'approved' });
+      await renderPlanPeople();
+      // Menyn står kvar öppen (under knappen, som flyttats ner) så att man kan välja fler
+      const trigger = document.querySelector('#coEditorAdd .class-picker-trigger');
+      const menu = document.getElementById('coEditorMenu');
+      if (menu.classList.contains('open')) {
+        const rect = trigger.getBoundingClientRect();
+        menu.style.top = rect.bottom + 6 + 'px';
+        menu.style.right = window.innerWidth - rect.right + 'px';
+      }
+      coEditorChoices.reset();
+      document.getElementById('coEditorInput').focus();
+      renderAsidePlans(planKey).catch(() => {});
+    } catch (e) {
+      console.warn('Kunde inte lägga till medskaparen:', e);
+      alert('Kunde inte lägga till medskaparen. Försök igen om en stund.');
     }
   }
 

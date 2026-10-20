@@ -120,6 +120,12 @@
         persist();
         return { data: findEditor(params.pid, user.id).status, error: null };
       }
+      if (name === 'add_plan_editor') {
+        const e = findEditor(params.pid, params.editor);
+        if (e) e.status = 'approved'; else editors.push({ plan_id: Number(params.pid), user_id: params.editor, status: 'approved' });
+        persist();
+        return { data: null, error: null };
+      }
       if (name === 'decide_plan_edit') {
         const e = findEditor(params.pid, params.editor);
         if (params.approve) e.status = 'approved'; else editors.splice(editors.indexOf(e), 1);

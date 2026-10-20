@@ -797,3 +797,35 @@ revoke all on function public.leave_project(bigint) from public, anon;
 grant execute on function public.set_project_avatar(bigint, text) to authenticated;
 grant execute on function public.remove_project_member(bigint, uuid) to authenticated;
 grant execute on function public.leave_project(bigint) to authenticated;
+
+
+-- ── Steg 4f: skaparen lägger till medskapare direkt ──
+-- Skaparen väljer bland projektets medlemmar (som Klass i Detaljer). Har
+-- personen redan bett om rätt godkänns förfrågan.
+create or replace function public.add_plan_editor(pid bigint, editor uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  p record;
+begin
+  if not public.is_plan_owner(pid) then
+    raise exception 'Bara skaparen kan lägga till medskapare' using errcode = '42501';
+  end if;
+  select owner_id, project_id into p from public.plans where id = pid;
+  if editor = p.owner_id then
+    raise exception 'Skaparen kan redan redigera' using errcode = '22023';
+  end if;
+  if not exists (select 1 from public.project_members m where m.project_id = p.project_id and m.user_id = editor) then
+    raise exception 'Personen är inte med i projektet' using errcode = 'P0002';
+  end if;
+  insert into public.plan_editors (plan_id, user_id, status, decided_at)
+  values (pid, editor, 'approved', now())
+  on conflict (plan_id, user_id) do update set status = 'approved', decided_at = now();
+end;
+$$;
+
+revoke all on function public.add_plan_editor(bigint, uuid) from public, anon;
+grant execute on function public.add_plan_editor(bigint, uuid) to authenticated;

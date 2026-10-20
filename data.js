@@ -185,6 +185,11 @@ const LossiData = (() => {
     return check(await db().rpc('request_plan_edit', { pid: Number(planId) }));
   }
 
+  // Skaparen gör en projektmedlem till medskapare direkt
+  async function addPlanEditor(planId, userId) {
+    check(await db().rpc('add_plan_editor', { pid: Number(planId), editor: userId }));
+  }
+
   async function decidePlanEdit(planId, userId, approve) {
     check(await db().rpc('decide_plan_edit', { pid: Number(planId), editor: userId, approve }));
   }
@@ -499,7 +504,7 @@ const LossiData = (() => {
   return {
     listPlans, listMyPlans, loadPlan, loadPlanInfo, savePlan,
     listProjects, currentProject, setCurrentProject, createProject, renameProject, setProjectAvatar, removeProjectMember, leaveProject, deleteProject, joinProject, findMember,
-    listPlanEditors, listMyEditRequests, requestPlanEdit, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,
+    listPlanEditors, listMyEditRequests, requestPlanEdit, addPlanEditor, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,
     listPlanFiles, uploadPlanFile, deletePlanFiles, fileDownloadUrl, fileProblem, FILE_MAX_BYTES,

@@ -135,7 +135,8 @@ function planFieldValues(field) {
 //   emptyText      – visas när det inte finns några förslag alls
 //   inline         – listan visas under fältet när det har fokus (Skapa-dialogen);
 //                    annars ligger den i en popover som öppnas på annat sätt
-function createChoiceList({ input, list, getItems, getCurrent = () => '', onPick, onForget, emptyText, inline = false }) {
+//   allowAdd       – false: bara befintliga val (inget "Lägg till …"), t.ex. projektets medlemmar
+function createChoiceList({ input, list, getItems, getCurrent = () => '', onPick, onForget, emptyText, inline = false, allowAdd = true }) {
   let highlight = 0;
 
   function options() {
@@ -146,7 +147,7 @@ function createChoiceList({ input, list, getItems, getCurrent = () => '', onPick
     matches.sort((a, b) => (b.name.toLowerCase().startsWith(q)) - (a.name.toLowerCase().startsWith(q)));
     const opts = matches.map(i => ({ ...i, type: 'item' }));
     // Befintliga träffar först (Enter väljer bästa träffen), "Lägg till" sist
-    if (query && !items.some(i => sameChoice(i.name, query))) opts.push({ type: 'add', name: query });
+    if (allowAdd && query && !items.some(i => sameChoice(i.name, query))) opts.push({ type: 'add', name: query });
     return opts;
   }
 
@@ -160,7 +161,7 @@ function createChoiceList({ input, list, getItems, getCurrent = () => '', onPick
              <i data-lucide="plus"></i><span>Lägg till <strong>${escapeHTML(o.name)}</strong></span>
            </div>`
         : `<div class="choice-option${i === highlight ? ' is-active' : ''}${sameChoice(o.name, current) ? ' is-selected' : ''}" role="option" data-index="${i}" aria-selected="${sameChoice(o.name, current)}">
-             <span class="choice-option-name">${escapeHTML(o.name)}</span>
+             <span class="choice-option-name">${escapeHTML(o.name)}${o.meta ? `<span class="choice-option-meta">${escapeHTML(o.meta)}</span>` : ''}</span>
              ${sameChoice(o.name, current) ? '<i data-lucide="check" class="choice-option-check"></i>' : ''}
              ${o.removable ? `<button type="button" class="choice-option-forget" data-forget="${escapeHTML(o.name)}" title="Ta bort ur listan" aria-label="Ta bort ${escapeHTML(o.name)} ur listan"><i data-lucide="x"></i></button>` : ''}
            </div>`).join('')

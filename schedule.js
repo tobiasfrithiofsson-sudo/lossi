@@ -116,13 +116,23 @@ function resolveEvents(events, plans) {
   });
 }
 
+// De närmaste inlagda lektionerna i valt projekt (Kommande i sidopanelen och på översikten).
+// Kalendern i sig visar alla lärarens lektioner, i alla projekt.
+async function upcomingInCurrentProject(limit = 3) {
+  const project = await LossiData.currentProject().catch(() => null);
+  const [events, plans] = await Promise.all([
+    LossiData.upcomingEvents(30),
+    LossiData.listPlans(project ? { projectId: project.id } : {}),
+  ]);
+  return resolveEvents(events, plans).slice(0, limit);
+}
+
 // ── Kommande händelser i sidopanelen ──
 async function renderAsideEvents() {
   const list = document.querySelector('.aside-events-list');
   if (!list) return;
   try {
-    const [events, plans] = await Promise.all([LossiData.upcomingEvents(6), LossiData.listPlans()]);
-    const upcoming = resolveEvents(events, plans).slice(0, 3);
+    const upcoming = await upcomingInCurrentProject(3);
     list.innerHTML = upcoming.length
       ? upcoming.map(e => `
         <a href="upplag.html?id=${e.planId}" class="aside-item" title="${escapeHTML(e.lessonName)} · ${escapeHTML(formatEventWhen(e, { long: true }))}">

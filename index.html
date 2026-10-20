@@ -37,7 +37,7 @@
 <!-- ── Main ── -->
 <main>
 
-  <!-- Kommande: de närmaste lektionerna i lärarens kalender (renderUpcoming) -->
+  <!-- Kommande: de närmaste inlagda lektionerna i valt projekt (renderUpcoming) -->
   <div class="upcoming-panel" id="upcomingPanel" hidden>
     <div class="upcoming-panel-label">Kommande</div>
     <div class="upcoming-list" id="upcomingList"></div>
@@ -92,7 +92,7 @@
 
 <script>
   LossiAuth.requireUser().then(applyUserProfile);
-  renderAppShell({ active: 'plans', onProjectChange: () => loadPlanList() });
+  renderAppShell({ active: 'plans', onProjectChange: () => { loadPlanList(); renderUpcoming(); } });
   lucide.createIcons();
   syncThemeIcons();
 
@@ -166,12 +166,12 @@
 
   // Kommande: de närmaste inlagda lektionerna (kalendern, schedule.js). Utan
   // inlagda lektioner visas en hänvisning till kalendern.
-  async function renderUpcoming(plans) {
+  async function renderUpcoming() {
     const panel = document.getElementById('upcomingPanel');
     const list = document.getElementById('upcomingList');
     let upcoming;
     try {
-      upcoming = resolveEvents(await LossiData.upcomingEvents(6), plans).slice(0, 3);
+      upcoming = await upcomingInCurrentProject(3);
     } catch (e) {
       console.warn('Kunde inte hämta kommande lektioner:', e);
       return; // t.ex. om kalendertabellen inte finns än: visa ingenting
@@ -213,7 +213,8 @@
 
   loadPlanList();
   // Kommande gäller lärarens egen kalender, i alla projekt
-  LossiData.listPlans().then(renderUpcoming).catch(e => console.warn('Kunde inte hämta kommande lektioner:', e));
+  // Kommande gäller valt projekt (lärarens egna inlagda lektioner i det)
+  renderUpcoming();
 
   function toggleSection(id) {
     document.getElementById(id).classList.toggle('collapsed');

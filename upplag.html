@@ -3115,6 +3115,7 @@
       LossiData.setCurrentProject(planProjectId);
       renderProjectSwitcher();
       renderAsidePlans(planKey).catch(() => {});
+      if (typeof renderAsideEvents === 'function') renderAsideEvents();
     }).catch(() => {});
     planUser = user;
     planOwnerId = info.ownerId || user?.id;

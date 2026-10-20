@@ -656,6 +656,7 @@ async function renderProjectSwitcher(onProjectChange) {
       const project = projects.find(p => p.id === id);
       renderProjectSwitcher(onProjectChange);
       renderAsidePlans();
+      if (typeof renderAsideEvents === 'function') renderAsideEvents();
       onProjectChange(project);
     } else {
       window.location.href = 'index.html';

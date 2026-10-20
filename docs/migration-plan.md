@@ -89,7 +89,7 @@ Run locally via the `lossi-static` preview (`.claude/launch.json`, port 8765), t
 Lessons can be put on a time slot. Table `lesson_events` (`supabase/calendar.sql`, run once in the SQL Editor after `schema.sql`; done 2026-10-18, verified by Tobias): one row per lesson (`plan_id` + `lesson_id`, unique), `starts_at`, `duration_min`, owner-only RLS that also checks the plan belongs to the user; deleted with its plan. Lessons have a fixed `data-lesson-id` in the plan's HTML (assigned when a plan is opened or a lesson is scheduled from the calendar).
 - `schedule.js`: shared schedule dialog, Swedish date formatting, `resolveEvents` (events + plans → lesson name/plan title; the lesson's own length wins over the stored one), sidebar "Kommande händelser".
 - `upplag.html`: calendar button on each lesson row (shows day + time when scheduled).
-- `calendar.html` + `calendar.css`: week view Mon–Fri (Helg button adds the weekend; on weekends with Helg off it opens next week), click a free slot to add a lesson, click a lesson for Öppna upplägg / Ändra tid / Ta bort. One day at a time on mobile.
+- `calendar.html` + `calendar.css`: shows only lessons in the selected project (since 2026-10-20; switching project redraws in place, as do Kommande on the overview and in the sidebar); week view Mon–Fri (Helg button adds the weekend; on weekends with Helg off it opens next week), click a free slot to add a lesson, click a lesson for Öppna upplägg / Ändra tid / Ta bort. One day at a time on mobile.
 - `index.html`: Kommande shows the next three scheduled lessons, or a pointer to the calendar.
 - Not built: recurring lessons, drag to move in the calendar, sync with external calendars (Google/Outlook).
 

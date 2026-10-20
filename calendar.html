@@ -78,7 +78,8 @@
 
 <script>
   LossiAuth.requireUser().then(applyUserProfile);
-  renderAppShell({ active: 'calendar' });
+  // Kalendern visar valt projekt; byter man projekt ritas den om på plats
+  renderAppShell({ active: 'calendar', onProjectChange: () => load() });
   lucide.createIcons();
   syncThemeIcons();
 
@@ -95,8 +96,8 @@
   let showWeekend = false;
   try { showWeekend = localStorage.getItem('lossi-cal-weekend') === 'true'; } catch (e) {}
   let anchor = todayAnchor(); // en dag i perioden som visas
-  let plans = [];       // alla upplägg man ser (för att visa namn på händelserna)
-  let myPlans = [];     // egna upplägg: bara deras lektioner kan läggas in än så länge
+  let plans = [];       // upplägg i valt projekt (händelser i andra projekt visas inte)
+  let myPlans = [];     // egna upplägg i valt projekt: bara deras lektioner kan läggas in än så länge
   let allEvents = [];   // alla lärarens händelser (för "redan inlagd" i dialogen)
   let shown = [];       // händelser i perioden, kopplade till upplägg/lektion
   let selected = null;
@@ -140,9 +141,11 @@
 
   async function load() {
     try {
+      const project = await LossiData.currentProject().catch(() => null);
+      const inProject = project ? { projectId: project.id } : {};
       [plans, myPlans, allEvents] = await Promise.all([
-        LossiData.listPlans(),
-        LossiData.listMyPlans(),
+        LossiData.listPlans(inProject),
+        LossiData.listPlans({ ...inProject, mine: true }),
         LossiData.listEvents(new Date(2000, 0, 1), new Date(2100, 0, 1)),
       ]);
       document.getElementById('calNotice').hidden = true;
@@ -272,7 +275,7 @@
 
   // Från kalendern: välj upplägg och lektion
   function addLesson(start) {
-    if (!myPlans.length) return alert('Skapa ett upplägg först, så kan du lägga in dess lektioner här.');
+    if (!myPlans.length) return alert('Skapa ett upplägg i det här projektet först, så kan du lägga in dess lektioner här.');
     if (!start) {
       start = new Date(Math.max(periodDays()[0].getTime(), Date.now()));
       start.setMinutes(0, 0, 0);

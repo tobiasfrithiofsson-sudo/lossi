@@ -117,7 +117,7 @@ function resolveEvents(events, plans) {
 }
 
 // De närmaste inlagda lektionerna i valt projekt (Kommande i sidopanelen och på översikten).
-// Kalendern i sig visar alla lärarens lektioner, i alla projekt.
+// Kalendersidan visar också bara valt projekt.
 async function upcomingInCurrentProject(limit = 3) {
   const project = await LossiData.currentProject().catch(() => null);
   const [events, plans] = await Promise.all([

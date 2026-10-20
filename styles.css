@@ -2233,6 +2233,8 @@ body.edit-mode .activity-more-btn { display: grid; }
 }
 
 .read-field { display: flex; flex-direction: row; align-items: center; gap: var(--space-3); }
+/* display: flex ovan slår annars ut hidden-attributet (t.ex. Medskapare när man är ensam i projektet) */
+.read-field[hidden] { display: none; }
 
 .read-field-label {
   flex: 0 0 140px;

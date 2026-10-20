@@ -51,17 +51,20 @@ img { display: block; max-width: 100%; height: auto; }
 [data-theme="dark"] .lp-shot-light { display: none; }
 [data-theme="dark"] .lp-shot-dark { display: block; }
 
-/* ── Knappar ── */
+/* ── Knappar (samma storlek som i appen: 32px, 500, 6px 8px, 6px mellan ikon och text) ── */
 .lp-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  height: 48px;
-  padding: 0 24px;
-  border-radius: 10px;
-  font-size: var(--font-size-lg);
-  font-weight: 600;
+  gap: 6px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  line-height: 18px;
   text-decoration: none;
   transition: transform 0.12s, background 0.15s, box-shadow 0.15s;
   white-space: nowrap;
@@ -71,7 +74,7 @@ img { display: block; max-width: 100%; height: auto; }
 .lp-btn-primary { background: var(--color-primary); color: #fff; box-shadow: 0 6px 18px color-mix(in srgb, var(--color-primary) 30%, transparent); }
 .lp-btn-primary:hover { background: var(--color-primary-dark); }
 .lp-btn-soft { background: var(--lp-soft-bg); color: var(--lp-soft-ink); }
-.lp-btn-sm { height: 38px; padding: 0 16px; font-size: var(--font-size-md); box-shadow: none; }
+.lp-btn-sm { box-shadow: none; }
 
 /* ── Navigering ── */
 .lp-nav {
@@ -425,7 +428,6 @@ img { display: block; max-width: 100%; height: auto; }
   :root { --lp-px: 16px; }
   .lp-hero { padding-top: 40px; }
   .lp-br { display: none; }
-  .lp-btn { height: 46px; padding: 0 20px; }
   .lp-stage { margin-top: 40px; }
   .lp-window { border-radius: 10px; }
   .lp-window-bar { height: 30px; }

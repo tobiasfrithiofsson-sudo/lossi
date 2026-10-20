@@ -65,6 +65,26 @@ const LOSSI_AI_PROMPT = `Du hjälper en lärare att planera ett pedagogiskt uppl
 
 Bekräfta kort att du förstått och fråga sedan läraren vad upplägget ska handla om.`;
 
+// Fyll i med AI: samma regler, plus upplägget som det ser ut nu (med lektionernas koder)
+function buildFillPrompt(current) {
+  return LOSSI_AI_PROMPT
+    .replace('Du hjälper en lärare att planera ett pedagogiskt upplägg som ska läggas in i Lossi',
+      'Du hjälper en lärare att arbeta vidare på ett pedagogiskt upplägg som redan finns i Lossi')
+    .replace('Bekräfta kort att du förstått och fråga sedan läraren vad upplägget ska handla om.', `## Upplägget som det ser ut nu
+Varje lektion har en "kod". Det här gäller när du ger Lossi-inmatningen:
+- Behåll koden på de lektioner du ändrar, så att Lossi hittar dem (de kan redan ligga i lärarens kalender).
+- Nya lektioner får ingen kod. De läggs sist i upplägget.
+- Lektioner du utelämnar lämnas orörda, och ingenting tas bort. Vill läraren ta bort något gör hen det själv i Lossi.
+- Tar du med "aktiviteter" för en lektion ersätter de lektionens nuvarande aktiviteter, så ta med alla som ska finnas kvar.
+- Fält du utelämnar (t.ex. titel eller betygskriterier) lämnas orörda.
+
+\`\`\`json
+${JSON.stringify(current, null, 2)}
+\`\`\`
+
+Bekräfta kort att du förstått och fråga sedan läraren vad hen vill göra med upplägget.`);
+}
+
 // ── Tolka svaret ──
 
 // Plockar ut JSON ur AI:ns svar: helst ur ett kodblock, annars från första { till sista }
@@ -130,7 +150,10 @@ function aiActivityType(value) {
 }
 
 // → { plan, warnings } eller { error }
-function parseLossiAi(text) {
+// fill = true: ändringar i ett befintligt upplägg (Fyll i med AI). Då är alla
+// fält frivilliga; plan.has säger vilka listor som fanns med, och lektioner
+// med kod pekar på befintliga lektioner.
+function parseLossiAi(text, { fill = false } = {}) {
   if (!String(text || '').trim()) return { error: 'Klistra in svaret från din AI först.' };
   const data = extractAiJson(String(text));
   if (!data) {
@@ -139,7 +162,7 @@ function parseLossiAi(text) {
   const warnings = [];
 
   const title = aiText(aiPick(data, 'titel', 'title'), AI_LIMITS.title);
-  if (!title) return { error: 'Inmatningen saknar titel. Be din AI om en ny, komplett Lossi-inmatning.' };
+  if (!title && !fill) return { error: 'Inmatningen saknar titel. Be din AI om en ny, komplett Lossi-inmatning.' };
 
   let grade = aiText(aiPick(data, 'arskurs', 'årskurs', 'grade'), 20).replace(/^(åk|årskurs)\s*/i, '');
   if (grade && !PLAN_GRADES.includes(grade)) {
@@ -153,16 +176,18 @@ function parseLossiAi(text) {
 
   const lessons = lessonList.slice(0, AI_LIMITS.lessons).map((l, i) => {
     let name = aiText(aiPick(l, 'namn', 'name', 'titel', 'title'), AI_LIMITS.title);
-    if (!/^lektion\b/i.test(name)) name = `Lektion ${i + 1}` + (name ? `: ${name}` : '');
+    if (!fill && !/^lektion\b/i.test(name)) name = `Lektion ${i + 1}` + (name ? `: ${name}` : '');
+    const label = name || `Lektion ${i + 1}`;
     const minutes = aiMinutes(aiPick(l, 'minuter', 'minutes', 'langd', 'längd'));
     const rawActivities = aiPick(l, 'aktiviteter', 'activities', 'moment');
+    const hasActivities = Array.isArray(rawActivities);
     const activityList = Array.isArray(rawActivities) ? rawActivities : [];
-    if (activityList.length > AI_LIMITS.activities) warnings.push(`${name}: bara de ${AI_LIMITS.activities} första aktiviteterna tas med.`);
+    if (activityList.length > AI_LIMITS.activities) warnings.push(`${label}: bara de ${AI_LIMITS.activities} första aktiviteterna tas med.`);
     const activities = activityList.slice(0, AI_LIMITS.activities).map(a => {
       const rawType = aiPick(a, 'typ', 'type');
       let type = aiActivityType(rawType);
       if (!type) {
-        if (rawType) warnings.push(`${name}: typen "${aiText(rawType, 40)}" finns inte i Lossi och blir "Aktivitet".`);
+        if (rawType) warnings.push(`${label}: typen "${aiText(rawType, 40)}" finns inte i Lossi och blir "Aktivitet".`);
         type = 'Aktivitet';
       }
       return {
@@ -173,10 +198,11 @@ function parseLossiAi(text) {
       };
     }).filter(a => a.title);
     const sum = activities.reduce((s, a) => s + (a.minutes || 0), 0);
-    if (minutes && sum > minutes) warnings.push(`${name}: aktiviteterna är ${sum} min men lektionen ${minutes} min.`);
-    return { code: aiText(aiPick(l, 'kod', 'code'), 40), name, minutes, activities };
+    if (minutes && sum > minutes) warnings.push(`${label}: aktiviteterna är ${sum} min men lektionen ${minutes} min.`);
+    return { code: aiText(aiPick(l, 'kod', 'code'), 40), name, minutes, activities, hasActivities };
   });
-  if (!lessons.length) warnings.push('Inmatningen har inga lektioner. Upplägget skapas ändå, och du kan lägga till lektioner själv.');
+  if (!lessons.length && !fill) warnings.push('Inmatningen har inga lektioner. Upplägget skapas ändå, och du kan lägga till lektioner själv.');
+  const has = key => aiPick(data, ...key) !== undefined;
 
   return {
     plan: {
@@ -187,6 +213,10 @@ function parseLossiAi(text) {
       goals: aiList(aiPick(data, 'centraltInnehall', 'centraltInnehåll', 'centralt_innehall', 'goals')),
       criteria: aiList(aiPick(data, 'betygskriterier', 'criteria')),
       lessons,
+      has: {
+        goals: has(['centraltInnehall', 'centraltInnehåll', 'centralt_innehall', 'goals']),
+        criteria: has(['betygskriterier', 'criteria']),
+      },
     },
     warnings,
   };
@@ -224,14 +254,14 @@ function buildAiPlanModalHTML() {
 <div class="modal-overlay" id="aiPlanModal">
   <div class="modal ai-modal">
     <div class="modal-header">
-      <h3><i data-lucide="sparkles" class="ai-modal-icon"></i>Skapa med AI</h3>
+      <h3><i data-lucide="sparkles" class="ai-modal-icon"></i><span id="aiModalTitle">Skapa med AI</span></h3>
       <button class="modal-close" onclick="closeAiPlanModal()"><i data-lucide="x"></i></button>
     </div>
 
     <div class="modal-body ai-step" id="aiStepPaste">
       <section class="ai-section">
         <div class="ai-section-head"><span class="ai-step-num">1</span>Ge din AI Lossis instruktion</div>
-        <p class="ai-help">Kopiera instruktionen och klistra in den i Claude, ChatGPT eller den AI du brukar använda. Prata sedan med din AI om upplägget, så länge du vill. När ni är nöjda ber du om <strong>Lossi-inmatningen</strong>.</p>
+        <p class="ai-help" id="aiHelp"></p>
         <div class="ai-actions">
           <button type="button" class="btn-primary" id="aiCopyBtn" onclick="copyAiPrompt()"><i data-lucide="copy"></i><span>Kopiera instruktion</span></button>
           <button type="button" class="btn-ghost" onclick="toggleAiPrompt()" id="aiShowPromptBtn">Visa instruktionen</button>
@@ -260,15 +290,37 @@ function buildAiPlanModalHTML() {
 }
 
 let aiParsed = null;
+let aiPromptText = LOSSI_AI_PROMPT;
+// Fyll i med AI (upplag.html): { current() → upplägget i Lossi-formatet, previewHTML(result), apply(plan) }
+let aiFill = null;
+
+const AI_HELP = {
+  create: 'Kopiera instruktionen och klistra in den i Claude, ChatGPT eller den AI du brukar använda. Prata sedan med din AI om upplägget, så länge du vill. När ni är nöjda ber du om <strong>Lossi-inmatningen</strong>.',
+  fill: 'Instruktionen innehåller upplägget som det ser ut nu. Klistra in den i din AI och be den t.ex. fylla lektionerna med aktiviteter eller skriva betygskriterier. När ni är nöjda ber du om <strong>Lossi-inmatningen</strong>.',
+};
 
 function openAiPlanModal() {
+  aiFill = null;
+  showAiModal('create', LOSSI_AI_PROMPT);
+}
+
+function openAiFillModal(fill) {
+  aiFill = fill;
+  showAiModal('fill', buildFillPrompt(fill.current()));
+}
+
+function showAiModal(mode, prompt) {
   if (!document.getElementById('aiPlanModal')) {
     document.body.insertAdjacentHTML('beforeend', buildAiPlanModalHTML());
     document.getElementById('aiPlanModal').addEventListener('click', e => {
       if (e.target.id === 'aiPlanModal') closeAiPlanModal();
     });
-    document.getElementById('aiPrompt').value = LOSSI_AI_PROMPT;
   }
+  aiPromptText = prompt;
+  document.getElementById('aiPrompt').value = prompt;
+  document.getElementById('aiModalTitle').textContent = mode === 'fill' ? 'Fyll i med AI' : 'Skapa med AI';
+  document.getElementById('aiHelp').innerHTML = AI_HELP[mode];
+  toggleAiPrompt(false);
   document.getElementById('createPlanModal')?.classList.remove('open');
   aiParsed = null;
   document.getElementById('aiPaste').value = '';
@@ -287,7 +339,7 @@ function showAiStep(step) {
   document.getElementById('aiStepPreview').hidden = step !== 'preview';
   document.getElementById('aiBackBtn').textContent = step === 'paste' ? 'Avbryt' : 'Tillbaka';
   const next = document.getElementById('aiNextBtn');
-  next.textContent = step === 'paste' ? 'Granska' : 'Skapa upplägg';
+  next.textContent = step === 'paste' ? 'Granska' : (aiFill ? 'Uppdatera upplägget' : 'Skapa upplägg');
   next.disabled = false;
 }
 
@@ -300,7 +352,7 @@ function showAiError(text) {
 async function copyAiPrompt() {
   const label = document.querySelector('#aiCopyBtn span');
   try {
-    await navigator.clipboard.writeText(LOSSI_AI_PROMPT);
+    await navigator.clipboard.writeText(aiPromptText);
     label.textContent = 'Kopierad!';
   } catch (e) {
     toggleAiPrompt(true);
@@ -322,14 +374,20 @@ function aiBack() {
 }
 
 async function aiNext() {
-  if (!document.getElementById('aiStepPreview').hidden) return createPlanFromAi();
-  const result = parseLossiAi(document.getElementById('aiPaste').value);
+  if (!document.getElementById('aiStepPreview').hidden) return aiFill ? applyAiFill() : createPlanFromAi();
+  const result = parseLossiAi(document.getElementById('aiPaste').value, { fill: !!aiFill });
   if (result.error) {
     showAiError(result.error);
     return;
   }
   aiParsed = result;
-  await renderAiPreview(result);
+  if (aiFill) {
+    const el = document.getElementById('aiPreview');
+    el.innerHTML = aiFill.previewHTML(result);
+    lucide.createIcons({ nodes: [el] });
+  } else {
+    await renderAiPreview(result);
+  }
   showAiStep('preview');
 }
 
@@ -373,6 +431,28 @@ async function renderAiPreview({ plan, warnings }) {
       </div>`;
     }).join('')}`;
   lucide.createIcons({ nodes: [el] });
+}
+
+function applyAiFill() {
+  if (!aiParsed || !aiFill) return;
+  aiFill.apply(aiParsed.plan);
+  closeAiPlanModal();
+}
+
+// Förhandsgranskningens delar (delas med Fyll i med AI i upplag.html)
+function aiWarningsHTML(warnings) {
+  return warnings.length ? `<div class="ai-warnings"><i data-lucide="triangle-alert"></i><ul>${warnings.map(w => `<li>${escapeHTML(w)}</li>`).join('')}</ul></div>` : '';
+}
+
+function aiActivityRowsHTML(activities) {
+  return activities.map(a => {
+    const t = ACTIVITY_TYPES[a.type];
+    return `<div class="ai-activity" title="${escapeHTML(a.desc)}">
+      <span class="activity-icon ${t.iconClass}" title="${escapeHTML(a.type)}"><i data-lucide="${t.icon}"></i></span>
+      <span class="ai-activity-title">${escapeHTML(a.title)}</span>
+      <span class="ai-activity-time">${a.minutes ?? '–'} min</span>
+    </div>`;
+  }).join('');
 }
 
 async function createPlanFromAi() {

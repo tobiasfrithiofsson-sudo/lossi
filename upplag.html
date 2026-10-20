@@ -129,6 +129,10 @@
           <i data-lucide="ellipsis"></i>
         </button>
         <div class="menu-popover" id="planMoreMenu">
+          <button class="menu-popover-item edit-only" onclick="closeAllMenuPopovers(); openAiFillModal(AI_FILL)">
+            <i data-lucide="sparkles"></i>
+            Fyll i med AI
+          </button>
           <button class="menu-popover-item" onclick="duplicatePlan()">
             <i data-lucide="copy"></i>
             <span class="edit-only">Duplicera upplägg</span>
@@ -2752,6 +2756,145 @@
       alert('Kunde inte ta bort medskaparen. Försök igen om en stund.');
     }
   }
+
+  // ── Fyll i med AI (ai-import.js) ──
+  // Läraren ger sin AI upplägget som det ser ut nu (lektionerna med sina
+  // koder = data-lesson-id) och klistrar in svaret. Lektioner med känd kod
+  // ändras på plats (kalenderkopplingen följer med), lektioner utan kod läggs
+  // sist, och inget tas bort. Listor och aktiviteter ersätts bara när svaret
+  // faktiskt har innehåll för dem.
+  function lessonGroupByCode(code) {
+    return code ? [...document.querySelectorAll('#structureList .lesson-group')].find(g => g.dataset.lessonId === code) : null;
+  }
+
+  function currentPlanForAi() {
+    if (openActivityId) closeActivity(openActivityId);
+    ensureLessonControls();
+    const texts = sel => [...document.querySelectorAll(sel)].map(el => el.innerText.trim()).filter(Boolean);
+    return {
+      lossi: AI_FORMAT_VERSION,
+      titel: document.getElementById('planTitle').textContent.trim(),
+      amne: document.getElementById('detailSubject').textContent.trim(),
+      arskurs: document.getElementById('detailGrade').textContent.trim(),
+      beskrivning: document.querySelector('.idea-text').innerText.trim(),
+      centraltInnehall: texts('#goalsList .goal-text'),
+      betygskriterier: texts('#criteriaList .goal-text'),
+      lektioner: [...document.querySelectorAll('#structureList .lesson-group')].map(g => {
+        const minutes = parseMinutes(g.querySelector('.lesson-time-pill-value')?.textContent);
+        const event = planEvents.get(g.dataset.lessonId);
+        const lesson = { kod: g.dataset.lessonId, namn: g.querySelector('.week-pill')?.textContent.trim() || '' };
+        if (minutes) lesson.minuter = minutes;
+        if (event) lesson.inlagdIKalendern = formatEventWhen(event, { long: true });
+        lesson.aktiviteter = [...g.querySelectorAll('.activity-wrapper')].map(w => ({
+          typ: w.querySelector('.activity-icon')?.title || 'Aktivitet',
+          titel: w.querySelector('.activity-title')?.textContent.trim() || '',
+          minuter: parseMinutes(w.querySelector('.activity-time')?.textContent) || null,
+          beskrivning: w.querySelector('.inline-editable-body')?.innerText.trim() || '',
+        }));
+        return lesson;
+      }),
+    };
+  }
+
+  function aiFillPreviewHTML({ plan, warnings }) {
+    const current = currentPlanForAi();
+    const changes = [];
+    const notes = [...warnings];
+    if (plan.title && plan.title !== current.titel) changes.push(`<div class="ai-change"><span class="ai-change-label">Titel</span>${escapeHTML(plan.title)}</div>`);
+    if (plan.description && plan.description !== current.beskrivning) changes.push(`<div class="ai-change"><span class="ai-change-label">Beskrivning</span>${textToHTML(plan.description)}</div>`);
+    if (plan.subject && plan.subject !== current.amne) changes.push(`<div class="ai-change"><span class="ai-change-label">Ämne</span>${escapeHTML(plan.subject)}</div>`);
+    if (plan.grade && plan.grade !== current.arskurs) changes.push(`<div class="ai-change"><span class="ai-change-label">Årskurs</span>${escapeHTML(plan.grade)}</div>`);
+    const listChange = (label, items, before) => `<div class="ai-change"><span class="ai-change-label">${label} (${items.length} ${items.length === 1 ? 'punkt' : 'punkter'}, ersätter ${before})</span><ul class="ai-preview-list">${items.map(t => `<li>${escapeHTML(t)}</li>`).join('')}</ul></div>`;
+    if (plan.goals.length) changes.push(listChange('Centralt innehåll', plan.goals, current.centraltInnehall.length));
+    if (plan.criteria.length) changes.push(listChange('Betygskriterier', plan.criteria, current.betygskriterier.length));
+
+    let touched = 0;
+    plan.lessons.forEach(l => {
+      const group = lessonGroupByCode(l.code);
+      if (l.code && !group) notes.push(`Lektionen med koden ${l.code} finns inte längre och läggs till som en ny lektion.`);
+      const existing = group ? current.lektioner.find(x => x.kod === l.code) : null;
+      const parts = [];
+      if (existing) {
+        touched++;
+        if (l.name && l.name !== existing.namn) parts.push('nytt namn');
+        if (l.minutes && l.minutes !== existing.minuter) parts.push(`${l.minutes} min`);
+        if (l.activities.length) parts.push(`${l.activities.length} ${l.activities.length === 1 ? 'aktivitet' : 'aktiviteter'} (ersätter ${existing.aktiviteter.length})`);
+        if (!parts.length) return;
+      }
+      const name = l.name || existing?.namn || 'Ny lektion';
+      changes.push(`<div class="ai-lesson">
+        <div class="ai-lesson-head">
+          <span class="ai-lesson-name">${existing ? '' : '<span class="ai-new">Ny</span>'}${escapeHTML(name)}</span>
+          <span class="ai-lesson-time">${escapeHTML(existing ? parts.join(' · ') : `${l.minutes ?? '–'} min`)}</span>
+        </div>
+        ${aiActivityRowsHTML(l.activities)}
+      </div>`);
+    });
+    const untouched = current.lektioner.length - touched;
+    return `${aiWarningsHTML(notes)}
+      <div class="ai-preview-head">
+        <h4 class="ai-preview-title">Det här ändras</h4>
+        <p class="ai-preview-meta">${untouched > 0 ? `${untouched} ${untouched === 1 ? 'lektion lämnas' : 'lektioner lämnas'} orörda. ` : ''}Inget tas bort, och lektioner som ligger i kalendern behåller sin tid.</p>
+      </div>
+      ${changes.length ? changes.join('') : '<p class="ai-preview-empty">Inmatningen innehåller inga ändringar.</p>'}`;
+  }
+
+  function buildActivityWrapper(a) {
+    const id = nextActivityId();
+    const wrapper = document.createElement('div');
+    wrapper.className = 'activity-wrapper';
+    wrapper.id = id;
+    wrapper.innerHTML = buildActivityMarkup(id, { type: a.type, title: a.title, time: a.minutes, desc: a.desc });
+    return wrapper;
+  }
+
+  function applyAiFillToPlan(plan) {
+    if (planReadOnly || !planLoaded) return;
+    if (openActivityId) closeActivity(openActivityId);
+    if (plan.title) {
+      document.getElementById('planTitle').textContent = plan.title;
+      updateAsidePlan(planKey, { title: plan.title });
+      document.title = plan.title + ' | Lossi';
+    }
+    if (plan.description) document.querySelector('.idea-text').innerHTML = textToHTML(plan.description);
+    if (plan.subject) document.getElementById('detailSubject').textContent = plan.subject;
+    if (plan.grade) document.getElementById('detailGrade').textContent = plan.grade;
+    if (plan.goals.length) document.getElementById('goalsList').innerHTML = buildGoalListHTML('goalsList', plan.goals);
+    if (plan.criteria.length) document.getElementById('criteriaList').innerHTML = buildGoalListHTML('criteriaList', plan.criteria);
+
+    const structure = document.getElementById('structureList');
+    plan.lessons.forEach(l => {
+      let group = lessonGroupByCode(l.code);
+      if (!group) {
+        const number = structure.querySelectorAll('.lesson-group').length + 1;
+        structure.insertAdjacentHTML('beforeend', buildLessonGroupHTML({
+          lessonId: newLessonId(),
+          name: l.name || `Lektion ${number}: Ny lektion`,
+          minutes: l.minutes,
+        }));
+        group = structure.lastElementChild;
+        initActivitySortable(group.querySelector('.lesson-activities'));
+      } else {
+        if (l.name) group.querySelector('.week-pill').textContent = l.name;
+        if (l.minutes) {
+          ensureLessonControls();
+          group.querySelector('.lesson-time-pill-value').textContent = String(l.minutes);
+        }
+      }
+      if (l.activities.length || !l.code) {
+        const list = group.querySelector('.lesson-activities');
+        if (l.activities.length) list.innerHTML = '';
+        l.activities.forEach(a => list.appendChild(buildActivityWrapper(a)));
+      }
+    });
+
+    lucide.createIcons({ nodes: ['goalsList', 'criteriaList', 'structureList'].map(id => document.getElementById(id)) });
+    recalcLessonTimes();
+    renderLessonSchedules();
+    saveState();
+  }
+
+  const AI_FILL = { current: currentPlanForAi, previewHTML: aiFillPreviewHTML, apply: applyAiFillToPlan };
 
   // ── Start: läs in upplägget och initiera sidan ──
   (async function boot() {

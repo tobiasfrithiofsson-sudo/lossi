@@ -29,7 +29,7 @@ Läs den här filen först i en ny session. Detaljer om backend, kalender och fe
 - Testwebbläsaren cachar hårt: `fetch(fil, {cache:'reload'})` innan omladdning.
 
 ## Öppna trådar
-- **Skapa med AI** (del 1 klar 2026-10-20, se migration-plan.md "Skapa med AI"): del 2 "Fyll i med AI" i befintligt upplägg pågår.
+- **Skapa med AI / Fyll i med AI** byggt 2026-10-20 (se migration-plan.md "Skapa med AI"), testat lokalt – Tobias har inte testat live än. Gymnasiet saknas som årskurs (AI-importen lämnar den tom).
 - **Delade projekt (pågår):** modell och steg i `docs/migration-plan.md` under "Projects". Steg 1 klart och körd. Steg 2 (projektväljare, Alla/Bara mina, personlig sidopanel, läsläge) byggt och testat live 2026-10-19 (Sandlådan är skapat som delat projekt via SQL). Steg 3 + 3b (inbjudningskod, Skapa projekt) klara och testade live 2026-10-19; registrering påslagen, e-postbekräftelse av; feedback #2 markerad klar. Steg 4 (medskapare: be om/godkänn/neka/ta bort redigeringsrätt) byggt och testat live 2026-10-19. Steg 4b (Ta bort projekt, uppläggen flyttas till skaparnas egna) klart och testat live 2026-10-20. Nästa: steg 5 varning vid samtidig redigering, och kalendern per lärare (schemalägga kollegors lektioner).
 - **Feedback #4 (Albin Ljung):** fick inte fram lektioner i kalendern – nya konton har demo-upplägg utan sparade lektioner och nya upplägg saknar lektioner. Tobias sa "låt det vara" tills vidare.
 - **Fråga till Tobias:** ska "aktivitet" byta namn till "moment" i hela appen (hans Figma säger moment)?

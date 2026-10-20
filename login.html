@@ -79,15 +79,16 @@
 
   <div class="login-card" id="signupCard" hidden>
     <h1 class="login-title">Skapa konto</h1>
-    <p class="login-lead">Lossi är i en sluten testperiod. Du behöver en inbjudningskod från en kollega som redan är med.</p>
+    <p class="login-lead">Lossi är i en sluten testperiod. Du behöver en inbjudningskod från en kollega, eller en inbjudan till din e-postadress.</p>
 
     <form id="signupForm" novalidate>
-      <label class="login-label" for="signupCode">Inbjudningskod</label>
+      <label class="login-label" for="signupCode">Inbjudningskod <span class="login-optional">(om du har fått en)</span></label>
       <div class="login-input-wrap">
         <i data-lucide="ticket"></i>
         <input class="login-input login-input-code" id="signupCode" type="text" name="code" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-1234" required />
       </div>
       <p class="login-hint" id="signupCodeHint" hidden></p>
+      <p class="login-help">Har en kollega bjudit in din e-postadress kan du lämna fältet tomt. Inbjudan väntar då i Lossi när du har loggat in.</p>
 
       <label class="login-label login-label-spaced" for="signupName">Ditt namn</label>
       <div class="login-input-wrap">
@@ -306,7 +307,8 @@
     const displayName = nameInput.value.trim();
     const email = signupEmail.value.trim();
     const password = signupPassword.value;
-    if (code.replace(/-/g, '').length < 8) return signupFail(codeInput, 'Skriv inbjudningskoden (8 tecken).');
+    const hasCode = !!code.replace(/-/g, '');
+    if (hasCode && code.replace(/-/g, '').length < 8) return signupFail(codeInput, 'Inbjudningskoden har 8 tecken. Lämna fältet tomt om du har bjudits in till din e-postadress.');
     if (!displayName) return signupFail(nameInput, 'Skriv ditt namn, så att kollegorna ser vem du är.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return signupFail(signupEmail, 'Skriv en giltig e-postadress, t.ex. namn@skola.se.');
     if (password.length < MIN_PASSWORD) return signupFail(signupPassword, `Lösenordet måste vara minst ${MIN_PASSWORD} tecken.`);
@@ -315,22 +317,26 @@
     signupSubmit.classList.add('is-loading');
     signupSubmit.disabled = true;
     try {
-      if (!(await checkCode())) {
+      if (hasCode && !(await checkCode())) {
         signupSubmit.classList.remove('is-loading');
         signupSubmit.disabled = false;
         return signupFail(codeInput, 'Koden finns inte. Kontrollera att du skrivit rätt.');
       }
       await LossiAuth.signUpWithCode({ code, displayName, email, password });
-      // Börja i projektet man bjöds in till
+      // Börja i projektet man bjöds in till (inbjudan via e-post väntar under klockan)
       try {
-        const { data } = await LossiAuth.client.rpc('join_project', { code });
-        if (data) localStorage.setItem('lossi-project', String(data));
         localStorage.setItem('lossi-profile-prompted', 'true');
+        if (hasCode) {
+          const { data } = await LossiAuth.client.rpc('join_project', { code });
+          if (data) localStorage.setItem('lossi-project', String(data));
+        }
       } catch (err) {}
       window.location.replace('index.html');
     } catch (err) {
       console.warn('Kontot kunde inte skapas:', err);
-      showSignupError(friendlySignupError(err));
+      showSignupError(!hasCode && /inbjudningskod|database error saving new user/i.test(err?.message || '')
+        ? 'Vi hittade ingen inbjudan till den e-postadressen. Skriv koden du har fått, eller be kollegan bjuda in just den adressen.'
+        : friendlySignupError(err));
       signupSubmit.classList.remove('is-loading');
       signupSubmit.disabled = false;
     }

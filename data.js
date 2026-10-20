@@ -232,6 +232,55 @@ const LossiData = (() => {
     try { localStorage.removeItem(CURRENT_PROJECT_KEY); } catch (e) {}
   }
 
+  // ── Inbjudan via e-post och notiser (supabase/notifications.sql) ──
+  // 'sent' (har konto, får en notis), 'saved' (inget konto än) eller 'member' (redan med)
+  async function inviteByEmail(projectId, email) {
+    return check(await db().rpc('invite_by_email', { pid: Number(projectId), invite_email: email }));
+  }
+
+  // Obesvarade inbjudningar till ett projekt (syns för medlemmarna)
+  async function listProjectInvites(projectId) {
+    const rows = check(await db().from('project_invites').select('id, email, invited_by, created_at')
+      .eq('project_id', projectId).eq('status', 'pending').order('created_at'));
+    return rows.map(r => ({ id: String(r.id), email: r.email, invitedBy: r.invited_by, createdAt: r.created_at }));
+  }
+
+  async function cancelInvite(id) {
+    check(await db().rpc('cancel_invite', { invite: Number(id) }));
+  }
+
+  // Tacka ja eller nej; ja = medlem och projektet blir valt
+  async function answerInvite(id, accept) {
+    const projectId = String(check(await db().rpc('answer_invite', { invite: Number(id), accept })));
+    projectsPromise = null;
+    if (accept) setCurrentProject(projectId);
+    return projectId;
+  }
+
+  // Den inloggades senaste notiser, nyast först. Inbjudningar får pending = om de kan besvaras.
+  async function listNotifications(limit = 30) {
+    const user = await LossiAuth.getUser();
+    const rows = check(await db().from('notifications').select('*').order('created_at', { ascending: false }).limit(limit));
+    const inviteIds = rows.filter(r => r.invite_id).map(r => r.invite_id);
+    let pending = new Set();
+    if (inviteIds.length) {
+      const invites = check(await db().from('project_invites').select('id').in('id', inviteIds).eq('status', 'pending'));
+      pending = new Set(invites.map(i => String(i.id)));
+    }
+    return rows.filter(r => r.user_id === user?.id || !r.user_id).map(r => ({
+      id: String(r.id), kind: r.kind, projectId: r.project_id != null ? String(r.project_id) : null,
+      planId: r.plan_id != null ? String(r.plan_id) : null, inviteId: r.invite_id != null ? String(r.invite_id) : null,
+      pending: r.invite_id != null && pending.has(String(r.invite_id)),
+      actorName: r.actor_name || '', projectName: r.project_name || '', planTitle: r.plan_title || '',
+      createdAt: r.created_at, read: !!r.read_at,
+    }));
+  }
+
+  async function markNotificationsRead(ids) {
+    if (!ids.length) return;
+    check(await db().from('notifications').update({ read_at: new Date().toISOString() }).in('id', ids.map(Number)));
+  }
+
   // Gå med i ett projekt med dess inbjudningskod; blir valt projekt. Returnerar projektets id.
   async function joinProject(code) {
     const id = String(check(await db().rpc('join_project', { code })));
@@ -503,7 +552,8 @@ const LossiData = (() => {
 
   return {
     listPlans, listMyPlans, loadPlan, loadPlanInfo, savePlan,
-    listProjects, currentProject, setCurrentProject, createProject, renameProject, setProjectAvatar, removeProjectMember, leaveProject, deleteProject, joinProject, findMember,
+    listProjects, currentProject, setCurrentProject, inviteByEmail, listProjectInvites, cancelInvite, answerInvite, listNotifications, markNotificationsRead,
+    createProject, renameProject, setProjectAvatar, removeProjectMember, leaveProject, deleteProject, joinProject, findMember,
     listPlanEditors, listMyEditRequests, requestPlanEdit, addPlanEditor, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,

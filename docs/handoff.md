@@ -29,6 +29,7 @@ Läs den här filen först i en ny session. Detaljer om backend, kalender och fe
 - Testwebbläsaren cachar hårt: `fetch(fil, {cache:'reload'})` innan omladdning.
 
 ## Öppna trådar
+- **Notiser + inbjudan via e-post** byggt 2026-10-20 (migration-plan.md "Invites by email + notifications") – Tobias ska köra `supabase/notifications.sql`.
 - **Filer** byggt 2026-10-20 (se migration-plan.md "Files") – Tobias ska köra `supabase/files.sql`. Gratisnivån har ca 1 GB lagring; håll koll på utrymmet.
 - **Skapa med AI / Fyll i med AI** byggt 2026-10-20 (se migration-plan.md "Skapa med AI"), testat lokalt – Tobias har inte testat live än. Gymnasiet saknas som årskurs (AI-importen lämnar den tom).
 - **Delade projekt (pågår):** modell och steg i `docs/migration-plan.md` under "Projects". Steg 1 klart och körd. Steg 2 (projektväljare, Alla/Bara mina, personlig sidopanel, läsläge) byggt och testat live 2026-10-19 (Sandlådan är skapat som delat projekt via SQL). Steg 3 + 3b (inbjudningskod, Skapa projekt) klara och testade live 2026-10-19; registrering påslagen, e-postbekräftelse av; feedback #2 markerad klar. Steg 4 (medskapare: be om/godkänn/neka/ta bort redigeringsrätt) byggt och testat live 2026-10-19. Steg 4b (Ta bort projekt) klart och testat live 2026-10-20. Därefter (2026-10-20, alla körda och testade live): Byt namn (4c), första projektet är ett vanligt delbart projekt som heter Sandlådan (4d), Notion-lik projektmeny med 28px rader + Projektinställningar med avatar/namn/medlemmar/inbjudan/ta bort/lämna (4e). Kvar: steg 5 varning vid samtidig redigering.

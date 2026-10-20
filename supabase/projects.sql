@@ -311,7 +311,9 @@ begin
 end;
 $$;
 
--- Nya konton måste ha en giltig kod (skickas med som invite_code när kontot skapas)
+-- Nya konton måste ha en giltig kod (skickas med som invite_code när kontot skapas).
+-- OBS: notifications.sql ersätter funktionen (en sparad inbjudan till e-postadressen räcker också);
+-- kör notifications.sql igen om du kör om den här filen.
 create or replace function public.require_invite_code()
 returns trigger
 language plpgsql

@@ -32,6 +32,14 @@
     { project_id: 2, user_id: 'u2', role: 'member', display_name: 'Kristoffer Ek', avatar: 'cat', email: 'kristoffer@skola.se' },
     { project_id: 2, user_id: 'u3', role: 'member', display_name: 'Mange W', avatar: null, email: 'mange@skola.se' },
   ];
+  // Notiser och inbjudningar (supabase/notifications.sql): en obesvarad inbjudan till Norra skolan (3)
+  const ago = min => new Date(Date.now() - min * 60000).toISOString();
+  tables.project_invites = tables.project_invites || [{ id: 1, project_id: 3, email: user.email, invited_by: 'u2', status: 'pending', created_at: ago(5) }];
+  tables.notifications = tables.notifications || [
+    { id: 1, user_id: 'u1', kind: 'project_invite', project_id: 3, invite_id: 1, actor_name: 'Kristoffer Ek', project_name: 'Norra skolan', plan_title: '', created_at: ago(5), read_at: null },
+    { id: 2, user_id: 'u1', kind: 'edit_request', project_id: 2, plan_id: 5, actor_name: 'Kristoffer Ek', project_name: 'Engelska skolan', plan_title: 'Linas fotosyntes för skolan', created_at: ago(90), read_at: null },
+    { id: 3, user_id: 'u1', kind: 'member_joined', project_id: 2, actor_name: 'Mange W', project_name: 'Engelska skolan', plan_title: '', created_at: ago(60 * 30), read_at: ago(60 * 20) },
+  ];
   const persist = () => sessionStorage.setItem('mockDb', JSON.stringify(tables));
   window.__mockDb = tables;
   function builder(table) {
@@ -63,7 +71,7 @@
       if (q.op === 'update') res.forEach(r => Object.assign(r, q.p));
       if (table === 'plan_editors') res = res.map(r => ({ ...r }));
       if (q.op === 'delete') tables[table] = rows().filter(r => !res.includes(r));
-      if (q.order) res = res.slice().sort((a, b) => (a[q.order] > b[q.order] ? 1 : -1));
+      if (q.order) res = res.slice().sort((a, b) => (a[q.order] > b[q.order] ? 1 : -1) * (q.desc ? -1 : 1));
       if (q.limit) res = res.slice(0, q.limit);
       persist();
       if (q.single) return { data: res[0], error: null };
@@ -71,7 +79,7 @@
       return { data: res, error: null };
     };
     const api = {
-      select() { return api; }, order(k) { q.order = k; return api; }, limit(n) { q.limit = n; return api; },
+      select() { return api; }, order(k, o) { q.order = k; q.desc = o?.ascending === false; return api; }, limit(n) { q.limit = n; return api; },
       eq(k, v) { q.f.push(r => String(r[k]) === String(v)); return api; },
       in(k, vs) { q.f.push(r => vs.map(String).includes(String(r[k]))); return api; },
       gte(k, v) { q.f.push(r => r[k] >= v); return api; },
@@ -119,6 +127,30 @@
         if (!findEditor(params.pid, user.id)) editors.push({ plan_id: Number(params.pid), user_id: user.id, status: 'requested' });
         persist();
         return { data: findEditor(params.pid, user.id).status, error: null };
+      }
+      if (name === 'invite_by_email') {
+        const email = params.invite_email.trim().toLowerCase();
+        if (email === 'kristoffer@skola.se') return { data: 'member', error: null };
+        tables.project_invites.push({ id: tables.project_invites.length + 1, project_id: Number(params.pid), email, invited_by: user.id, status: 'pending', created_at: new Date().toISOString() });
+        persist();
+        return { data: email.endsWith('@skola.se') ? 'sent' : 'saved', error: null };
+      }
+      if (name === 'cancel_invite') {
+        tables.project_invites = tables.project_invites.filter(i => i.id !== Number(params.invite));
+        persist();
+        return { data: null, error: null };
+      }
+      if (name === 'answer_invite') {
+        const inv = tables.project_invites.find(i => i.id === Number(params.invite));
+        inv.status = params.accept ? 'accepted' : 'declined';
+        if (params.accept) {
+          const p = tables.projects.find(x => x.id === inv.project_id);
+          delete p._hidden;
+          memberProfiles.push({ project_id: p.id, user_id: 'u1', role: 'member', display_name: 'Lina Berg', avatar: 'rocket', email: user.email });
+        }
+        tables.notifications.filter(n => n.invite_id === inv.id).forEach(n => { n.read_at = n.read_at || new Date().toISOString(); });
+        persist();
+        return { data: inv.project_id, error: null };
       }
       if (name === 'add_plan_editor') {
         const e = findEditor(params.pid, params.editor);
@@ -193,7 +225,8 @@
       signInWithPassword: async () => ({ error: null }),
       signUp: async ({ email, options }) => {
         const code = String(options?.data?.invite_code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-        if (!tables.projects.some(p => p.invite_code === code)) return { data: {}, error: { message: 'Database error saving new user', status: 500 } };
+        const invited = (tables.project_invites || []).some(i => i.status === 'pending' && i.email === email.toLowerCase());
+        if (!tables.projects.some(p => p.invite_code === code) && !invited) return { data: {}, error: { message: 'Database error saving new user', status: 500 } };
         if (email === 'finns@skola.se') return { data: {}, error: { message: 'User already registered', status: 422 } };
         sessionStorage.setItem('mockSignUp', JSON.stringify({ email, options }));
         sessionStorage.removeItem('mockLoggedOut');

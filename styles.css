@@ -176,6 +176,76 @@ body.activity-panel-resizing .page-frame {
 
 .aside-project-icon svg { width: 18px; height: 18px; }
 
+/* ── Notiser: klockan i topbaren (theme.js) ── */
+.notif-wrap { position: relative; }
+.notif-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.notif-btn:hover, .notif-btn[aria-expanded="true"] { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.notif-btn svg { width: 18px; height: 18px; }
+.notif-badge {
+  position: absolute;
+  top: 2px;
+  right: 1px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  background: #E24B4A;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--color-bg-primary);
+}
+.notif-badge[hidden] { display: none; }
+.notif-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 360px;
+  max-width: calc(100vw - 24px);
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 250;
+}
+.notif-panel.open { display: block; }
+.notif-head { font-size: var(--font-size-md); font-weight: 600; color: var(--color-text-primary); padding: 12px 14px 8px; border-bottom: 1px solid var(--color-border); }
+.notif-item { display: flex; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--color-border); }
+.notif-item:last-child { border-bottom: none; }
+.notif-item.is-unread { background: var(--color-primary-light); }
+.notif-icon { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; background: var(--color-bg-hover); color: var(--color-text-secondary); }
+.notif-item.is-unread .notif-icon { color: var(--color-primary); background: var(--color-bg-primary); }
+.notif-icon svg { width: 14px; height: 14px; }
+.notif-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.notif-text { font-size: var(--font-size-base); color: var(--color-text-secondary); line-height: 1.45; }
+.notif-text strong { color: var(--color-text-primary); font-weight: 600; }
+.notif-time { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
+.notif-actions { display: flex; gap: 6px; margin-top: 6px; }
+.notif-action { padding: 4px 12px; font-size: var(--font-size-sm); }
+.notif-done { font-size: var(--font-size-xs); color: var(--color-text-tertiary); margin-top: 2px; }
+.notif-link { font-size: var(--font-size-sm); font-weight: 500; color: var(--color-primary); text-decoration: none; margin-top: 4px; align-self: flex-start; }
+.notif-link:hover { text-decoration: underline; }
+.notif-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 14px; font-size: var(--font-size-base); color: var(--color-text-tertiary); }
+.notif-empty svg { width: 20px; height: 20px; }
+@media (max-width: 760px) { .notif-panel { position: fixed; top: 56px; left: 12px; right: 12px; width: auto; max-width: none; } }
+
 /* ── Projektväljaren (renderProjectSwitcher i theme.js) ── */
 .aside-project-wrap { position: relative; margin-bottom: 24px; }
 .aside-project-wrap .aside-project { margin-bottom: 0; }
@@ -503,6 +573,18 @@ body.activity-panel-resizing .page-frame {
 }
 .invite-copy-btn { flex-shrink: 0; padding: 6px 12px; background: var(--color-bg-primary); }
 .invite-code { white-space: nowrap; }
+.invite-email-row { display: flex; gap: 8px; }
+.invite-email-row .field-input { flex: 1; min-width: 0; }
+.invite-email-row .btn-primary { flex-shrink: 0; }
+.invite-email-message { font-size: var(--font-size-sm); margin: 0; line-height: 1.45; color: var(--color-text-secondary); }
+.invite-email-message.is-ok { color: #15803D; }
+.invite-email-message.is-error { color: #C2413B; }
+.invite-email-message[hidden] { display: none; }
+.pending-invites { display: flex; flex-direction: column; }
+.pending-invite { display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: var(--font-size-base); color: var(--color-text-primary); }
+.pending-invite + .pending-invite { border-top: 1px solid var(--color-border); }
+.pending-invite-email { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pending-invite-status { font-size: var(--font-size-xs); color: var(--color-text-tertiary); flex-shrink: 0; }
 @media (max-width: 760px) { .invite-code { font-size: 17px; letter-spacing: 0.08em; } }
 .invite-copy-btn svg { width: 14px; height: 14px; }
 .invite-members { display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; }

@@ -391,6 +391,8 @@ function renderAppShell(options = {}) {
     if (typeof renderAsideEvents === 'function') renderAsideEvents();
   }
 
+  if (header) startNotifications();
+
   if (!document.getElementById('createPlanModal')) {
     document.body.insertAdjacentHTML('beforeend', buildCreatePlanModalHTML());
     document.getElementById('createPlanModal').addEventListener('click', e => {
@@ -473,6 +475,17 @@ function buildTopbarHTML(active) {
   </div>
 
   <div class="app-topbar-end">
+    <!-- Notiser (renderNotifications): inbjudningar, förfrågningar, medskapare, nya medlemmar -->
+    <div class="notif-wrap" id="notifWrap">
+      <button type="button" class="notif-btn" id="notifBtn" onclick="toggleNotifications()" aria-label="Notiser" aria-expanded="false" title="Notiser">
+        <i data-lucide="bell"></i>
+        <span class="notif-badge" id="notifBadge" hidden></span>
+      </button>
+      <div class="notif-panel" id="notifPanel" role="dialog" aria-label="Notiser">
+        <div class="notif-head">Notiser</div>
+        <div class="notif-list" id="notifList"></div>
+      </div>
+    </div>
     <button class="feedback-btn" onclick="openFeedbackModal()" title="Ge feedback – idéer, tankar eller buggar">
       <i data-lucide="message-square-heart"></i>
       <span class="feedback-btn-label">Feedback</span>
@@ -673,6 +686,131 @@ async function renderProjectSwitcher(onProjectChange) {
   if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [wrap] });
 }
 
+// ── Notiser (klockan i topbaren, supabase/notifications.sql) ──
+// Hämtas när sidan laddas, när fliken får fokus och varje minut. Öppnar man
+// listan markeras de olästa som lästa (de syns som nya tills listan stängs).
+let notifications = [];
+let notifTimer = null;
+
+function startNotifications() {
+  loadNotifications();
+  clearInterval(notifTimer);
+  notifTimer = setInterval(() => { if (!document.hidden) loadNotifications(); }, 60000);
+  window.addEventListener('focus', () => loadNotifications());
+}
+
+async function loadNotifications() {
+  try {
+    notifications = await LossiData.listNotifications();
+  } catch (e) {
+    return; // utloggad, eller innan notifications.sql körts
+  }
+  const unread = notifications.filter(n => !n.read).length;
+  const badge = document.getElementById('notifBadge');
+  if (!badge) return;
+  badge.textContent = unread > 9 ? '9+' : String(unread);
+  badge.hidden = !unread;
+  document.getElementById('notifBtn').setAttribute('aria-label', unread ? `Notiser, ${unread} nya` : 'Notiser');
+  if (document.getElementById('notifPanel').classList.contains('open')) renderNotifications();
+}
+
+function notifTime(iso) {
+  const then = new Date(iso);
+  const mins = Math.round((Date.now() - then.getTime()) / 60000);
+  if (mins < 1) return 'nyss';
+  if (mins < 60) return `för ${mins} min sedan`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `för ${hours} ${hours === 1 ? 'timme' : 'timmar'} sedan`;
+  const days = Math.round(hours / 24);
+  if (days === 1) return 'i går';
+  if (days < 7) return `för ${days} dagar sedan`;
+  return then.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
+}
+
+const NOTIF_ICONS = { project_invite: 'user-plus', edit_request: 'pencil', editor_added: 'badge-check', member_joined: 'users' };
+
+function notificationHTML(n) {
+  const who = `<strong>${escapeHTML(n.actorName || 'Någon')}</strong>`;
+  const project = `<strong>${escapeHTML(n.projectName || 'ett projekt')}</strong>`;
+  const plan = `<strong>${escapeHTML(n.planTitle || 'ett upplägg')}</strong>`;
+  const text = {
+    project_invite: `${who} har bjudit in dig till ${project}.`,
+    edit_request: `${who} vill redigera ${plan}.`,
+    editor_added: `${who} har gjort dig till medskapare på ${plan}.`,
+    member_joined: `${who} har gått med i ${project}.`,
+  }[n.kind] || '';
+  let actions = '';
+  if (n.kind === 'project_invite') {
+    actions = n.pending
+      ? `<div class="notif-actions">
+           <button type="button" class="btn-ghost notif-action" onclick="answerNotificationInvite('${n.inviteId}', false)">Avböj</button>
+           <button type="button" class="btn-primary notif-action" onclick="answerNotificationInvite('${n.inviteId}', true)">Gå med</button>
+         </div>`
+      : '<div class="notif-done">Besvarad</div>';
+  } else if (n.planId && (n.kind === 'edit_request' || n.kind === 'editor_added')) {
+    actions = `<a class="notif-link" href="upplag.html?id=${n.planId}">Öppna upplägget</a>`;
+  }
+  return `
+    <div class="notif-item${n.read ? '' : ' is-unread'}">
+      <span class="notif-icon"><i data-lucide="${NOTIF_ICONS[n.kind] || 'bell'}"></i></span>
+      <div class="notif-body">
+        <div class="notif-text">${text}</div>
+        <div class="notif-time">${escapeHTML(notifTime(n.createdAt))}</div>
+        ${actions}
+      </div>
+    </div>`;
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notifList');
+  list.innerHTML = notifications.length
+    ? notifications.map(notificationHTML).join('')
+    : '<div class="notif-empty"><i data-lucide="bell-off"></i><span>Inga notiser än</span></div>';
+  lucide.createIcons({ nodes: [list] });
+}
+
+function toggleNotifications(open) {
+  const panel = document.getElementById('notifPanel');
+  if (!panel) return;
+  const show = open === undefined ? !panel.classList.contains('open') : open;
+  if (show === panel.classList.contains('open')) return;
+  panel.classList.toggle('open', show);
+  document.getElementById('notifBtn').setAttribute('aria-expanded', String(show));
+  if (show) {
+    renderNotifications();
+    const unread = notifications.filter(n => !n.read);
+    if (unread.length) {
+      document.getElementById('notifBadge').hidden = true;
+      LossiData.markNotificationsRead(unread.map(n => n.id)).catch(e => console.warn('Kunde inte markera notiser:', e));
+    }
+  } else {
+    // Det som visats räknas som läst först när listan stängs
+    notifications.forEach(n => { n.read = true; });
+  }
+}
+
+async function answerNotificationInvite(inviteId, accept) {
+  try {
+    await LossiData.answerInvite(inviteId, accept);
+    if (accept) {
+      window.location.href = 'index.html';
+      return;
+    }
+    await loadNotifications();
+    renderNotifications();
+  } catch (e) {
+    console.warn('Kunde inte svara på inbjudan:', e);
+    alert('Kunde inte svara på inbjudan. Försök igen om en stund.');
+  }
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#notifWrap')) toggleNotifications(false);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') toggleNotifications(false);
+});
+
 // ── Bjud in och gå med (inbjudningskod, supabase/projects.sql steg 3) ──
 // Alla medlemmar i ett delat projekt ser dess kod och en länk som öppnar
 // Skapa konto med koden ifylld. Egna projekt kan man inte bjuda in till.
@@ -710,7 +848,15 @@ function buildInviteModalsHTML() {
       <button class="modal-close" onclick="closeInviteModal()"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body">
-      <p class="invite-lead">Kollegor som får koden kan skapa ett konto och hamnar direkt i projektet. Har de redan ett konto väljer de <strong>Gå med med kod</strong> i projektväljaren.</p>
+      <form class="invite-field" onsubmit="event.preventDefault(); sendEmailInvite('inviteEmail', 'inviteEmailMessage')">
+        <label class="invite-label" for="inviteEmail">Bjud in med e-post</label>
+        <div class="invite-email-row">
+          <input class="field-input" type="email" id="inviteEmail" placeholder="namn@skola.se" autocomplete="off" />
+          <button type="submit" class="btn-primary">Bjud in</button>
+        </div>
+        <p class="invite-email-message" id="inviteEmailMessage" role="status" hidden></p>
+      </form>
+      <p class="invite-lead">Har kollegan redan ett konto får hen inbjudan i Lossi under klockan. Annars sparas den tills hen skapar ett konto med adressen. Du kan också dela koden eller länken.</p>
       <div class="invite-field">
         <span class="invite-label">Inbjudningskod</span>
         <div class="invite-copy-row">
@@ -844,12 +990,42 @@ async function openInviteModal() {
     return `<div class="invite-member"><span class="invite-member-avatar">${userAvatarHTML(profile)}</span><span>${escapeHTML(profileName(profile) || 'Okänd')}</span></div>`;
   }).join('');
   document.querySelectorAll('#inviteModal .invite-copy-btn span').forEach(el => { el.textContent = 'Kopiera'; });
+  document.getElementById('inviteEmail').value = '';
+  document.getElementById('inviteEmailMessage').hidden = true;
   document.getElementById('inviteModal').classList.add('open');
   lucide.createIcons({ nodes: [document.getElementById('inviteModal')] });
 }
 
 function closeInviteModal() {
   document.getElementById('inviteModal').classList.remove('open');
+}
+
+// Bjud in en e-postadress till inviteProject (inbjudningsdialogen och inställningarna)
+async function sendEmailInvite(inputId, messageId, onDone) {
+  const input = document.getElementById(inputId);
+  const msg = document.getElementById(messageId);
+  const email = input.value.trim().toLowerCase();
+  const show = (text, kind) => { msg.textContent = text; msg.className = 'invite-email-message' + (kind ? ' is-' + kind : ''); msg.hidden = false; };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    show('Skriv en giltig e-postadress, t.ex. namn@skola.se.', 'error');
+    input.focus();
+    return;
+  }
+  if (!inviteProject) return;
+  const btn = input.form?.querySelector('button[type="submit"]');
+  if (btn) btn.disabled = true;
+  try {
+    const result = await LossiData.inviteByEmail(inviteProject.id, email);
+    if (result === 'member') show(`${email} är redan med i ${inviteProject.name}.`, 'error');
+    else if (result === 'sent') show(`Inbjudan skickad. ${email} ser den under klockan i Lossi.`, 'ok');
+    else show(`${email} har inget konto än. Inbjudan sparas och dyker upp när hen skapar ett konto med adressen. Skicka gärna länken nedan.`, 'ok');
+    if (result !== 'member') input.value = '';
+    onDone?.();
+  } catch (e) {
+    console.warn('Kunde inte bjuda in:', e);
+    show('Kunde inte skicka inbjudan. Försök igen om en stund.', 'error');
+  }
+  if (btn) btn.disabled = false;
 }
 
 async function copyInvite(what, btn) {
@@ -889,6 +1065,38 @@ async function openProjectSettings() {
 
 function closeProjectSettings() {
   document.getElementById('projectSettingsModal').classList.remove('open');
+}
+
+// Obesvarade inbjudningar via e-post (den som bjöd in eller ägaren kan ta tillbaka)
+async function loadSettingsInvites() {
+  const box = document.getElementById('settingsPendingInvites');
+  if (!box || !settingsProject) return;
+  let invites = [];
+  try {
+    invites = await LossiData.listProjectInvites(settingsProject.id);
+  } catch (e) {
+    box.innerHTML = '';
+    return;
+  }
+  const owner = isProjectOwner(settingsProject, settingsUser);
+  box.innerHTML = invites.map(i => `
+    <div class="pending-invite">
+      <i data-lucide="mail" class="project-menu-glyph"></i>
+      <span class="pending-invite-email">${escapeHTML(i.email)}</span>
+      <span class="pending-invite-status">Väntar på svar</span>
+      ${owner || i.invitedBy === settingsUser?.id ? `<button type="button" class="settings-member-remove" onclick="cancelSettingsInvite('${i.id}')">Ta tillbaka</button>` : ''}
+    </div>`).join('');
+  lucide.createIcons({ nodes: [box] });
+}
+
+async function cancelSettingsInvite(id) {
+  try {
+    await LossiData.cancelInvite(id);
+    loadSettingsInvites();
+  } catch (e) {
+    console.warn('Kunde inte ta tillbaka inbjudan:', e);
+    alert('Kunde inte ta tillbaka inbjudan. Försök igen om en stund.');
+  }
 }
 
 function renderProjectSettings() {
@@ -941,7 +1149,15 @@ function renderProjectSettings() {
 
     <section class="settings-section">
       <h4 class="settings-heading">Bjud in</h4>
-      <p class="settings-note">Kollegor som får koden kan skapa ett konto och hamnar direkt i projektet. Har de redan ett konto väljer de <strong>Gå med med kod</strong> i projektväljaren.</p>
+      <form class="invite-field" onsubmit="event.preventDefault(); sendEmailInvite('settingsInviteEmail', 'settingsInviteMessage', loadSettingsInvites)">
+        <div class="invite-email-row">
+          <input class="field-input" type="email" id="settingsInviteEmail" placeholder="namn@skola.se" autocomplete="off" aria-label="E-postadress att bjuda in" />
+          <button type="submit" class="btn-primary">Bjud in</button>
+        </div>
+        <p class="invite-email-message" id="settingsInviteMessage" role="status" hidden></p>
+      </form>
+      <div class="pending-invites" id="settingsPendingInvites"></div>
+      <p class="settings-note">Eller dela koden eller länken. Den som får dem kan skapa ett konto eller välja <strong>Gå med med kod</strong>.</p>
       ${p.inviteCode ? `
       <div class="invite-copy-row">
         <span class="invite-code">${escapeHTML(formatInviteCode(p.inviteCode))}</span>
@@ -961,6 +1177,7 @@ function renderProjectSettings() {
         : `<div class="settings-danger-row"><span><strong>Lämna projektet</strong><span class="settings-note">Dina upplägg här flyttas till ditt första projekt.</span></span><button type="button" class="btn-danger" onclick="leaveProjectFromSettings()"><i data-lucide="log-out"></i>Lämna</button></div>`}
     </section>`;
   lucide.createIcons({ nodes: [body] });
+  loadSettingsInvites();
 }
 
 function settingsChanged() {

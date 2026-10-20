@@ -385,3 +385,6 @@ body {
 }
 .login-hint.is-ok { color: #15803D; }
 .login-hint.is-bad { color: var(--login-danger); }
+
+.login-optional { font-weight: 400; color: var(--color-text-tertiary); }
+.login-help { font-size: var(--font-size-sm); color: var(--color-text-tertiary); margin-top: 6px; line-height: 1.45; }

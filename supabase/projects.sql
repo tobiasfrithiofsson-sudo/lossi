@@ -632,3 +632,32 @@ $$;
 revoke all on function public.keep_plan_owner_and_project() from public, anon, authenticated;
 revoke all on function public.delete_project(bigint) from public, anon;
 grant execute on function public.delete_project(bigint) to authenticated;
+
+
+-- ── Steg 4c: byt namn på projekt ──
+-- Bara projektets ägare (även för det egna projektet). 1–60 tecken.
+create or replace function public.rename_project(pid bigint, project_name text)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  clean text := trim(regexp_replace(coalesce(project_name, ''), '\s+', ' ', 'g'));
+begin
+  if not exists (
+    select 1 from public.project_members m
+    where m.project_id = pid and m.user_id = (select auth.uid()) and m.role = 'owner'
+  ) then
+    raise exception 'Bara projektets ägare kan byta namn' using errcode = '42501';
+  end if;
+  if clean = '' or length(clean) > 60 then
+    raise exception 'Projektnamnet måste vara 1–60 tecken' using errcode = '22023';
+  end if;
+  update public.projects set name = clean where id = pid;
+  return clean;
+end;
+$$;
+
+revoke all on function public.rename_project(bigint, text) from public, anon;
+grant execute on function public.rename_project(bigint, text) to authenticated;

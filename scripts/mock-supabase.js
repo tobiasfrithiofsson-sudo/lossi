@@ -131,6 +131,12 @@
         persist();
         return { data: null, error: null };
       }
+      if (name === 'rename_project') {
+        const p = tables.projects.find(x => x.id === Number(params.pid));
+        p.name = params.project_name.trim().replace(/\s+/g, ' ');
+        persist();
+        return { data: p.name, error: null };
+      }
       if (name === 'delete_project') {
         const pid = Number(params.pid);
         // Som databasen: egna upplägg till det egna projektet (1), kollegans till deras (99, syns inte här)

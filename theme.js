@@ -410,7 +410,7 @@ function renderAppShell(options = {}) {
 
   if (!document.getElementById('inviteModal')) {
     document.body.insertAdjacentHTML('beforeend', buildInviteModalsHTML());
-    ['inviteModal', 'joinModal', 'createProjectModal', 'deleteProjectModal'].forEach(id => document.getElementById(id).addEventListener('click', e => {
+    ['inviteModal', 'joinModal', 'createProjectModal', 'deleteProjectModal', 'renameProjectModal'].forEach(id => document.getElementById(id).addEventListener('click', e => {
       if (e.target.id === id) document.getElementById(id).classList.remove('open');
     }));
   }
@@ -582,7 +582,11 @@ function projectMetaText(project) {
   return n ? `${n} ${n === 1 ? 'medlem' : 'medlemmar'}` : 'Delat projekt';
 }
 
+// Sidans onProjectChange (översikten ritar om i stället för att ladda om), så att namnbytet kan rita om väljaren
+let projectSwitcherOnChange;
+
 async function renderProjectSwitcher(onProjectChange) {
+  if (onProjectChange !== undefined) projectSwitcherOnChange = onProjectChange;
   const wrap = document.getElementById('projectSwitcher');
   if (!wrap) return;
   let projects, current, user;
@@ -618,6 +622,11 @@ async function renderProjectSwitcher(onProjectChange) {
         <span class="project-menu-plain-icon"><i data-lucide="user-plus"></i></span>
         <span class="project-menu-text"><span class="project-menu-name">Bjud in till ${escapeHTML(current.name)}</span></span>
       </button>`}
+      ${current.members.some(m => m.userId === user?.id && m.role === 'owner') || (current.personal && !current.members.length) ? `
+      <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openRenameProjectModal()">
+        <span class="project-menu-plain-icon"><i data-lucide="pencil"></i></span>
+        <span class="project-menu-text"><span class="project-menu-name">Byt namn på ${escapeHTML(current.name)}</span></span>
+      </button>` : ''}
       ${!current.personal && current.members.some(m => m.userId === user?.id && m.role === 'owner') ? `
       <button type="button" class="project-menu-item is-danger" onclick="toggleProjectMenu(false); openDeleteProjectModal()">
         <span class="project-menu-plain-icon"><i data-lucide="trash-2"></i></span>
@@ -769,6 +778,29 @@ function buildInviteModalsHTML() {
   </div>
 </div>
 
+<div class="modal-overlay" id="renameProjectModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Byt namn på projektet</h3>
+      <button class="modal-close" onclick="closeRenameProjectModal()"><i data-lucide="x"></i></button>
+    </div>
+    <form class="modal-body" id="renameProjectForm" onsubmit="event.preventDefault(); renameProjectFromModal()">
+      <div class="field-group">
+        <label class="field-label" for="renameProjectName">Namn</label>
+        <div class="field-group-content">
+          <input class="field-input" type="text" id="renameProjectName" maxlength="60" autocomplete="off" oninput="showRenameProjectMessage('')" />
+        </div>
+      </div>
+      <p class="password-message" id="renameProjectMessage" role="status" hidden></p>
+      <button type="submit" hidden></button>
+    </form>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeRenameProjectModal()">Avbryt</button>
+      <button class="btn-primary" id="renameProjectBtn" onclick="renameProjectFromModal()">Spara</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="joinModal">
   <div class="modal modal-sm">
     <div class="modal-header">
@@ -840,6 +872,55 @@ async function copyInvite(what, btn) {
     label.textContent = 'Markera och kopiera';
   }
   setTimeout(() => { label.textContent = 'Kopiera'; }, 2000);
+}
+
+let projectToRename = null;
+
+async function openRenameProjectModal() {
+  const project = await LossiData.currentProject().catch(() => null);
+  if (!project) return;
+  projectToRename = project;
+  const input = document.getElementById('renameProjectName');
+  input.value = project.name;
+  showRenameProjectMessage('');
+  document.getElementById('renameProjectBtn').disabled = false;
+  document.getElementById('renameProjectModal').classList.add('open');
+  input.focus();
+  input.select();
+}
+
+function closeRenameProjectModal() {
+  document.getElementById('renameProjectModal').classList.remove('open');
+}
+
+function showRenameProjectMessage(text) {
+  const el = document.getElementById('renameProjectMessage');
+  el.textContent = text;
+  el.classList.toggle('is-error', !!text);
+  el.hidden = !text;
+}
+
+async function renameProjectFromModal() {
+  if (!projectToRename) return;
+  const input = document.getElementById('renameProjectName');
+  const name = input.value.trim().replace(/\s+/g, ' ');
+  if (!name) {
+    showRenameProjectMessage('Ge projektet ett namn.');
+    input.focus();
+    return;
+  }
+  if (name === projectToRename.name) return closeRenameProjectModal();
+  const btn = document.getElementById('renameProjectBtn');
+  btn.disabled = true;
+  try {
+    await LossiData.renameProject(projectToRename.id, name);
+    closeRenameProjectModal();
+    renderProjectSwitcher(projectSwitcherOnChange);
+  } catch (e) {
+    console.warn('Kunde inte byta namn på projektet:', e);
+    showRenameProjectMessage('Kunde inte spara namnet. Försök igen om en stund.');
+    btn.disabled = false;
+  }
 }
 
 let projectToDelete = null;
@@ -967,7 +1048,7 @@ document.addEventListener('input', e => {
 
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  ['inviteModal', 'joinModal', 'createProjectModal', 'deleteProjectModal'].forEach(id => document.getElementById(id)?.classList.remove('open'));
+  ['inviteModal', 'joinModal', 'createProjectModal', 'deleteProjectModal', 'renameProjectModal'].forEach(id => document.getElementById(id)?.classList.remove('open'));
 });
 
 function toggleProjectMenu(open) {

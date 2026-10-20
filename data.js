@@ -192,6 +192,13 @@ const LossiData = (() => {
     check(await db().rpc('remove_plan_editor', { pid: Number(planId), editor: userId }));
   }
 
+  // Byter namn på ett projekt (bara ägaren). Returnerar det sparade namnet.
+  async function renameProject(id, name) {
+    const saved = check(await db().rpc('rename_project', { pid: Number(id), project_name: name }));
+    projectsPromise = null;
+    return saved;
+  }
+
   // Tar bort ett delat projekt (bara ägaren). Uppläggen flyttas till skaparnas egna projekt.
   async function deleteProject(id) {
     check(await db().rpc('delete_project', { pid: Number(id) }));
@@ -470,7 +477,7 @@ const LossiData = (() => {
 
   return {
     listPlans, listMyPlans, loadPlan, loadPlanInfo, savePlan,
-    listProjects, currentProject, setCurrentProject, createProject, deleteProject, joinProject, findMember,
+    listProjects, currentProject, setCurrentProject, createProject, renameProject, deleteProject, joinProject, findMember,
     listPlanEditors, listMyEditRequests, requestPlanEdit, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,

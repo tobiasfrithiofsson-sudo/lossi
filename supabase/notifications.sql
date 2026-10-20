@@ -106,6 +106,7 @@ as $$
 declare
   clean text := lower(trim(coalesce(invite_email, '')));
   target uuid;
+  existing bigint;
 begin
   if not public.is_project_member(pid) then
     raise exception 'Bara medlemmar kan bjuda in' using errcode = '42501';
@@ -117,9 +118,16 @@ begin
   if target is not null and exists (select 1 from public.project_members where project_id = pid and user_id = target) then
     return 'member';
   end if;
-  insert into public.project_invites (project_id, email, invited_by)
-  values (pid, clean, (select auth.uid()))
-  on conflict (project_id, email) where status = 'pending' do nothing;
+  select id into existing from public.project_invites where project_id = pid and email = clean and status = 'pending';
+  if existing is null then
+    insert into public.project_invites (project_id, email, invited_by)
+    values (pid, clean, (select auth.uid()));
+  elsif target is not null then
+    -- Bjuder man in igen får personen en ny notis om samma inbjudan
+    insert into public.notifications (user_id, kind, project_id, invite_id, actor_name, project_name)
+    select target, 'project_invite', pid, existing, coalesce(public.display_name_of((select auth.uid())), ''), p.name
+    from public.projects p where p.id = pid;
+  end if;
   return case when target is null then 'saved' else 'sent' end;
 end;
 $$;

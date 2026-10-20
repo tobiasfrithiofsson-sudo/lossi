@@ -264,8 +264,14 @@ const LossiData = (() => {
     const inviteIds = rows.filter(r => r.invite_id).map(r => r.invite_id);
     let pending = new Set();
     if (inviteIds.length) {
-      const invites = check(await db().from('project_invites').select('id').in('id', inviteIds).eq('status', 'pending'));
-      pending = new Set(invites.map(i => String(i.id)));
+      try {
+        const invites = check(await db().from('project_invites').select('id').in('id', inviteIds).eq('status', 'pending'));
+        pending = new Set(invites.map(i => String(i.id)));
+      } catch (e) {
+        // Notiserna ska synas även om inbjudningarnas status inte gick att hämta
+        console.warn('Kunde inte hämta inbjudningarnas status:', e);
+        pending = new Set(inviteIds.map(String));
+      }
     }
     return rows.filter(r => r.user_id === user?.id || !r.user_id).map(r => ({
       id: String(r.id), kind: r.kind, projectId: r.project_id != null ? String(r.project_id) : null,

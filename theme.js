@@ -691,6 +691,8 @@ async function renderProjectSwitcher(onProjectChange) {
 // listan markeras de olästa som lästa (de syns som nya tills listan stängs).
 let notifications = [];
 let notifTimer = null;
+let notifError = false;
+let notifShownUnread = new Set(); // olästa när listan öppnades: visas som nya tills den stängs
 
 function startNotifications() {
   loadNotifications();
@@ -702,8 +704,12 @@ function startNotifications() {
 async function loadNotifications() {
   try {
     notifications = await LossiData.listNotifications();
+    notifError = false;
   } catch (e) {
-    return; // utloggad, eller innan notifications.sql körts
+    console.warn('Kunde inte hämta notiser:', e); // t.ex. innan notifications.sql körts
+    notifError = true;
+    if (document.getElementById('notifPanel')?.classList.contains('open')) renderNotifications();
+    return;
   }
   const unread = notifications.filter(n => !n.read).length;
   const badge = document.getElementById('notifBadge');
@@ -751,7 +757,7 @@ function notificationHTML(n) {
     actions = `<a class="notif-link" href="upplag.html?id=${n.planId}">Öppna upplägget</a>`;
   }
   return `
-    <div class="notif-item${n.read ? '' : ' is-unread'}">
+    <div class="notif-item${n.read && !notifShownUnread.has(n.id) ? '' : ' is-unread'}">
       <span class="notif-icon"><i data-lucide="${NOTIF_ICONS[n.kind] || 'bell'}"></i></span>
       <div class="notif-body">
         <div class="notif-text">${text}</div>
@@ -765,7 +771,9 @@ function renderNotifications() {
   const list = document.getElementById('notifList');
   list.innerHTML = notifications.length
     ? notifications.map(notificationHTML).join('')
-    : '<div class="notif-empty"><i data-lucide="bell-off"></i><span>Inga notiser än</span></div>';
+    : notifError
+      ? '<div class="notif-empty"><i data-lucide="cloud-off"></i><span>Kunde inte hämta notiser. Försök igen om en stund.</span></div>'
+      : '<div class="notif-empty"><i data-lucide="bell-off"></i><span>Inga notiser än</span></div>';
   lucide.createIcons({ nodes: [list] });
 }
 
@@ -777,14 +785,19 @@ function toggleNotifications(open) {
   panel.classList.toggle('open', show);
   document.getElementById('notifBtn').setAttribute('aria-expanded', String(show));
   if (show) {
-    renderNotifications();
     const unread = notifications.filter(n => !n.read);
+    notifShownUnread = new Set(unread.map(n => n.id));
+    renderNotifications();
     if (unread.length) {
       document.getElementById('notifBadge').hidden = true;
-      LossiData.markNotificationsRead(unread.map(n => n.id)).catch(e => console.warn('Kunde inte markera notiser:', e));
+      LossiData.markNotificationsRead(unread.map(n => n.id))
+        .catch(e => console.warn('Kunde inte markera notiser:', e))
+        .finally(() => loadNotifications()); // och hämta det senaste
+    } else {
+      loadNotifications();
     }
   } else {
-    // Det som visats räknas som läst först när listan stängs
+    notifShownUnread = new Set();
     notifications.forEach(n => { n.read = true; });
   }
 }
@@ -805,6 +818,8 @@ async function answerNotificationInvite(inviteId, accept) {
 }
 
 document.addEventListener('click', e => {
+  // Ett klick på något som just ritats om (t.ex. en knapp i listan) ska inte stänga den
+  if (!e.target.isConnected) return;
   if (!e.target.closest('#notifWrap')) toggleNotifications(false);
 });
 document.addEventListener('keydown', e => {

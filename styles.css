@@ -3242,6 +3242,20 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 .modal-body p.ai-help { font-size: var(--font-size-base); color: var(--color-text-secondary); line-height: 1.5; margin: 0; }
 .ai-help strong { color: var(--color-text-primary); font-weight: 600; }
 .ai-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Laddning i en knapp (setAiLoading i ai-import.js) */
+.btn-primary.is-loading { cursor: progress; opacity: 0.9; }
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: btn-spin 0.7s linear infinite;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .btn-spinner { animation-duration: 2s; } }
 .ai-actions .btn-primary { display: inline-flex; align-items: center; gap: 6px; }
 .ai-actions .btn-primary svg { width: 14px; height: 14px; }
 .ai-prompt, .ai-paste {

@@ -334,6 +334,13 @@ function closeAiPlanModal() {
   document.getElementById('aiPlanModal')?.classList.remove('open');
 }
 
+function showAiPreviewError(text) {
+  const preview = document.getElementById('aiPreview');
+  preview.querySelector('.ai-save-error')?.remove();
+  preview.insertAdjacentHTML('afterbegin', `<p class="password-message is-error ai-save-error" role="alert">${escapeHTML(text)}</p>`);
+  preview.scrollIntoView({ block: 'start' });
+}
+
 function showAiStep(step) {
   document.getElementById('aiStepPaste').hidden = step !== 'paste';
   document.getElementById('aiStepPreview').hidden = step !== 'preview';
@@ -341,6 +348,26 @@ function showAiStep(step) {
   const next = document.getElementById('aiNextBtn');
   next.textContent = step === 'paste' ? 'Granska' : (aiFill ? 'Uppdatera upplägget' : 'Skapa upplägg');
   next.disabled = false;
+  next.classList.remove('is-loading');
+  next.removeAttribute('aria-busy');
+  document.getElementById('aiBackBtn').disabled = false;
+}
+
+// Laddning i knappen medan något sparas (snurra + text, knapparna låsta)
+function setAiLoading(label) {
+  const next = document.getElementById('aiNextBtn');
+  const back = document.getElementById('aiBackBtn');
+  if (label) {
+    next.dataset.label = next.textContent;
+    next.innerHTML = `<span class="btn-spinner" aria-hidden="true"></span>${escapeHTML(label)}`;
+    next.setAttribute('aria-busy', 'true');
+  } else {
+    next.textContent = next.dataset.label || next.textContent;
+    next.removeAttribute('aria-busy');
+  }
+  next.classList.toggle('is-loading', !!label);
+  next.disabled = !!label;
+  back.disabled = !!label;
 }
 
 function showAiError(text) {
@@ -435,8 +462,16 @@ async function renderAiPreview({ plan, warnings }) {
 
 function applyAiFill() {
   if (!aiParsed || !aiFill) return;
-  aiFill.apply(aiParsed.plan);
-  closeAiPlanModal();
+  setAiLoading('Uppdaterar upplägget…');
+  // Låt snurran synas innan sidan byggs om
+  requestAnimationFrame(() => setTimeout(() => {
+    try {
+      aiFill.apply(aiParsed.plan);
+      closeAiPlanModal();
+    } finally {
+      setAiLoading(null);
+    }
+  }, 30));
 }
 
 // Förhandsgranskningens delar (delas med Fyll i med AI i upplag.html)
@@ -457,8 +492,8 @@ function aiActivityRowsHTML(activities) {
 
 async function createPlanFromAi() {
   if (!aiParsed) return;
-  const btn = document.getElementById('aiNextBtn');
-  btn.disabled = true;
+  setAiLoading('Skapar upplägget…');
+  document.querySelector('#aiPreview .ai-save-error')?.remove();
   const avatar = PLAN_AVATARS[Math.floor(Math.random() * PLAN_AVATARS.length)].id;
   try {
     const project = await LossiData.currentProject().catch(() => null);
@@ -470,8 +505,8 @@ async function createPlanFromAi() {
     window.location = 'upplag.html?id=' + id;
   } catch (e) {
     console.warn('Kunde inte skapa upplägget:', e);
-    alert('Kunde inte spara upplägget. Kontrollera uppkopplingen och försök igen.');
-    btn.disabled = false;
+    setAiLoading(null);
+    showAiPreviewError('Kunde inte spara upplägget. Kontrollera uppkopplingen och försök igen.');
   }
 }
 

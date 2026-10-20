@@ -111,3 +111,11 @@ Steps:
 5. "Someone else is editing" warning + overwrite check on save (`updated_at`).
 
 Calendar change needed before step 2/4: `lesson_events` has `unique (plan_id, lesson_id)` and requires the plan to be your own; must become per user (`unique (owner_id, plan_id, lesson_id)`, plan readable instead of owned).
+
+## Skapa med AI (added 2026-10-20)
+Teachers build a plan with their own AI (Claude, ChatGPT …) and paste the result; Lossi never calls an AI.
+- `ai-import.js`: `LOSSI_AI_PROMPT` (the rules a teacher copies to their AI: fields, activity types, Lgr22/GY25 samlad bedömning, no student names, answer with ONE ```json block when asked for "Lossi-inmatningen"), `parseLossiAi` (tolerant extraction of the JSON block, Swedish keys with English aliases, activity type aliases, limits on length/count, warnings for unknown types, gymnasium grades and lessons over time), `planStateFromAi` (builds the normal plan state), and the dialog `aiPlanModal` (copy prompt → paste → preview → Skapa upplägg in the current project). Entry: "Skapa med AI" card at the top of the Skapa dialog.
+- Format version 1: `{ lossi, titel, amne, arskurs, beskrivning, centraltInnehall[], betygskriterier[], lektioner[{ namn, minuter, kod?, aktiviteter[{ typ, titel, minuter, beskrivning }] }] }`.
+- `plan-markup.js`: shared markup for activities (`buildActivityMarkup`, `buildActivityReadFields`), goal rows (`buildGoalItemInnerHTML`, `GOAL_LISTS`) and whole lessons (`buildLessonGroupHTML`), moved out of upplag.html. Titles and descriptions are now escaped (they used to be interpolated raw); `buildActivityReadFields` still takes description HTML from the editor.
+- Safety: pasted text is only ever data – no SQL is built from it, everything is escaped, and the plan is saved through `LossiData.createPlan` under the normal database rules.
+- Planned part 2: "Fyll i med AI" in an existing plan (prompt includes the current plan with lesson codes; preview shows changes; lesson ids and calendar links are kept).

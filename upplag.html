@@ -22,6 +22,8 @@
   <script src="theme.js"></script>
   <script src="data.js"></script>
   <script src="schedule.js"></script>
+  <script src="plan-markup.js"></script>
+  <script src="ai-import.js"></script>
   <script src="feedback.js"></script>
 </head>
 <body class="edit-mode">
@@ -1079,13 +1081,6 @@
   let lessonIdsAssigned = false; // lektioner fick nya id vid laddning → spara när upplägget lästs in
   const planEvents = new Map();  // lessonId → kalenderhändelse för det här upplägget
 
-  const ACTIVITY_TYPES = {
-    'Diskussion':  { iconClass: 'icon-discussion', icon: 'message-square' },
-    'Genomgång':   { iconClass: 'icon-review',      icon: 'monitor' },
-    'Aktivitet':   { iconClass: 'icon-activity',    icon: 'star' },
-    'Exit ticket': { iconClass: 'icon-exit',        icon: 'check-square' },
-    'Läsning':     { iconClass: 'icon-reading',     icon: 'book-open' },
-  };
 
   // ── Lektionsförslag (pedagogiska stilar) ──
   // Platshållare/mallar, inget AI-anrop. Varje stil ger en ny lektion med
@@ -1161,118 +1156,6 @@
       ],
     },
   };
-
-  // Bygger HTML-innehållet för en aktivitet (rad + formulär + läsvy), så att
-  // både "Ny aktivitet" och lektionsförslagen återanvänder samma uppmärkning
-  // istället för att duplicera den.
-  // De fält (Typ/Beskrivning/Tid) som visas i aktivitetens läsvy. Beskrivning
-  // och Tid visas bara om de faktiskt har ett värde. Delas mellan
-  // buildActivityMarkup (vid skapande) och saveActivity (vid sparande), så
-  // läsvyn aldrig blir inaktuell mot formuläret.
-  function buildActivityReadFields(type, desc, time) {
-    const fields = [`<div class="read-field"><span class="read-field-label">Typ</span><span class="read-field-value">${type}</span></div>`];
-    if (desc) fields.push(`<div class="read-field"><span class="read-field-label">Beskrivning</span><span class="read-field-value">${desc}</span></div>`);
-    if (time) fields.push(`<div class="read-field"><span class="read-field-label">Tid</span><span class="read-field-value">${time} min</span></div>`);
-    return fields.join('\n        ');
-  }
-
-  function buildActivityMarkup(id, { type = 'Diskussion', title = 'Ny aktivitet', time = null, desc = '' } = {}) {
-    const { iconClass, icon } = ACTIVITY_TYPES[type] || ACTIVITY_TYPES['Diskussion'];
-    const timeLabel = time == null ? '– min' : time + ' min';
-    const timeValue = time == null ? '0' : String(time);
-    const options = Object.keys(ACTIVITY_TYPES)
-      .map(t => `<option${t === type ? ' selected' : ''}>${t}</option>`).join('\n              ');
-    return `
-      <div class="activity-row" onclick="toggleActivity('${id}')">
-        <div class="drag-handle edit-only" title="Dra för att ändra ordning">
-          <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
-        </div>
-        <div class="activity-icon ${iconClass}" title="${type}">
-          <i data-lucide="${icon}"></i>
-        </div>
-        <span class="activity-title">${title}</span>
-        <span class="activity-time">${timeLabel}</span>
-        <div class="popover-wrap" onclick="event.stopPropagation()">
-          <button class="activity-more-btn" onclick="toggleAppPopover(this)" title="Fler alternativ">
-            <i data-lucide="ellipsis"></i>
-          </button>
-          <div class="menu-popover">
-            <button class="menu-popover-item" onclick="openActivity('${id}')">
-              <i data-lucide="pencil"></i>
-              Ändra
-            </button>
-            <button class="menu-popover-item" onclick="duplicateActivity('${id}')">
-              <i data-lucide="copy"></i>
-              Duplicera
-            </button>
-            <button class="menu-popover-item menu-popover-item-danger" onclick="confirmDeleteActivity('${id}')">
-              <i data-lucide="trash-2"></i>
-              Ta bort
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="activity-form">
-        <div class="field-group">
-          <label class="field-label">Sammanfattning</label>
-          <input class="field-input" type="text" value="${title}" placeholder="Beskriv aktiviteten kort" />
-        </div>
-        <div class="field-group">
-          <label class="field-label">Gruppering</label>
-          <div class="field-select">
-            <div class="field-select-icon ${iconClass}">
-              <i data-lucide="${icon}"></i>
-            </div>
-            <select>
-              ${options}
-            </select>
-          </div>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Beskrivning</label>
-          <div class="inline-editable-rich">
-            <div class="inline-editable-toolbar">
-              <button class="toolbar-btn" title="Stycke">T</button>
-              <button class="toolbar-btn" title="Fet" style="font-weight:800;">B</button>
-              <div class="toolbar-sep"></div>
-              <button class="toolbar-btn" title="Lista"><i data-lucide="list"></i></button>
-              <button class="toolbar-btn" title="Citat"><i data-lucide="quote"></i></button>
-              <button class="toolbar-btn" title="Mer">···</button>
-            </div>
-            <div class="inline-editable-body" contenteditable="true" data-placeholder="Glöm inte bort vad som är viktigt">${desc}</div>
-          </div>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Tidsåtgång</label>
-          <div class="time-input-wrap">
-            <input class="time-input" type="number" value="${timeValue}" min="0" />
-            <span class="time-label">min</span>
-          </div>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Filer</label>
-          <div class="file-drop">
-            <div class="file-drop-text">
-              <i data-lucide="paperclip"></i>
-              Släpp filer att bifoga eller
-              <button class="browse-btn">Bläddra</button>
-            </div>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button class="btn-danger" onclick="confirmDeleteActivity('${id}')" style="margin-right:auto;">
-            <i data-lucide="trash-2"></i>
-            Ta bort
-          </button>
-          <button class="btn-primary" onclick="saveActivity('${id}')">Spara</button>
-          <button class="btn-ghost" onclick="closeActivity('${id}')">Avbryt</button>
-        </div>
-      </div>
-      <div class="activity-read">
-        ${buildActivityReadFields(type, desc, time)}
-      </div>
-    `;
-  }
 
   // Uppläggsavataren: en bild ur PLAN_AVATARS (theme.js). Valet hör till
   // just det här upplägget och sparas som "avatar" i dess eget sparade läge.
@@ -1737,27 +1620,12 @@
     card.classList.toggle('open');
   }
 
-  // Samma radmönster för Centralt innehåll (goalsList) och Betygskriterier (criteriaList)
-  const GOAL_LISTS = {
-    goalsList:    { icon: 'square-check', iconClass: '',                    placeholder: 'Nytt centralt innehåll…' },
-    criteriaList: { icon: 'target',       iconClass: 'goal-check-criteria', placeholder: 'Nytt betygskriterium…' },
-  };
-
+  // Samma radmönster för Centralt innehåll (goalsList) och Betygskriterier (criteriaList), se GOAL_LISTS i plan-markup.js
   function addGoal(listId = 'goalsList') {
     const list = document.getElementById(listId);
-    const cfg = GOAL_LISTS[listId];
     const div = document.createElement('div');
     div.className = 'goal-item';
-    div.innerHTML = `
-      <div class="drag-handle edit-only" title="Dra för att ändra ordning">
-        <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
-      </div>
-      <div class="goal-check ${cfg.iconClass}">
-        <i data-lucide="${cfg.icon}"></i>
-      </div>
-      <div class="goal-text" contenteditable="true" data-placeholder="${cfg.placeholder}"></div>
-      <button class="goal-delete" onclick="deleteGoal(this)" title="Ta bort"><i data-lucide="x"></i></button>
-    `;
+    div.innerHTML = buildGoalItemInnerHTML(listId, '');
     list.appendChild(div);
     lucide.createIcons({ nodes: [div] });
     div.querySelector('[contenteditable]').focus();
@@ -2905,6 +2773,8 @@
     planProjectId = info.projectId;
     if (state.demo) applyDemoState(state);
     else applyState(state);
+    // Upplägg skapade utanför sidan (t.ex. Skapa med AI) har ikoner som inte ritats än
+    lucide.createIcons({ nodes: ['goalsList', 'criteriaList', 'structureList'].map(id => document.getElementById(id)) });
     document.title = document.getElementById('planTitle').textContent.trim() + ' | Lossi';
     recalcLessonTimes();
     // Upplägget öppnas i sitt eget projekt: sidopanelen visar det projektet

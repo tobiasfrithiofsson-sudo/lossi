@@ -1258,6 +1258,15 @@ function buildCreatePlanModalHTML() {
       </button>
     </div>
     <div class="modal-body">
+      <!-- Skapa med AI (ai-import.js): läraren tar fram hela upplägget med sin egen AI -->
+      <button type="button" class="ai-entry" onclick="openAiPlanModal()">
+        <span class="ai-entry-icon"><i data-lucide="sparkles"></i></span>
+        <span class="ai-entry-text">
+          <span class="ai-entry-title">Skapa med AI</span>
+          <span class="ai-entry-sub">Ta fram hela upplägget tillsammans med din egen AI och klistra in resultatet</span>
+        </span>
+        <i data-lucide="chevron-right" class="ai-entry-chevron"></i>
+      </button>
       <div class="field-group">
         <label class="field-label">Uppläggsavatar</label>
         <div class="field-group-content">

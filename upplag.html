@@ -39,6 +39,14 @@
 <!-- ── Page frame ── -->
 <div class="page-frame">
 
+  <!-- Brödsmulor: projekt › Upplägg › uppläggets titel (renderBreadcrumbs) -->
+  <nav class="breadcrumbs" aria-label="Du är här">
+    <a href="index.html" class="breadcrumb-link" id="crumbProject" hidden></a>
+    <i data-lucide="chevron-right" class="breadcrumb-sep" id="crumbProjectSep" hidden></i>
+    <a href="index.html" class="breadcrumb-link">Upplägg</a>
+    <i data-lucide="chevron-right" class="breadcrumb-sep"></i>
+    <span class="breadcrumb-current" id="crumbTitle" aria-current="page"></span>
+  </nav>
 
   <!-- Läsläge: någon annans upplägg i projektet (showReadOnlyBanner) -->
   <div class="read-banner" id="readBanner" hidden>
@@ -2545,9 +2553,22 @@
     if (wrap && !isSelfManagedInlineEditable(wrap)) wrap.classList.remove('active');
   });
 
-  // Håll asiden och webbläsarfliken i synk med titeln
+  // Brödsmulorna: projektets namn (länk till översikten) och uppläggets titel
+  async function renderBreadcrumbs() {
+    document.getElementById('crumbTitle').textContent = document.getElementById('planTitle').textContent.trim() || 'Namnlöst upplägg';
+    const project = (await LossiData.listProjects().catch(() => [])).find(p => p.id === planProjectId);
+    const crumb = document.getElementById('crumbProject');
+    if (!project) return;
+    crumb.innerHTML = `${projectAvatarHTML(project, project.avatar, 'breadcrumb-avatar')}<span>${escapeHTML(project.name)}</span>`;
+    crumb.hidden = false;
+    document.getElementById('crumbProjectSep').removeAttribute('hidden'); // en svg (lucide), inte ett HTML-element
+    lucide.createIcons({ nodes: [crumb] });
+  }
+
+  // Håll asiden, brödsmulorna och webbläsarfliken i synk med titeln
   document.getElementById('planTitle').addEventListener('input', function () {
     const title = this.textContent.trim();
+    document.getElementById('crumbTitle').textContent = title || 'Namnlöst upplägg';
     updateAsidePlan(planKey, { title });
     document.title = (title || 'Namnlöst upplägg') + ' | Lossi';
   });
@@ -3042,6 +3063,7 @@
       document.getElementById('planTitle').textContent = plan.title;
       updateAsidePlan(planKey, { title: plan.title });
       document.title = plan.title + ' | Lossi';
+      document.getElementById('crumbTitle').textContent = plan.title;
     }
     if (plan.description) document.querySelector('.idea-text').innerHTML = textToHTML(plan.description);
     if (plan.subject) document.getElementById('detailSubject').textContent = plan.subject;
@@ -3108,6 +3130,7 @@
     // Upplägg skapade utanför sidan (t.ex. Skapa med AI) har ikoner som inte ritats än
     lucide.createIcons({ nodes: ['goalsList', 'criteriaList', 'structureList'].map(id => document.getElementById(id)) });
     document.title = document.getElementById('planTitle').textContent.trim() + ' | Lossi';
+    renderBreadcrumbs();
     recalcLessonTimes();
     // Upplägget öppnas i sitt eget projekt: sidopanelen visar det projektet
     LossiData.currentProject().then(project => {

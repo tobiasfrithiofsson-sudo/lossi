@@ -3666,7 +3666,7 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 /* ============================================================
    KNAPPAR – en knapp är en knapp: samma höjd för alla sorter
    ============================================================
-   Textknappar: 500 i vikt, 6px 8px luft, 6px mellan ikon och text.
+   Textknappar: 500 i vikt, 6px 8px luft, 6px mellan ikon och text, hörn xs (4px).
    Ikonknappar är lika höga som textknapparna (och kvadratiska).
    Den här delen ligger sist (före mobil) så att den gäller över
    knapparnas äldre, enskilda storlekar längre upp. */
@@ -3694,6 +3694,7 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
   white-space: nowrap;
   text-decoration: none;
   flex-shrink: 0;
+  border-radius: var(--radius-xs);
 }
 
 .btn-primary svg,
@@ -3714,6 +3715,7 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
   box-sizing: border-box;
   padding: 0;
   flex-shrink: 0;
+  border-radius: var(--radius-xs);
 }
 
 .icon-btn svg,

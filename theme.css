@@ -2,7 +2,7 @@
   width: 32px;
   height: 32px;
   padding: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xs);
   border: none;
   background: none;
   cursor: pointer;

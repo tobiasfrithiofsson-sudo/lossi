@@ -134,7 +134,7 @@ body {
   color: var(--color-text-secondary);
   text-decoration: none;
   padding: 6px 8px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xs);
   transition: background 0.15s, color 0.15s;
 }
 
@@ -321,7 +321,7 @@ body {
   color: var(--login-ink-text);
   background: var(--login-ink);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   transition: background 0.15s, transform 0.1s, opacity 0.15s;
 }

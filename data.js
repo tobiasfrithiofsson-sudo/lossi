@@ -296,6 +296,13 @@ const LossiData = (() => {
     clearTimeout(timers.get(id));
     timers.delete(id);
     pending.delete(id);
+    // Filerna först (databasen tar bara bort raderna om dem)
+    try {
+      const files = await listPlanFiles(id);
+      await removeStoredFiles(files.map(f => f.path));
+    } catch (e) {
+      console.warn('Kunde inte ta bort uppläggets filer:', e);
+    }
     const rows = check(await db().from('plans').delete().eq('id', id).select('id'));
     if (!rows.length) throw new Error('Upplägget finns inte längre eller tillhör ett annat konto.');
     lastSaved.delete(id);
@@ -355,6 +362,93 @@ const LossiData = (() => {
     check(await db().from('lesson_events').delete().eq('plan_id', planId).eq('lesson_id', lessonId));
   }
 
+  // ── Filer (supabase/files.sql) ──
+  // En fil = { id, planId, activityId, name, size, mime, path, uploadedBy, createdAt }.
+  // activityId null = hela upplägget. Själva filen ligger i Storage-hinken
+  // plan-files under <planId>/<slumpat id>.<ändelse>.
+  const FILE_BUCKET = 'plan-files';
+  const FILE_MAX_BYTES = 25 * 1024 * 1024;
+  const FILE_TYPES = {
+    pdf: 'application/pdf',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ppt: 'application/vnd.ms-powerpoint',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    odt: 'application/vnd.oasis.opendocument.text',
+    odp: 'application/vnd.oasis.opendocument.presentation',
+    ods: 'application/vnd.oasis.opendocument.spreadsheet',
+    txt: 'text/plain',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    webp: 'image/webp',
+  };
+
+  function toFile(r) {
+    return { id: String(r.id), planId: String(r.plan_id), activityId: r.activity_id || null, name: r.name, size: Number(r.size), mime: r.mime, path: r.path, uploadedBy: r.uploaded_by, createdAt: r.created_at };
+  }
+
+  // Filtypen avgörs av filändelsen (webbläsare anger inte alltid typen)
+  function fileType(file) {
+    const ext = (/\.([a-z0-9]+)$/i.exec(file.name || '')?.[1] || '').toLowerCase();
+    return FILE_TYPES[ext] || null;
+  }
+
+  // Varför en fil inte går att ladda upp, eller null
+  function fileProblem(file) {
+    if (!fileType(file)) return `${file.name}: den filtypen går inte att ladda upp. Tillåtna är PDF, Word, PowerPoint, Excel, OpenDocument, text och bilder.`;
+    if (file.size > FILE_MAX_BYTES) return `${file.name} är för stor (högst 25 MB per fil).`;
+    return null;
+  }
+
+  async function listPlanFiles(planId) {
+    const rows = check(await db().from('plan_files').select('*').eq('plan_id', planId).order('created_at'));
+    return rows.map(toFile);
+  }
+
+  async function uploadPlanFile(planId, file, activityId = null) {
+    const problem = fileProblem(file);
+    if (problem) throw new Error(problem);
+    const mime = fileType(file);
+    const random = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+    // Bara a–z/0–9 i sökvägen (Storage tål inte alla tecken, t.ex. å/ä/ö); filnamnet sparas i tabellen
+    const ext = (/\.([a-z0-9]+)$/i.exec(file.name)?.[1] || '').toLowerCase();
+    const path = `${planId}/${random}.${ext}`;
+    const { error } = await db().storage.from(FILE_BUCKET).upload(path, file, { contentType: mime, upsert: false });
+    if (error) throw error;
+    try {
+      const row = check(await db().from('plan_files').insert({
+        plan_id: Number(planId), activity_id: activityId, name: String(file.name).slice(0, 200), size: file.size, mime, path,
+      }).select('*').single());
+      return toFile(row);
+    } catch (e) {
+      await db().storage.from(FILE_BUCKET).remove([path]).catch(() => {});
+      throw e;
+    }
+  }
+
+  async function removeStoredFiles(paths) {
+    if (!paths.length) return;
+    const { error } = await db().storage.from(FILE_BUCKET).remove(paths);
+    if (error) throw error;
+  }
+
+  async function deletePlanFiles(files) {
+    if (!files.length) return;
+    await removeStoredFiles(files.map(f => f.path));
+    check(await db().from('plan_files').delete().in('id', files.map(f => Number(f.id))));
+  }
+
+  // Tillfällig länk som laddar ner filen med sitt riktiga namn
+  async function fileDownloadUrl(file) {
+    const { data, error } = await db().storage.from(FILE_BUCKET).createSignedUrl(file.path, 60, { download: file.name });
+    if (error) throw error;
+    return data.signedUrl;
+  }
+
   // ── Feedback från testare (tabellen feedback, supabase/feedback.sql) ──
   async function sendFeedback({ kind, message, page, context }) {
     check(await db().from('feedback').insert({ kind, message, page, context }));
@@ -380,5 +474,6 @@ const LossiData = (() => {
     listPlanEditors, listMyEditRequests, requestPlanEdit, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,
+    listPlanFiles, uploadPlanFile, deletePlanFiles, fileDownloadUrl, fileProblem, FILE_MAX_BYTES,
   };
 })();

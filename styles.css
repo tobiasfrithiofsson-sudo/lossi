@@ -1333,6 +1333,37 @@ body.activity-panel-resizing .page-frame {
 .file-card-name { font-weight: 500; }
 .file-card-size { font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
 
+/* Riktiga filer (Filer-sektionen och aktivitetspanelen, upplag.html) */
+#planFilesList:not(:empty) { margin-bottom: 12px; }
+.file-card { max-width: 100%; min-width: 0; }
+.file-card-text { min-width: 0; }
+.file-card-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+.file-card.is-uploading { cursor: progress; opacity: 0.75; }
+.file-card.is-uploading .file-card-icon { color: var(--color-text-secondary); }
+.file-card-delete {
+  width: 24px;
+  height: 24px;
+  margin-left: 2px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.file-card-delete:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.file-card-delete svg { width: 14px; height: 14px; }
+.file-drop.is-dragover { border-color: var(--color-primary); background: var(--color-primary-light); }
+.files-empty { font-size: var(--font-size-base); color: var(--color-text-tertiary); margin: 0 0 12px; }
+.file-message { font-size: var(--font-size-base); color: #C2413B; margin-top: 8px; }
+.file-message[hidden], .files-empty[hidden] { display: none; }
+.files-hint { font-size: var(--font-size-sm); color: var(--color-text-tertiary); margin-top: 8px; line-height: 1.5; }
+.activity-files { margin-bottom: 8px; }
+.activity-files .files-grid { flex-direction: column; gap: 8px; }
+.activity-files .file-card-name { max-width: 100%; }
+
 
 /* ============================================================
    PLAN PAGE — header, meta, sections

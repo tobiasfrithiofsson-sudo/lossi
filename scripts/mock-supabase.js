@@ -41,7 +41,8 @@
       const nextId = () => Math.max(0, ...rows().map(r => r.id)) + 1;
       if (q.op === 'insert') {
         // Som databasen: skaparen är den inloggade, projektet det egna om inget anges
-        const defaults = table === 'plans' ? { owner_id: user.id, project_id: 1 } : {};
+        const defaults = table === 'plans' ? { owner_id: user.id, project_id: 1 }
+          : table === 'plan_files' ? { uploaded_by: user.id, created_at: new Date().toISOString() } : {};
         const ins = [].concat(q.p).map(p => ({ id: nextId(), ...defaults, ...p }));
         rows().push(...ins); res = ins;
       }
@@ -71,6 +72,7 @@
     const api = {
       select() { return api; }, order(k) { q.order = k; return api; }, limit(n) { q.limit = n; return api; },
       eq(k, v) { q.f.push(r => String(r[k]) === String(v)); return api; },
+      in(k, vs) { q.f.push(r => vs.map(String).includes(String(r[k]))); return api; },
       gte(k, v) { q.f.push(r => r[k] >= v); return api; },
       lt(k, v) { q.f.push(r => r[k] < v); return api; },
       insert(p) { q.op = 'insert'; q.p = p; return api; },
@@ -82,7 +84,26 @@
     };
     return api;
   }
+  // Låtsas-Storage: filerna sparas bara som namn + storlek (window.__mockStorage)
+  const stored = window.__mockStorage = JSON.parse(sessionStorage.getItem('mockStorage') || '{}');
+  const persistStorage = () => sessionStorage.setItem('mockStorage', JSON.stringify(stored));
+  const storage = {
+    from: bucket => ({
+      upload: async (path, file) => {
+        await new Promise(r => setTimeout(r, Number(sessionStorage.getItem('mockUploadDelay') || 300)));
+        if (stored[path]) return { data: null, error: { message: 'The resource already exists' } };
+        stored[path] = { bucket, size: file.size, name: file.name };
+        persistStorage();
+        return { data: { path }, error: null };
+      },
+      remove: async paths => { paths.forEach(p => delete stored[p]); persistStorage(); return { data: paths, error: null }; },
+      createSignedUrl: async (path, secs, opts) => stored[path]
+        ? { data: { signedUrl: `mock://${bucket}/${path}?download=${encodeURIComponent(opts?.download || '')}` }, error: null }
+        : { data: null, error: { message: 'Object not found' } },
+    }),
+  };
   window.supabase = { createClient: () => ({
+    storage,
     from: t => builder(t),
     rpc: async (name, params) => {
       const fb = window.__mockFeedback = window.__mockFeedback || [];

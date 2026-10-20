@@ -481,12 +481,6 @@
                     <button class="browse-btn">Bläddra</button>
                   </div>
                 </div>
-                <div class="attached-files">
-                  <div class="file-chip">
-                    <i data-lucide="file"></i>
-                    Begreppskarta.png
-                  </div>
-                </div>
               </div>
               <div class="field-group">
                 <label class="field-label">Tankar</label>
@@ -636,10 +630,6 @@
                 <i data-lucide="star"></i>
               </div>
               <span class="activity-title">Aktivitet: begreppskarta i par</span>
-              <div class="file-chip-sm">
-                <i data-lucide="file"></i>
-                Begreppskarta.png
-              </div>
               <span class="activity-time">30 min</span>
               <div class="popover-wrap" onclick="event.stopPropagation()">
                 <button class="activity-more-btn" onclick="toggleAppPopover(this)" title="Fler alternativ">
@@ -690,12 +680,6 @@
               </div>
               <div class="field-group">
                 <label class="field-label">Filer</label>
-                <div class="attached-files">
-                  <div class="file-chip">
-                    <i data-lucide="file"></i>
-                    Begreppskarta.png
-                  </div>
-                </div>
               </div>
               <div class="form-actions">
                 <button class="btn-danger" onclick="confirmDeleteActivity('act4')" style="margin-right:auto;">
@@ -810,33 +794,18 @@
         <h2>Filer</h2>
       </div>
       <div class="section-body">
-        <div class="files-grid" style="margin-bottom: 12px;">
-          <div class="file-card">
-            <div class="file-card-icon">
-              <i data-lucide="file"></i>
-            </div>
-            <div>
-              <div class="file-card-name">Begreppskarta.png</div>
-              <div class="file-card-size">148 KB</div>
-            </div>
-          </div>
-          <div class="file-card">
-            <div class="file-card-icon">
-              <i data-lucide="file-text"></i>
-            </div>
-            <div>
-              <div class="file-card-name">Lektionsplan v1.pdf</div>
-              <div class="file-card-size">92 KB</div>
-            </div>
-          </div>
-        </div>
-        <div class="file-drop edit-only">
+        <!-- Uppläggets filer (renderPlanFiles); filer i aktiviteter visas i aktivitetspanelen -->
+        <div class="files-grid" id="planFilesList"></div>
+        <p class="files-empty" id="planFilesEmpty" hidden>Inga filer än.</p>
+        <div class="file-drop edit-only" id="planFileDrop">
           <div class="file-drop-text">
             <i data-lucide="paperclip"></i>
             Släpp filer här eller
             <button class="browse-btn">Bläddra</button>
           </div>
         </div>
+        <p class="file-message" id="planFileMessage" role="alert" hidden></p>
+        <p class="files-hint edit-only">Högst 25 MB per fil: PDF, Word, PowerPoint, Excel, text eller bilder. Ladda inte upp elevarbeten eller annat med personuppgifter, och dela bara material ni har rätt att dela.</p>
       </div>
     </div>
 
@@ -1353,7 +1322,6 @@
     // Bara upplägg skapade via Skapa har ett riktigt datum; demo-uppläggen behåller sitt.
     // Filer sparas inte per upplägg än, så demo-filerna visas inte i nya upplägg.
     if (state.createdAt) {
-      document.querySelectorAll('#sec-files .file-card').forEach(card => card.remove());
       const created = document.getElementById('detailCreated');
       created.dataset.created = state.createdAt;
       created.textContent = new Date(state.createdAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -1408,6 +1376,7 @@
     const panelBody = document.getElementById('activityPanelBody');
     panelBody.innerHTML = '';
     if (content) panelBody.appendChild(content);
+    renderActivityFiles(id);
 
     updateActivityPanelHeader(wrapper);
 
@@ -1437,6 +1406,8 @@
   function returnActivityContent(id) {
     const wrapper = document.getElementById(id);
     const panelBody = document.getElementById('activityPanelBody');
+    // Fillistan visas bara i panelen och ska inte sparas med aktiviteten
+    panelBody.querySelectorAll('.activity-files').forEach(el => el.remove());
     const content = panelBody.firstElementChild;
     if (wrapper && content) {
       wrapper.insertBefore(content, wrapper.querySelector('.activity-read'));
@@ -1919,7 +1890,7 @@
         const descField = Array.from(node.querySelectorAll('.activity-read .read-field')).find(f =>
           f.querySelector('.read-field-label')?.textContent.trim() === 'Beskrivning');
         const desc = descField ? descField.querySelector('.read-field-value').textContent.trim() : '';
-        const file = node.querySelector('.activity-row .file-chip-sm')?.textContent.trim() || '';
+        const file = planFiles.filter(f => f.activityId === node.id).map(f => f.name).join(', ');
         return { type, typeClass, title: activityTitle, time, desc, file };
       });
       return {
@@ -2089,6 +2060,7 @@
       if (pendingDeleteActivityId === openActivityId) closeActivity(pendingDeleteActivityId);
       const wrapper = document.getElementById(pendingDeleteActivityId);
       if (wrapper) wrapper.remove();
+      deleteFilesOfActivities([pendingDeleteActivityId]);
       recalcLessonTimes();
       saveState();
     }
@@ -2335,6 +2307,7 @@
     if (!group) return;
     const lessonId = group.dataset.lessonId;
     if (openActivityId && group.querySelector('#' + CSS.escape(openActivityId))) closeActivityPanel();
+    deleteFilesOfActivities([...group.querySelectorAll('.activity-wrapper')].map(w => w.id));
     group.remove();
     recalcLessonTimes();
     saveState();
@@ -2757,6 +2730,220 @@
     }
   }
 
+  // ── Filer (supabase/files.sql, LossiData.*PlanFile*) ──
+  // Uppläggets filer listas under Filer; en aktivitets filer i aktivitets-
+  // panelen (listan läggs in när panelen öppnas och tas bort när den stängs,
+  // så att den aldrig sparas med uppläggets HTML). Läsare kan ladda ner,
+  // skaparen och medskapare kan också ladda upp och ta bort.
+  let planFiles = [];
+  const uploadingFiles = []; // { key, name, activityId } medan de laddas upp
+
+  const FILE_ICONS = [
+    [/pdf/, 'file-text'], [/word|opendocument\.text|text\/plain/, 'file-text'],
+    [/powerpoint|presentation/, 'presentation'], [/excel|spreadsheet/, 'sheet'], [/^image\//, 'image'],
+  ];
+
+  function fileIcon(mime) {
+    return (FILE_ICONS.find(([re]) => re.test(mime || '')) || [null, 'file'])[1];
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' kB';
+    return (bytes / 1024 / 1024).toLocaleString('sv-SE', { maximumFractionDigits: 1 }) + ' MB';
+  }
+
+  function canEditFiles() {
+    return planLoaded && !planReadOnly;
+  }
+
+  function fileCardsHTML(activityId) {
+    const files = planFiles.filter(f => (f.activityId || null) === (activityId || null));
+    const uploading = uploadingFiles.filter(u => (u.activityId || null) === (activityId || null));
+    return files.map(f => `
+      <div class="file-card" role="button" tabindex="0" data-file-id="${f.id}" title="Ladda ner ${escapeHTML(f.name)}">
+        <div class="file-card-icon"><i data-lucide="${fileIcon(f.mime)}"></i></div>
+        <div class="file-card-text">
+          <div class="file-card-name">${escapeHTML(f.name)}</div>
+          <div class="file-card-size">${formatFileSize(f.size)}</div>
+        </div>
+        ${canEditFiles() ? `<button type="button" class="file-card-delete" data-delete-file="${f.id}" title="Ta bort filen" aria-label="Ta bort ${escapeHTML(f.name)}"><i data-lucide="x"></i></button>` : ''}
+      </div>`).join('') + uploading.map(u => `
+      <div class="file-card is-uploading">
+        <div class="file-card-icon"><span class="btn-spinner" aria-hidden="true"></span></div>
+        <div class="file-card-text">
+          <div class="file-card-name">${escapeHTML(u.name)}</div>
+          <div class="file-card-size">Laddar upp…</div>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderPlanFiles() {
+    const list = document.getElementById('planFilesList');
+    list.innerHTML = fileCardsHTML(null);
+    document.getElementById('planFilesEmpty').hidden = !!list.children.length || canEditFiles();
+    lucide.createIcons({ nodes: [list] });
+    if (openActivityId) renderActivityFiles(openActivityId);
+  }
+
+  function renderActivityFiles(activityId) {
+    const content = document.getElementById('activityPanelBody').firstElementChild;
+    if (!content) return;
+    // Äldre aktiviteter (t.ex. i demo-upplägget) saknar släppyta under Filer
+    if (content.matches('.activity-form') && !content.querySelector('.file-drop')) {
+      const field = [...content.querySelectorAll('.field-group')].find(g => g.querySelector('.field-label')?.textContent.trim() === 'Filer');
+      field?.insertAdjacentHTML('beforeend', `<div class="file-drop"><div class="file-drop-text"><i data-lucide="paperclip"></i>Släpp filer att bifoga eller <button class="browse-btn">Bläddra</button></div></div>`);
+    }
+    let box = content.querySelector('.activity-files');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'activity-files';
+      const drop = content.querySelector('.file-drop');
+      if (drop) drop.before(box);
+      else content.append(box);
+    }
+    const cards = fileCardsHTML(activityId);
+    box.innerHTML = cards
+      ? `<div class="files-grid">${cards}</div>`
+      : (canEditFiles() ? '' : '<p class="files-empty">Inga filer.</p>');
+    lucide.createIcons({ nodes: [box] });
+  }
+
+  async function loadPlanFiles() {
+    try {
+      planFiles = await LossiData.listPlanFiles(planKey);
+    } catch (e) {
+      console.warn('Kunde inte hämta filer:', e); // t.ex. innan supabase/files.sql körts
+      planFiles = [];
+    }
+    renderPlanFiles();
+  }
+
+  function showFileMessage(text) {
+    const el = document.getElementById('planFileMessage');
+    el.textContent = text;
+    el.hidden = !text;
+    if (text) el.scrollIntoView({ block: 'nearest' });
+  }
+
+  async function uploadFiles(fileList, activityId = null) {
+    if (!canEditFiles()) return;
+    const files = [...fileList];
+    const problems = files.map(f => LossiData.fileProblem(f)).filter(Boolean);
+    showFileMessage(problems.join(' '));
+    for (const file of files.filter(f => !LossiData.fileProblem(f))) {
+      const job = { key: Math.random(), name: file.name, activityId };
+      uploadingFiles.push(job);
+      renderPlanFiles();
+      try {
+        planFiles.push(await LossiData.uploadPlanFile(planKey, file, activityId));
+      } catch (e) {
+        console.warn('Kunde inte ladda upp filen:', e);
+        problems.push(`${file.name} kunde inte laddas upp. ${/size|large|413/i.test(e?.message || '') ? 'Filen är för stor.' : 'Försök igen om en stund.'}`);
+        showFileMessage(problems.join(' '));
+      }
+      uploadingFiles.splice(uploadingFiles.indexOf(job), 1);
+      renderPlanFiles();
+    }
+  }
+
+  async function downloadFile(fileId) {
+    const file = planFiles.find(f => f.id === fileId);
+    if (!file) return;
+    try {
+      window.location.href = await LossiData.fileDownloadUrl(file);
+    } catch (e) {
+      console.warn('Kunde inte ladda ner filen:', e);
+      alert('Kunde inte ladda ner filen. Försök igen om en stund.');
+    }
+  }
+
+  async function deleteFile(fileId) {
+    const file = planFiles.find(f => f.id === fileId);
+    if (!file || !canEditFiles()) return;
+    if (!confirm(`Ta bort filen ${file.name}? Det går inte att ångra.`)) return;
+    try {
+      await LossiData.deletePlanFiles([file]);
+      planFiles = planFiles.filter(f => f !== file);
+      renderPlanFiles();
+    } catch (e) {
+      console.warn('Kunde inte ta bort filen:', e);
+      alert('Kunde inte ta bort filen. Försök igen om en stund.');
+    }
+  }
+
+  // Aktiviteter (eller hela lektioner) som tas bort tar sina filer med sig
+  function deleteFilesOfActivities(activityIds) {
+    const files = planFiles.filter(f => f.activityId && activityIds.includes(f.activityId));
+    if (!files.length) return;
+    planFiles = planFiles.filter(f => !files.includes(f));
+    LossiData.deletePlanFiles(files).catch(e => console.warn('Kunde inte ta bort aktivitetens filer:', e));
+  }
+
+  // Vilken aktivitet en släppyta hör till (null = hela upplägget)
+  function dropActivityId(drop) {
+    if (drop.id === 'planFileDrop') return null;
+    if (drop.closest('#activityPanelBody')) return openActivityId;
+    return drop.closest('.activity-wrapper')?.id || null;
+  }
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.multiple = true;
+  fileInput.hidden = true;
+  fileInput.accept = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.odt,.odp,.ods,.txt,.png,.jpg,.jpeg,.gif,.webp';
+  document.body.appendChild(fileInput);
+  let fileInputActivity = null;
+  fileInput.addEventListener('change', () => {
+    uploadFiles(fileInput.files, fileInputActivity);
+    fileInput.value = '';
+  });
+
+  document.addEventListener('click', e => {
+    const browse = e.target.closest('.file-drop .browse-btn');
+    if (browse) {
+      e.preventDefault();
+      if (!canEditFiles()) return;
+      fileInputActivity = dropActivityId(browse.closest('.file-drop'));
+      fileInput.click();
+      return;
+    }
+    const del = e.target.closest('[data-delete-file]');
+    if (del) {
+      e.stopPropagation();
+      deleteFile(del.dataset.deleteFile);
+      return;
+    }
+    const card = e.target.closest('.file-card[data-file-id]');
+    if (card) downloadFile(card.dataset.fileId);
+  });
+
+  document.addEventListener('keydown', e => {
+    const card = e.target.closest?.('.file-card[data-file-id]');
+    if (card && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      downloadFile(card.dataset.fileId);
+    }
+  });
+
+  ['dragenter', 'dragover'].forEach(type => document.addEventListener(type, e => {
+    const drop = e.target.closest?.('.file-drop');
+    if (!drop || !canEditFiles() || ![...(e.dataTransfer?.types || [])].includes('Files')) return;
+    e.preventDefault();
+    drop.classList.add('is-dragover');
+  }));
+  document.addEventListener('dragleave', e => {
+    const drop = e.target.closest?.('.file-drop');
+    if (drop && !drop.contains(e.relatedTarget)) drop.classList.remove('is-dragover');
+  });
+  document.addEventListener('drop', e => {
+    const drop = e.target.closest?.('.file-drop');
+    if (!drop || !e.dataTransfer?.files?.length) return;
+    e.preventDefault();
+    drop.classList.remove('is-dragover');
+    uploadFiles(e.dataTransfer.files, dropActivityId(drop));
+  });
+
   // ── Fyll i med AI (ai-import.js) ──
   // Läraren ger sin AI upplägget som det ser ut nu (lektionerna med sina
   // koder = data-lesson-id) och klistrar in svaret. Lektioner med känd kod
@@ -2916,6 +3103,8 @@
     planProjectId = info.projectId;
     if (state.demo) applyDemoState(state);
     else applyState(state);
+    // Påhittade exempelfiler från demo-upplägget (riktiga filer finns i plan_files)
+    document.querySelectorAll('#structureList .file-chip-sm, #structureList .attached-files').forEach(el => el.remove());
     // Upplägg skapade utanför sidan (t.ex. Skapa med AI) har ikoner som inte ritats än
     lucide.createIcons({ nodes: ['goalsList', 'criteriaList', 'structureList'].map(id => document.getElementById(id)) });
     document.title = document.getElementById('planTitle').textContent.trim() + ' | Lossi';
@@ -2941,6 +3130,7 @@
       renderReadBanner();
       renderPlanPeople();
       planLoaded = true;
+      loadPlanFiles();
       return;
     }
     if (!planIsOwner) document.body.classList.add('is-coeditor');
@@ -2950,6 +3140,7 @@
     window.addEventListener('beforeunload', saveState);
     if (lessonIdsAssigned) saveState();
     loadPlanEvents();
+    loadPlanFiles();
     loadClassesFromPlans();
   })();
 </script>

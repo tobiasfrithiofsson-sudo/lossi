@@ -170,10 +170,7 @@
     <!-- ── Section: Beskrivning ── -->
     <div class="plan-section" id="sec-idea">
       <div class="section-head">
-        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-idea')">
-          <i data-lucide="chevron-down"></i>
-        </button>
-        <h2 class="section-toggle" onclick="toggleSection('sec-idea')">Beskrivning</h2>
+        <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-idea" onclick="toggleSection('sec-idea')">Beskrivning<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
       </div>
       <div class="section-body">
         <div class="idea-editor inline-editable-rich">
@@ -196,10 +193,7 @@
     <!-- ── Section: Centralt innehåll (sparas som goalsHTML, hette tidigare Lärandemål) ── -->
     <div class="plan-section" id="sec-goals">
       <div class="section-head">
-        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-goals')">
-          <i data-lucide="chevron-down"></i>
-        </button>
-        <h2 class="section-toggle" onclick="toggleSection('sec-goals')">Centralt innehåll</h2>
+        <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-goals" onclick="toggleSection('sec-goals')">Centralt innehåll<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
           <button class="section-add-btn" onclick="addGoal('goalsList')" title="Lägg till centralt innehåll">
             <i data-lucide="badge-plus"></i>
@@ -248,10 +242,7 @@
          eleven chans att visa, inte vad som krävs för E, C eller A. -->
     <div class="plan-section" id="sec-criteria">
       <div class="section-head">
-        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-criteria')">
-          <i data-lucide="chevron-down"></i>
-        </button>
-        <h2 class="section-toggle" onclick="toggleSection('sec-criteria')">Betygskriterier</h2>
+        <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-criteria" onclick="toggleSection('sec-criteria')">Betygskriterier<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
           <button class="section-add-btn" onclick="addGoal('criteriaList')" title="Lägg till betygskriterium">
             <i data-lucide="badge-plus"></i>
@@ -266,10 +257,7 @@
     <!-- ── Section: Struktur och tidslinje ── -->
     <div class="plan-section" id="sec-structure">
       <div class="section-head">
-        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-structure')">
-          <i data-lucide="chevron-down"></i>
-        </button>
-        <h2 class="section-toggle" onclick="toggleSection('sec-structure')">Struktur och tidslinje</h2>
+        <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-structure" onclick="toggleSection('sec-structure')">Struktur och tidslinje<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
           <button class="section-add-btn" onclick="toggleAppPopover(this)" title="Lägg till">
             <i data-lucide="badge-plus"></i>
@@ -801,10 +789,7 @@
     <!-- ── Section: Filer ── -->
     <div class="plan-section" id="sec-files">
       <div class="section-head">
-        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-files')">
-          <i data-lucide="chevron-down"></i>
-        </button>
-        <h2 class="section-toggle" onclick="toggleSection('sec-files')">Filer</h2>
+        <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-files" onclick="toggleSection('sec-files')">Filer<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
       </div>
       <div class="section-body">
         <!-- Uppläggets filer (renderPlanFiles); filer i aktiviteter visas i aktivitetspanelen -->
@@ -829,10 +814,7 @@
 
     <div class="plan-section" id="sec-panel-details">
       <div class="section-head">
-        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-panel-details')">
-          <i data-lucide="chevron-down"></i>
-        </button>
-        <h2 class="section-toggle" onclick="toggleSection('sec-panel-details')">Detaljer</h2>
+        <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-panel-details" onclick="toggleSection('sec-panel-details')">Detaljer<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
       </div>
       <div class="section-body">
         <div class="detail-fields">
@@ -883,10 +865,7 @@
 
     <div class="plan-section" id="sec-panel-people">
       <div class="section-head">
-        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-panel-people')">
-          <i data-lucide="chevron-down"></i>
-        </button>
-        <h2 class="section-toggle" onclick="toggleSection('sec-panel-people')">Personer</h2>
+        <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-panel-people" onclick="toggleSection('sec-panel-people')">Personer<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
       </div>
       <div class="section-body">
         <div class="detail-fields">
@@ -926,10 +905,7 @@
 
     <div class="plan-section" id="sec-panel-dates">
       <div class="section-head">
-        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-panel-dates')">
-          <i data-lucide="chevron-down"></i>
-        </button>
-        <h2 class="section-toggle" onclick="toggleSection('sec-panel-dates')">Datum</h2>
+        <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-panel-dates" onclick="toggleSection('sec-panel-dates')">Datum<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
       </div>
       <div class="section-body">
         <div class="detail-fields">
@@ -1371,7 +1347,9 @@
   }
 
   function toggleSection(id) {
-    document.getElementById(id).classList.toggle('collapsed');
+    const section = document.getElementById(id);
+    const collapsed = section.classList.toggle('collapsed');
+    section.querySelector('.section-toggle')?.setAttribute('aria-expanded', String(!collapsed));
   }
 
   // ── Aktivitetspanel ──

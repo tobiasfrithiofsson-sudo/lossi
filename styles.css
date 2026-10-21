@@ -1758,12 +1758,9 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 0;
+  padding: 10px 0;
   user-select: none;
 }
-
-/* Bara pilen och rubriken fäller ihop/ut sektionen, inte hela raden */
-.section-head .section-toggle { cursor: pointer; }
 
 .section-head h2 {
   font-size: var(--font-size-md);
@@ -1771,27 +1768,42 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
   color: var(--color-text-primary);
 }
 
-.chevron-btn {
-  background: var(--color-bg-hover);
+/* Rubriken fäller ihop/ut sektionen, som grupperna i sidopanelen: hovring ger
+   bakgrund och visar pilen till höger. Negativ marginal håller texten i linje
+   med innehållet under. */
+.section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  margin-left: -8px;
+  padding: 0 8px;
   border: none;
   border-radius: var(--radius-xs);
+  background: none;
+  font: inherit;
+  color: inherit;
   cursor: pointer;
-  width: 16px;
-  height: 16px;
-  display: grid;
-  place-items: center;
-  color: var(--color-text-primary);
-  transition: transform 0.2s, background 0.15s;
+  transition: background 0.15s;
 }
+.section-toggle:hover,
+.section-toggle:focus-visible { background: var(--color-bg-hover); }
+.section-chevron {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+  opacity: 0;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.section-toggle:hover .section-chevron,
+.section-toggle:focus-visible .section-chevron { opacity: 1; }
+.plan-section.collapsed .section-chevron { transform: rotate(-90deg); }
+@media (hover: none) { .section-chevron { opacity: 1; } }
 
-.chevron-btn:hover { background: var(--color-border); }
-
-.chevron-btn svg { width: 16px; height: 16px; stroke-width: 2.5; }
-
-.plan-section.collapsed .chevron-btn { transform: rotate(-90deg); }
 .plan-section.collapsed .section-body { display: none; }
 
-.section-body { padding-bottom: 8px; padding-left: 16px; }
+.section-body { padding-bottom: 8px; }
 
 /* "Add" icon button in a section head, opening a choice popover */
 .section-head-actions { margin-left: auto; position: relative; }

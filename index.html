@@ -46,10 +46,7 @@
   <!-- Upplägg: alla upplägg i valt projekt (allas, eller bara mina), samlade för överblick -->
   <div class="plan-section" id="sec-plans">
     <div class="section-head">
-      <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-plans')">
-        <i data-lucide="chevron-down"></i>
-      </button>
-      <h2 class="section-toggle" onclick="toggleSection('sec-plans')">Upplägg</h2>
+      <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-plans" onclick="toggleSection('sec-plans')">Upplägg<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
     </div>
     <div class="section-body">
 
@@ -217,7 +214,9 @@
   renderUpcoming();
 
   function toggleSection(id) {
-    document.getElementById(id).classList.toggle('collapsed');
+    const section = document.getElementById(id);
+    const collapsed = section.classList.toggle('collapsed');
+    section.querySelector('.section-toggle')?.setAttribute('aria-expanded', String(!collapsed));
   }
 
   function filterPlans() {

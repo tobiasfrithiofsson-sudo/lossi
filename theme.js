@@ -597,7 +597,7 @@ function asideNavHTML(active) {
       ${link('plans', 'index.html', 'roller-coaster', 'Upplägg')}
       ${link('calendar', 'calendar.html', 'calendar-days', 'Kalender')}
       ${soon('folder-open', 'Material', 'Material')}
-      ${soon('candy', 'Marknadsplats', 'Marknadsplatsen')}
+      ${link('marketplace', 'marknadsplats.html', 'candy', 'Marknadsplats')}
     </nav>`;
 }
 
@@ -1508,6 +1508,14 @@ function editRequestCounts() {
 function editRequestBadgeHTML(n) {
   return n ? `<span class="request-badge" title="${n} ${n === 1 ? 'kollega vill' : 'kollegor vill'} redigera">${n}</span>` : '';
 }
+
+// Mjuka sidbyten (@view-transition i styles.css): webbläsaren hoppar ibland
+// över övergången (t.ex. om fönstret ändras) och rapporterar det som ett fel.
+// Det är ofarligt, så det fångas här.
+['pageswap', 'pagereveal'].forEach(type => window.addEventListener(type, e => {
+  const t = e.viewTransition;
+  if (t) [t.ready, t.finished, t.updateCallbackDone].forEach(p => p?.catch(() => {}));
+}));
 
 // ── Sidopanelen direkt vid sidbyte ──
 // Varje sida är en egen HTML-sida, så sidopanelen byggs om vid varje klick.

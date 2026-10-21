@@ -22,7 +22,7 @@ Läs den här filen först i en ny session. Detaljer (databas, projekt, filer, n
   - **Filer** på upplägg och aktiviteter (Supabase Storage `plan-files`, 25 MB). `supabase/files.sql` körd; fungerar live (Tobias 2026-10-21).
   - **Brödsmulor** på uppläggssidan (projekt › Upplägg › titel).
   - **Kalender/Kommande** visar bara valt projekt.
-  - **Designsystem:** typsnitt Open Sans; alla knappar 32px, vikt 500, padding 6px 8px, 6px ikongap, hörn `--radius-xs` (regeln "KNAPPAR" sist i styles.css före MOBIL; gäller även landing/login). Sidopanelen: grupper Kalender / Upplägg / Team med rubrik som fäller ihop (chevron syns vid hovring) och pil till sidan; "+ Skapa" under Upplägg; sidorna Upplägg (roller-coaster), Kalender, Material (Snart), Marknadsplats (candy, Snart) längst ner – flyttade från topbaren, som nu bara har Skapa.
+  - **Designsystem:** typsnitt Open Sans; alla knappar 32px, vikt 500, padding 6px 8px, 6px ikongap, hörn `--radius-xs` (regeln "KNAPPAR" sist i styles.css före MOBIL; gäller även landing/login). Sidopanelen: grupper Kalender / Upplägg / Team med rubrik som fäller ihop (chevron syns vid hovring) och pil till sidan; "+ Skapa" under Upplägg; sidorna Upplägg (roller-coaster), Kalender, Material (Snart), Marknadsplats (candy; `marknadsplats.html` är en teaser med påhittad förhandsvisning, knappen öppnar feedback) längst ner – flyttade från topbaren, som nu bara har Skapa.
 
 ## Snabbhet (steg 1–4 gjorda 2026-10-21)
 Mätt före: ~14 databasanrop per sidladdning, uppläggen hämtades 4–5 gånger med hela `state` (structureHTML ~4,5 kB per aktivitet, AI-upplägg ~150 kB). Gjort:

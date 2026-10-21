@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="sv" class="auth-pending" data-auth-required>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marknadsplats | Lossi</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="marknadsplats.css" />
+  <script src="https://unpkg.com/lucide@1.61.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <script src="theme.js"></script>
+  <script src="data.js"></script>
+  <script src="schedule.js"></script>
+  <script src="plan-markup.js"></script>
+  <script src="ai-import.js"></script>
+  <script src="feedback.js"></script>
+</head>
+<body>
+
+<header class="app-topbar"></header>
+
+<div class="app-body">
+  <aside class="app-aside"></aside>
+
+  <main class="mp-main">
+    <!-- Teaser: Marknadsplatsen finns inte än. Texten till vänster, en påhittad förhandsvisning till höger. -->
+    <section class="mp-teaser" aria-labelledby="mpTitle">
+      <div class="mp-text">
+        <span class="mp-badge">På gång</span>
+        <h1 class="mp-title" id="mpTitle">Vi bygger Marknadsplatsen</h1>
+        <p class="mp-lead">Hämta inspiration från upplägg som andra lärare har publicerat – inte bara från kollegorna i ditt projekt. Lossi arbetar på att ta fram Marknadsplatsen.</p>
+        <button type="button" class="btn-primary" onclick="openFeedbackModal()">
+          <i data-lucide="lightbulb"></i>
+          Tipsa oss om vad du vill se
+        </button>
+        <ul class="mp-features">
+          <li><i data-lucide="compass"></i>Utforska upplägg som andra skapare har publicerat</li>
+          <li><i data-lucide="list-filter"></i>Hitta rätt på ämne, årskurs och centralt innehåll</li>
+          <li><i data-lucide="copy"></i>Kopiera ett upplägg till dina egna och gör det till ditt</li>
+          <li><i data-lucide="send"></i>Publicera dina egna upplägg och inspirera andra</li>
+        </ul>
+        <p class="mp-note">Marknadsplatsen är under utveckling. Upplägg och namn i bilden är påhittade exempel.</p>
+      </div>
+
+      <div class="mp-visual" aria-hidden="true">
+        <span class="mp-visual-badge"><i data-lucide="candy"></i></span>
+        <div class="mp-window">
+          <div class="mp-window-head">
+            <span class="mp-window-title"><i data-lucide="candy"></i>Marknadsplats</span>
+            <span class="mp-window-search"><i data-lucide="search"></i>Sök upplägg</span>
+          </div>
+          <div class="mp-window-filters">
+            <span class="mp-chip is-on">Alla ämnen</span>
+            <span class="mp-chip">Samhällskunskap</span>
+            <span class="mp-chip">Biologi</span>
+            <span class="mp-chip">Matematik</span>
+          </div>
+          <div class="mp-cards" id="mpCards"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  LossiAuth.requireUser().then(applyUserProfile);
+  renderAppShell({ active: 'marketplace' });
+
+  // Påhittade exempel i förhandsvisningen (ingen riktig data)
+  const MP_EXAMPLES = [
+    { title: 'Klimatet och vi', meta: 'Geografi · Åk 8', avatar: 'sunrise', name: 'Sara Lind', face: 'bird' },
+    { title: 'Bråk i vardagen', meta: 'Matematik · Åk 5', avatar: 'cube', name: 'Johan Berg', face: 'squirrel' },
+    { title: 'Argumenterande text', meta: 'Svenska · Åk 9', avatar: 'balance', name: 'Amira Khalil', face: 'cat' },
+    { title: 'Ekosystem i närmiljön', meta: 'Biologi · Åk 7', avatar: 'mushroom', name: 'Erik Holm', face: 'turtle' },
+  ];
+  document.getElementById('mpCards').innerHTML = MP_EXAMPLES.map(e => `
+    <div class="mp-card">
+      <div class="mp-card-icon plan-icon-image">${planAvatarImgHTML(e.avatar)}</div>
+      <div class="mp-card-text">
+        <div class="mp-card-title">${escapeHTML(e.title)}</div>
+        <div class="mp-card-meta">
+          ${escapeHTML(e.meta)} ·
+          <span class="mp-card-face">${userAvatarHTML({ displayName: e.name }, e.face)}</span>
+          ${escapeHTML(e.name)}
+        </div>
+      </div>
+    </div>`).join('');
+
+  lucide.createIcons();
+  syncThemeIcons();
+</script>
+</body>
+</html>

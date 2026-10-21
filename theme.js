@@ -366,7 +366,7 @@ function escapeHTML(text) {
 // Sidan anropar renderAppShell() först i sitt script, före lucide.createIcons().
 // Sidopanelen är personlig: den visar den inloggades egna upplägg i valt
 // projekt (projektväljaren överst) och egna kalenderhändelser, aldrig andras.
-// Team och inbjudan är platshållare. Kommande händelser fylls från kalendern
+// Team och inbjudan är platshållare. Gruppen Kalender fylls från kalendern
 // av renderAsideEvents() i schedule.js.
 const APP_TEAMS = [
   { name: 'Astronomerna', emoji: '🚀' },
@@ -526,6 +526,46 @@ function buildTopbarHTML(active) {
   </div>`;
 }
 
+// ── Grupperna i sidopanelen ──
+// Rubriken är en knapp som fäller ihop/ut gruppen (läget sparas i webbläsaren);
+// pilen till höger går till gruppens sida. Team saknar sida än (Snart).
+const ASIDE_COLLAPSED_KEY = 'lossi-aside-collapsed';
+
+function asideCollapsedGroups() {
+  try { return JSON.parse(localStorage.getItem(ASIDE_COLLAPSED_KEY) || '[]'); } catch (e) { return []; }
+}
+
+function asideGroupHTML({ id, label, href, actionLabel, soon = false, body }) {
+  const collapsed = asideCollapsedGroups().includes(id);
+  const action = href
+    ? `<a class="aside-group-action" href="${href}" title="${escapeHTML(actionLabel)}" aria-label="${escapeHTML(actionLabel)}"><i data-lucide="arrow-right"></i></a>`
+    : `<span class="aside-group-action is-disabled" title="${escapeHTML(actionLabel)}" aria-hidden="true"><i data-lucide="arrow-right"></i></span>`;
+  return `
+    <div class="aside-group${collapsed ? ' is-collapsed' : ''}" data-aside-group="${id}">
+      <div class="aside-group-head">
+        <button type="button" class="aside-group-toggle" aria-expanded="${!collapsed}" aria-controls="asideGroup-${id}" onclick="toggleAsideGroup('${id}')">
+          <span class="aside-label">${escapeHTML(label)}</span>
+          ${soon ? '<span class="soon-badge">Snart</span>' : ''}
+          <i data-lucide="chevron-down" class="aside-group-chevron"></i>
+        </button>
+        ${action}
+      </div>
+      <div class="aside-group-body" id="asideGroup-${id}"${collapsed ? ' hidden' : ''}>${body}</div>
+    </div>`;
+}
+
+function toggleAsideGroup(id) {
+  const group = document.querySelector(`[data-aside-group="${id}"]`);
+  if (!group) return;
+  const collapse = !group.classList.contains('is-collapsed');
+  group.classList.toggle('is-collapsed', collapse);
+  group.querySelector('.aside-group-toggle').setAttribute('aria-expanded', String(!collapse));
+  group.querySelector('.aside-group-body').hidden = collapse;
+  const saved = asideCollapsedGroups().filter(g => g !== id);
+  if (collapse) saved.push(id);
+  try { localStorage.setItem(ASIDE_COLLAPSED_KEY, JSON.stringify(saved)); } catch (e) {}
+}
+
 function buildAsideHTML() {
   let inviteDismissed = false;
   try { inviteDismissed = localStorage.getItem('lossi-invite-dismissed') === 'true'; } catch (e) {}
@@ -540,32 +580,22 @@ function buildAsideHTML() {
       </div>
     </div>
 
-    <div class="aside-group">
-      <div class="aside-label">Kommande händelser</div>
-      <div class="aside-events-list"></div>
-      <a href="calendar.html" class="aside-item aside-more">
-        <i data-lucide="calendar-days"></i>
-        <span class="aside-item-text">Kalender</span>
-      </a>
-    </div>
+    ${asideGroupHTML({ id: 'calendar', label: 'Kalender', href: 'calendar.html', actionLabel: 'Gå till kalendern',
+      body: '<div class="aside-events-list"></div>' })}
 
-    <div class="aside-group">
-      <div class="aside-label">Upplägg</div>
-      <div class="aside-plan-list"></div>
+    ${asideGroupHTML({ id: 'plans', label: 'Upplägg', href: 'index.html', actionLabel: 'Gå till upplägg',
+      body: `<div class="aside-plan-list"></div>
       <a href="index.html" class="aside-item aside-more">
         <i data-lucide="ellipsis"></i>
         <span class="aside-item-text">Mer</span>
-      </a>
-    </div>
+      </a>` })}
 
-    <div class="aside-group">
-      <div class="aside-label aside-label-soon">Team <span class="soon-badge">Snart</span></div>
-      ${APP_TEAMS.map(t => `
+    ${asideGroupHTML({ id: 'teams', label: 'Team', soon: true, actionLabel: 'Team kommer snart',
+      body: APP_TEAMS.map(t => `
         <div class="aside-item is-placeholder is-soon" title="Team kommer snart – exempel på hur det kan se ut">
           <span class="aside-dot"></span>
           <span class="aside-item-text">${escapeHTML(t.name)} ${t.emoji}</span>
-        </div>`).join('')}
-    </div>
+        </div>`).join('') })}
   </div>
 
   ${inviteDismissed ? '' : `

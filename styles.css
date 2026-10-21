@@ -394,7 +394,60 @@ body.activity-panel-resizing .page-frame {
 }
 .delete-project-facts strong { color: var(--color-text-primary); font-weight: 600; }
 
-.aside-group + .aside-group { margin-top: 20px; }
+.aside-group + .aside-group { margin-top: 16px; }
+
+/* Grupprubrik: hela raden är klickbar (fäll ihop/ut), pilen till höger går till sidan */
+.aside-group-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  margin-bottom: 2px;
+  border-radius: var(--radius-xs);
+  transition: background 0.15s;
+}
+.aside-group-head:hover,
+.aside-group-head:focus-within { background: var(--color-aside-hover); }
+.aside-group-toggle {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-xs);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.aside-group-toggle .aside-label { padding: 0; margin: 0; }
+.aside-group-chevron { width: 14px; height: 14px; color: var(--color-text-tertiary); flex-shrink: 0; transition: transform 0.15s; }
+.aside-group.is-collapsed .aside-group-chevron { transform: rotate(-90deg); }
+.aside-group-action {
+  width: 24px;
+  height: 24px;
+  margin-right: 2px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+  color: var(--color-text-tertiary);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+.aside-group-action svg { width: 14px; height: 14px; }
+.aside-group-head:hover .aside-group-action,
+.aside-group-head:focus-within .aside-group-action { opacity: 1; }
+.aside-group-action:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.aside-group-action.is-disabled { cursor: default; }
+.aside-group-action.is-disabled:hover { background: none; color: var(--color-text-tertiary); }
+.aside-group-body[hidden] { display: none; }
+/* Pekskärmar har ingen hovring: visa pilen hela tiden */
+@media (hover: none) { .aside-group-action { opacity: 1; } }
 
 .aside-label {
   font-size: var(--font-size-sm);

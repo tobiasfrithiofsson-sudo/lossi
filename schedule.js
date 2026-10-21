@@ -2,7 +2,7 @@
 // Lektioner i upplägg kan läggas in på en tid (tabellen lesson_events via
 // LossiData). Här finns det som översikt, uppläggssida och kalender delar:
 // lektioner ur ett upplägg, svensk datumformatering, dialogen för att lägga
-// in/flytta en lektion och "Kommande händelser" i sidopanelen.
+// in/flytta en lektion och gruppen Kalender i sidopanelen.
 // Kräver theme.js och data.js.
 
 const SCHEDULE_DEFAULT_DURATION = 60;
@@ -127,7 +127,7 @@ async function upcomingInCurrentProject(limit = 3) {
   return resolveEvents(events, plans).slice(0, limit);
 }
 
-// ── Kommande händelser i sidopanelen ──
+// ── Gruppen Kalender i sidopanelen: kommande lektioner ──
 async function renderAsideEvents() {
   const list = document.querySelector('.aside-events-list');
   if (!list) return;

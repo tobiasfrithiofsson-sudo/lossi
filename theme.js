@@ -572,10 +572,10 @@ function asideNavHTML(active) {
     `<div class="aside-item is-placeholder is-soon" title="${what} kommer snart" aria-disabled="true"><i data-lucide="${icon}"></i><span class="aside-item-text">${label}</span><span class="soon-badge">Snart</span></div>`;
   return `
     <nav class="aside-group aside-nav" aria-label="Sidor i Lossi">
-      ${link('plans', 'index.html', 'layers', 'Upplägg')}
+      ${link('plans', 'index.html', 'roller-coaster', 'Upplägg')}
       ${link('calendar', 'calendar.html', 'calendar-days', 'Kalender')}
       ${soon('folder-open', 'Material', 'Material')}
-      ${soon('store', 'Marknadsplats', 'Marknadsplatsen')}
+      ${soon('candy', 'Marknadsplats', 'Marknadsplatsen')}
     </nav>`;
 }
 

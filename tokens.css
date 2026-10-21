@@ -73,7 +73,7 @@
   --opacity-hover:    0.05;
 
   /* ── Typography ── */
-  --font-family-base: Inter, system-ui, sans-serif;
+  --font-family-base: 'Open Sans', system-ui, sans-serif;
   --font-size-xs:   11px;
   --font-size-sm:   12px;
   --font-size-base: 13px;

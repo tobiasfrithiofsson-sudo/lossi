@@ -19,7 +19,7 @@ Läs den här filen först i en ny session. Detaljer (databas, projekt, filer, n
   - **Medskapare:** be om redigeringsrätt, skaparen godkänner/nekar eller lägger till medlemmar direkt (välj-lista som Klass), × tar bort. Raden Medskapare visas bara när projektet har ≥ 2 medlemmar.
   - **Inbjudan via e-post + notiser:** klockan i topbaren (inbjudan med Gå med/Avböj, begäran om redigering, blev medskapare, ny medlem). Inbjudan till adress utan konto sparas och räcker för att skapa konto utan kod.
   - **Skapa med AI / Fyll i med AI** (ai-import.js): läraren kopierar en instruktion till sin egen AI och klistrar in ett JSON-kodblock; Lossi anropar aldrig någon AI. Laddningssnurra i knappen.
-  - **Filer** på upplägg och aktiviteter (Supabase Storage `plan-files`, 25 MB). Kodat och testat lokalt – **oklart om Tobias kört `supabase/files.sql`**; fråga.
+  - **Filer** på upplägg och aktiviteter (Supabase Storage `plan-files`, 25 MB). `supabase/files.sql` körd; fungerar live (Tobias 2026-10-21).
   - **Brödsmulor** på uppläggssidan (projekt › Upplägg › titel).
   - **Kalender/Kommande** visar bara valt projekt.
   - **Designsystem:** typsnitt Open Sans; alla knappar 32px, vikt 500, padding 6px 8px, 6px ikongap, hörn `--radius-xs` (regeln "KNAPPAR" sist i styles.css före MOBIL; gäller även landing/login). Sidopanelen: grupper Kalender / Upplägg / Team med rubrik som fäller ihop (chevron syns vid hovring) och pil till sidan; "+ Skapa" under Upplägg; sidorna Upplägg (roller-coaster), Kalender, Material (Snart), Marknadsplats (candy, Snart) längst ner – flyttade från topbaren, som nu bara har Skapa.
@@ -49,7 +49,6 @@ Större, senare: spara aktiviteter som data i stället för HTML. Låtsas-Supaba
 
 ## Öppna trådar
 - **Snabbhet:** steg 1–4 gjorda (ovan); testa live att allt känns snabbare.
-- **Filer:** bekräfta att `supabase/files.sql` är körd och testad live.
 - **Steg 5 projekt:** varning när någon annan redigerar samma upplägg + skydd mot att skriva över (sista sparning vinner i dag).
 - **Kalender per lärare:** man kan bara schemalägga egna upplägg; medskapare ser inte kalenderknappen (`lesson_events` har `unique (plan_id, lesson_id)` och kräver ägare).
 - **Feedback #4 (Albin):** nya konton har demo-upplägg utan sparade lektioner. Tobias: "låt det vara".

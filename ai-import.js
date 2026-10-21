@@ -33,7 +33,7 @@ const LOSSI_AI_PROMPT = `Du hjälper en lärare att planera ett pedagogiskt uppl
 ## Så ser ett upplägg ut i Lossi
 - titel: kort namn, gärna "Ämne – vinkel", t.ex. "Fotosyntes – från molekyl till ekosystem".
 - amne: t.ex. "Biologi".
-- arskurs: en av "4", "5", "6", "7", "8", "9" (grundskolan). Lämna tom ("") för gymnasiet eller om det är oklart.
+- arskurs: kort, utan "Åk", t.ex. "7", "7–9", "F" eller "Gy 1" för gymnasiet. Lämna tom ("") om det är oklart.
 - beskrivning: 2–4 meningar om uppläggets syfte och upplägg.
 - centraltInnehall: 3–6 punkter ur det centrala innehållet (Lgr22 eller GY25) som upplägget behandlar.
 - betygskriterier: de delar av betygskriterierna som upplägget ger eleven chans att visa. Ingen E/C/A-matris – bedömningen är samlad.
@@ -164,11 +164,7 @@ function parseLossiAi(text, { fill = false } = {}) {
   const title = aiText(aiPick(data, 'titel', 'title'), AI_LIMITS.title);
   if (!title && !fill) return { error: 'Inmatningen saknar titel. Be din AI om en ny, komplett Lossi-inmatning.' };
 
-  let grade = aiText(aiPick(data, 'arskurs', 'årskurs', 'grade'), 20).replace(/^(åk|årskurs)\s*/i, '');
-  if (grade && !PLAN_GRADES.includes(grade)) {
-    warnings.push(`Årskurs "${grade}" finns inte att välja i Lossi än, så den lämnas tom. Du kan ändra under Detaljer.`);
-    grade = '';
-  }
+  const grade = normalizeGrade(aiText(aiPick(data, 'arskurs', 'årskurs', 'grade'), 20));
 
   const rawLessons = aiPick(data, 'lektioner', 'lessons');
   const lessonList = Array.isArray(rawLessons) ? rawLessons : [];
@@ -421,7 +417,7 @@ async function aiNext() {
 async function renderAiPreview({ plan, warnings }) {
   const project = await LossiData.currentProject().catch(() => null);
   const activityCount = plan.lessons.reduce((n, l) => n + l.activities.length, 0);
-  const meta = [plan.subject, plan.grade ? 'Åk ' + plan.grade : ''].filter(Boolean).join(' · ');
+  const meta = [plan.subject, gradeLabel(plan.grade)].filter(Boolean).join(' · ');
   const list = (items, empty) => items.length
     ? `<ul class="ai-preview-list">${items.map(t => `<li>${escapeHTML(t)}</li>`).join('')}</ul>`
     : `<p class="ai-preview-empty">${empty}</p>`;

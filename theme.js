@@ -117,19 +117,23 @@ async function rememberChoice(key, name) {
 const PENDING_CHOICE_KEY = 'lossi-pending-choice';
 function rememberChoiceLater(key, name) {
   try {
-    sessionStorage.setItem(PENDING_CHOICE_KEY, JSON.stringify({ key, name }));
+    const pending = JSON.parse(sessionStorage.getItem(PENDING_CHOICE_KEY) || '[]');
+    sessionStorage.setItem(PENDING_CHOICE_KEY, JSON.stringify([...(Array.isArray(pending) ? pending : []), { key, name }]));
   } catch (e) {
     rememberChoice(key, name);
   }
 }
 
-function savePendingChoice() {
-  let pending = null;
+async function savePendingChoice() {
+  let pending = [];
   try {
-    pending = JSON.parse(sessionStorage.getItem(PENDING_CHOICE_KEY) || 'null');
+    pending = JSON.parse(sessionStorage.getItem(PENDING_CHOICE_KEY) || '[]');
     sessionStorage.removeItem(PENDING_CHOICE_KEY);
   } catch (e) {}
-  if (pending?.key && pending.name) rememberChoice(pending.key, pending.name);
+  // En i taget: varje sparning skriver hela profilens lista
+  for (const p of Array.isArray(pending) ? pending : []) {
+    if (p?.key && p.name) await rememberChoice(p.key, p.name);
+  }
 }
 
 async function forgetChoice(key, name) {
@@ -248,32 +252,70 @@ function createChoiceList({ input, list, getItems, getCurrent = () => '', onPick
   };
 }
 
-// Ämnen: standardförslagen (PLAN_SUBJECTS), lärarens egna och de som används i upplägg.
-// Ett nytt ämne sparas i profilen (user_metadata.subjects) när det väljs.
-let subjectsFromPlans = [];
-function subjectItems() {
-  const saved = savedChoices('subjects');
-  return mergeChoices(PLAN_SUBJECTS, saved, subjectsFromPlans).map(name => ({
+// Ämnen och årskurser: standardförslagen (PLAN_SUBJECTS/PLAN_GRADES), lärarens
+// egna och de som används i upplägg. Ett nytt värde sparas i profilen
+// (user_metadata.subjects/grades) när det väljs.
+const CHOICE_KINDS = {
+  subjects: { suggestions: () => PLAN_SUBJECTS, planField: 'subject', emptyText: 'Skriv namnet på ett ämne och tryck Enter.' },
+  grades: { suggestions: () => PLAN_GRADES, planField: 'grade', normalize: v => normalizeGrade(v), emptyText: 'Skriv en årskurs, t.ex. 7 eller Gy 1, och tryck Enter.' },
+};
+const choicesFromPlans = { subjects: [], grades: [] };
+
+// Årskurser i skolordning: F, sedan siffrorna, sedan resten (t.ex. Gy 1)
+function gradeOrder(a, b) {
+  const rank = g => (/^F\b/i.test(g) ? 0 : /^\d/.test(g) ? 1 : 2);
+  return rank(a) - rank(b) || a.localeCompare(b, 'sv', { numeric: true });
+}
+
+function choiceItems(key) {
+  const suggestions = CHOICE_KINDS[key].suggestions();
+  const names = mergeChoices(suggestions, savedChoices(key), choicesFromPlans[key]);
+  if (key === 'grades') names.sort(gradeOrder);
+  return names.map(name => ({
     name,
-    removable: !PLAN_SUBJECTS.some(s => sameChoice(s, name)),
+    removable: !suggestions.some(s => sameChoice(s, name)),
   }));
 }
 
-function initSubjectChoices(input, list, { inline = false, getCurrent, onPick }) {
-  planFieldValues('subject').then(v => { subjectsFromPlans = v; });
+function subjectItems() { return choiceItems('subjects'); }
+function gradeItems() { return choiceItems('grades'); }
+
+function initSavedChoices(key, input, list, { inline = false, getCurrent, onPick }) {
+  const kind = CHOICE_KINDS[key];
+  planFieldValues(kind.planField).then(v => { choicesFromPlans[key] = v; });
   return createChoiceList({
     input, list, inline, getCurrent,
-    getItems: subjectItems,
-    emptyText: 'Skriv namnet på ett ämne och tryck Enter.',
+    getItems: () => choiceItems(key),
+    emptyText: kind.emptyText,
     onPick: (name, isNew) => {
-      if (isNew) rememberChoice('subjects', name);
+      if (kind.normalize) name = kind.normalize(name);
+      if (isNew && !choiceItems(key).some(i => sameChoice(i.name, name))) rememberChoice(key, name);
       onPick(name, isNew);
     },
     onForget: async name => {
-      subjectsFromPlans = subjectsFromPlans.filter(s => !sameChoice(s, name));
-      await forgetChoice('subjects', name);
+      choicesFromPlans[key] = choicesFromPlans[key].filter(s => !sameChoice(s, name));
+      await forgetChoice(key, name);
     },
   });
+}
+
+function initSubjectChoices(input, list, options) {
+  return initSavedChoices('subjects', input, list, options);
+}
+
+function initGradeChoices(input, list, options) {
+  return initSavedChoices('grades', input, list, options);
+}
+
+// Läraren skriver årskursen själv; "Åk 7" och "årskurs 7" sparas som "7"
+function normalizeGrade(value) {
+  return normalizeChoice(String(value || '').replace(/^\s*(åk|årskurs)\.?\s*/i, ''));
+}
+
+// "7", "7–9" och "F" visas som "Åk 7"; annat (t.ex. "Gy 1") som det är skrivet
+function gradeLabel(grade) {
+  if (!grade) return '';
+  return /^(F|\d+)(\s*[–-]\s*(F|\d+))?$/i.test(grade) ? 'Åk ' + grade : grade;
 }
 
 // ── Logga ut ──
@@ -345,7 +387,8 @@ function planAvatarImgHTML(id) {
 // ── Ämnen och årskurser ──
 // Delas av Skapa-dialogen och Detaljer-panelen i upplag.html.
 const PLAN_SUBJECTS = ['Samhällskunskap', 'Svenska', 'Matematik', 'Biologi', 'Fysik', 'Kemi', 'Engelska', 'Idrott', 'Bild'];
-const PLAN_GRADES = ['4', '5', '6', '7', '8', '9'];
+// Bara förslag: läraren kan skriva in vilken årskurs som helst
+const PLAN_GRADES = ['F', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 // ── Uppläggsregister ──
 // Vilka upplägg som finns och deras innehåll hämtas via LossiData (data.js).
@@ -421,6 +464,10 @@ function renderAppShell(options = {}) {
       if (e.target.id === 'createPlanModal') closeCreatePlanModal();
     });
     initSubjectChoices(document.getElementById('createPlanSubject'), document.getElementById('createPlanSubjectList'), {
+      inline: true,
+      onPick: () => {},
+    });
+    initGradeChoices(document.getElementById('createPlanGrade'), document.getElementById('createPlanGradeList'), {
       inline: true,
       onPick: () => {},
     });
@@ -1883,9 +1930,11 @@ function buildCreatePlanModalHTML() {
       <div class="field-group">
         <label class="field-label" for="createPlanGrade">Årskurs</label>
         <div class="field-group-content">
-          <select class="field-input" id="createPlanGrade">
-            ${PLAN_GRADES.map(g => `<option>${g}</option>`).join('')}
-          </select>
+          <div class="choice-field">
+            <input class="field-input" type="text" id="createPlanGrade" maxlength="${CHOICE_MAX_LENGTH}" autocomplete="off"
+              placeholder="Välj eller skriv in en årskurs" role="combobox" aria-controls="createPlanGradeList" aria-autocomplete="list" />
+            <div class="choice-options choice-dropdown opens-up" id="createPlanGradeList" role="listbox" aria-label="Årskurser" hidden></div>
+          </div>
         </div>
       </div>
     </div>
@@ -2017,6 +2066,7 @@ function openCreatePlanModal() {
   name.classList.remove('is-invalid');
   document.getElementById('createPlanDescription').innerHTML = '';
   document.getElementById('createPlanSubject').value = '';
+  document.getElementById('createPlanGrade').value = '';
   document.getElementById('createPlanModal').classList.add('open');
   name.focus();
 }
@@ -2043,7 +2093,7 @@ async function createPlan() {
     description: document.getElementById('createPlanDescription').innerHTML.trim(),
     klass: '',
     subject: normalizeChoice(document.getElementById('createPlanSubject').value),
-    grade: document.getElementById('createPlanGrade').value,
+    grade: normalizeGrade(document.getElementById('createPlanGrade').value),
     avatar,
     statusKey: 'status-upcoming',
     statusLabel: 'Kommande',
@@ -2065,6 +2115,9 @@ async function createPlan() {
   // Ett ämne som skrivits in men inte valts ur listan sparas också bland lärarens ämnen
   if (state.subject && !subjectItems().some(i => sameChoice(i.name, state.subject))) {
     rememberChoiceLater('subjects', state.subject);
+  }
+  if (state.grade && !gradeItems().some(i => sameChoice(i.name, state.grade))) {
+    rememberChoiceLater('grades', state.grade);
   }
 
   window.location = 'upplag.html?id=' + id;

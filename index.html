@@ -141,7 +141,7 @@
     const list = document.getElementById('planList');
     list.querySelectorAll('.plan-row').forEach(r => r.remove());
     const rows = plans.map(p => {
-      const gradeDisplay = p.grade ? 'Åk ' + p.grade : '';
+      const gradeDisplay = gradeLabel(p.grade);
       const meta = [p.subject, gradeDisplay].filter(Boolean).join(' · ');
       const mine = me && p.ownerId === me.id;
       const owner = ownerProfile(p.ownerId);

@@ -1768,6 +1768,9 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
   color: var(--color-text-primary);
 }
 
+/* Detaljer: tom årskurs visar en ledtråd i stället för en tom tagg */
+.class-tag[data-empty]:empty::before { content: attr(data-empty); color: var(--color-text-tertiary); }
+
 /* Rubriken fäller ihop/ut sektionen, som grupperna i sidopanelen: hovring ger
    bakgrund och visar pilen till höger. Negativ marginal håller texten i linje
    med innehållet under. */
@@ -2624,6 +2627,8 @@ body.edit-mode .activity-more-btn { display: grid; }
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
 }
 .choice-dropdown[hidden] { display: none; }
+/* Sista fältet i en dialog: listan öppnas uppåt så att dialogens kant inte klipper den */
+.choice-dropdown.opens-up { top: auto; bottom: calc(100% + 4px); }
 
 /* Tomt ämne under Detaljer */
 .detail-panel .class-tag:empty::before { content: 'Ej angivet'; color: var(--color-text-secondary); }

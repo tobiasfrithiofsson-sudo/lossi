@@ -53,5 +53,5 @@ Större, senare: spara aktiviteter som data i stället för HTML. Låtsas-Supaba
 - **Steg 5 projekt:** varning när någon annan redigerar samma upplägg + skydd mot att skriva över (sista sparning vinner i dag).
 - **Kalender per lärare:** man kan bara schemalägga egna upplägg; medskapare ser inte kalenderknappen (`lesson_events` har `unique (plan_id, lesson_id)` och kräver ägare).
 - **Feedback #4 (Albin):** nya konton har demo-upplägg utan sparade lektioner. Tobias: "låt det vara".
-- **Frågor till Tobias:** "aktivitet" → "moment"? Ska `/` visa landningssidan? Gymnasiet som årskurs?
+- **Frågor till Tobias:** "aktivitet" → "moment"? Ska `/` visa landningssidan? (Gymnasiet som årskurs: löst 2026-10-21, läraren skriver årskursen själv.)
 - **Steg 7:** testa export av databasen (`pg_dump`).

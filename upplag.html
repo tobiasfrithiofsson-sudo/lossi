@@ -853,10 +853,17 @@
           <div class="read-field">
             <span class="read-field-label">Årskurs</span>
             <div class="popover-wrap" onclick="event.stopPropagation()">
-              <div class="class-picker-trigger" onclick="toggleAppPopover(this)" title="Välj årskurs">
-                <span class="class-tag" id="detailGrade">7</span>
+              <div class="class-picker-trigger" onclick="openChoiceMenu(this, gradeChoices)" title="Välj eller skriv in årskurs">
+                <span class="class-tag" id="detailGrade" data-empty="Ej angiven">7</span>
               </div>
-              <div class="menu-popover" id="gradeMenu"></div>
+              <div class="menu-popover choice-menu" id="gradeMenu">
+                <div class="choice-search">
+                  <i data-lucide="search"></i>
+                  <input type="text" id="gradeInput" placeholder="Skriv årskurs, t.ex. 7 eller Gy 1…" autocomplete="off" maxlength="40"
+                    role="combobox" aria-expanded="true" aria-controls="gradeOptions" aria-autocomplete="list" />
+                </div>
+                <div class="choice-options" id="gradeOptions" role="listbox" aria-label="Årskurser"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -1700,6 +1707,12 @@
     onPick: name => setDetailField('detailSubject', name),
   });
 
+  // Årskurs: förslag F–9, men läraren skriver vad som passar (t.ex. 7–9 eller Gy 1)
+  const gradeChoices = initGradeChoices(document.getElementById('gradeInput'), document.getElementById('gradeOptions'), {
+    getCurrent: () => document.getElementById('detailGrade').textContent.trim(),
+    onPick: name => setDetailField('detailGrade', normalizeGrade(name)),
+  });
+
   async function loadClassesFromPlans() {
     classesFromPlans = await planFieldValues('klass');
   }
@@ -2070,13 +2083,6 @@
     closeAllMenuPopovers();
     saveState();
   }
-
-  // Årskurs väljs ur en fast lista i Detaljer (Ämne och Klass: se ovan)
-  function fillDetailMenu(menuId, label, values, fieldId) {
-    document.getElementById(menuId).innerHTML = `<div class="menu-popover-label">${label}</div>` +
-      values.map(v => `<button type="button" class="menu-popover-item" onclick="setDetailField('${fieldId}', '${v}')">${v}</button>`).join('');
-  }
-  fillDetailMenu('gradeMenu', 'Årskurs', PLAN_GRADES, 'detailGrade');
 
   function setDetailField(fieldId, value) {
     document.getElementById(fieldId).textContent = value;

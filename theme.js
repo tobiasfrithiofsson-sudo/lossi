@@ -280,6 +280,7 @@ function initSubjectChoices(input, list, { inline = false, getCurrent, onPick })
 // Spara först: åtkomsttoken försvinner vid utloggningen, och sidbytet efteråt
 // hinner annars inte skicka ändringar som väntar på att sparas.
 function logOut() {
+  forgetAsideCache();
   if (typeof saveState === 'function') saveState();
   if (typeof LossiData !== 'undefined') LossiData.flushOnLeave();
   LossiAuth.signOut();
@@ -406,6 +407,7 @@ function renderAppShell(options = {}) {
   }
   if (aside) {
     aside.innerHTML = buildAsideHTML(options.active);
+    paintAsideFromCache(aside, options.currentPlanId);
     renderProjectSwitcher(options.onProjectChange);
     renderAsidePlans(options.currentPlanId).catch(e => console.warn('Kunde inte hämta upplägg till sidopanelen:', e));
     if (typeof renderAsideEvents === 'function') renderAsideEvents();
@@ -749,6 +751,7 @@ async function renderProjectSwitcher(onProjectChange) {
     }
   }));
   if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [wrap] });
+  rememberAsidePart('project', wrap.querySelector('.aside-project-btn')?.outerHTML || '');
 }
 
 // ── Notiser (klockan i topbaren, supabase/notifications.sql) ──
@@ -1506,6 +1509,64 @@ function editRequestBadgeHTML(n) {
   return n ? `<span class="request-badge" title="${n} ${n === 1 ? 'kollega vill' : 'kollegor vill'} redigera">${n}</span>` : '';
 }
 
+// ── Sidopanelen direkt vid sidbyte ──
+// Varje sida är en egen HTML-sida, så sidopanelen byggs om vid varje klick.
+// För att den inte ska blinka tom sparas det senast ritade innehållet
+// (projektväljaren, Kalender, Upplägg) och scrollläget i fliken och visas
+// direkt; den riktiga datan ritar sedan om när den hämtats. Sparat per
+// användare och valt projekt, så att man aldrig ser fel innehåll.
+const ASIDE_CACHE_KEY = 'lossi-aside-cache';
+
+function asideCacheOwner() {
+  let project = '';
+  try { project = localStorage.getItem('lossi-project') || ''; } catch (e) {}
+  return (LossiAuth.storedUserId() || '') + ':' + project;
+}
+
+function readAsideCache() {
+  try {
+    const cache = JSON.parse(sessionStorage.getItem(ASIDE_CACHE_KEY) || 'null');
+    return cache && cache.owner === asideCacheOwner() ? cache : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function rememberAsidePart(part, html) {
+  try {
+    const cache = readAsideCache() || { owner: asideCacheOwner() };
+    cache[part] = html;
+    sessionStorage.setItem(ASIDE_CACHE_KEY, JSON.stringify(cache));
+  } catch (e) {}
+}
+
+function forgetAsideCache() {
+  try { sessionStorage.removeItem(ASIDE_CACHE_KEY); } catch (e) {}
+}
+
+function paintAsideFromCache(aside, currentPlanId) {
+  const cache = readAsideCache();
+  if (!cache) return;
+  const fill = (selector, html) => {
+    const el = aside.querySelector(selector);
+    if (el && html != null) el.innerHTML = html;
+  };
+  fill('#projectSwitcher', cache.project);
+  fill('.aside-events-list', cache.events);
+  fill('.aside-plan-list', cache.plans);
+  aside.querySelectorAll('[data-aside-plan]').forEach(a => {
+    a.classList.toggle('active', a.dataset.asidePlan === String(currentPlanId));
+  });
+  const scroll = aside.querySelector('.aside-scroll');
+  if (scroll && cache.scroll) scroll.scrollTop = cache.scroll;
+}
+
+// Scrollläget följer med till nästa sida
+window.addEventListener('pagehide', () => {
+  const scroll = document.querySelector('.app-aside .aside-scroll');
+  if (scroll) rememberAsidePart('scroll', scroll.scrollTop);
+});
+
 // Upplägg-listan i asiden fylls i när datan hämtats (renderAppShell väntar inte):
 // den inloggades egna upplägg i valt projekt
 async function renderAsidePlans(currentPlanId) {
@@ -1522,6 +1583,7 @@ async function renderAsidePlans(currentPlanId) {
   if (!list) return;
   if (!visiblePlans.length) {
     list.innerHTML = '<div class="aside-item is-placeholder aside-empty">Inga egna upplägg här än</div>';
+    rememberAsidePart('plans', list.innerHTML);
     return;
   }
   list.innerHTML = visiblePlans.map(p => `
@@ -1530,6 +1592,7 @@ async function renderAsidePlans(currentPlanId) {
       <span class="aside-item-text">${escapeHTML(p.title)}</span>
       ${editRequestBadgeHTML(requests.get(p.id))}
     </a>`).join('');
+  rememberAsidePart('plans', list.innerHTML);
 }
 
 // Uppdatera ett uppläggs titel/bild i asiden utan att bygga om allt
@@ -1541,6 +1604,7 @@ function updateAsidePlan(id, { title, avatar } = {}) {
     item.title = title;
   }
   if (avatar) item.querySelector('.aside-plan-icon').innerHTML = planAvatarImgHTML(avatar);
+  rememberAsidePart('plans', item.closest('.aside-plan-list').innerHTML);
 }
 
 // ── Den inloggade läraren: namn och avatar ──

@@ -16,6 +16,21 @@ const LossiAuth = (() => {
     LOSSI_CONFIG.supabasePublishableKey,
   );
 
+  // Inloggningen som supabase-js sparat i webbläsaren, läst utan att vänta.
+  // Används bara för att visa sidan direkt (mjuka sidbyten) och för att veta
+  // vems sparade sidopanel som får visas; requireUser() avgör på riktigt.
+  const SESSION_KEY = `sb-${new URL(LOSSI_CONFIG.supabaseUrl).hostname.split('.')[0]}-auth-token`;
+  function storedUserId() {
+    try {
+      const session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+      return session?.refresh_token ? session.user?.id || null : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  // Troligen inloggad: visa sidan på en gång i stället för att vänta på kontrollen
+  if (storedUserId()) document.documentElement.classList.remove('auth-pending');
+
   // Bara sökvägar inom sajten, så att ?next= inte kan skicka vidare till en annan webbplats
   function safeNext(next) {
     return typeof next === 'string' && next.startsWith('/') && !next.startsWith('//') ? next : null;
@@ -119,5 +134,5 @@ const LossiAuth = (() => {
     }
   });
 
-  return { client, getUser, signIn, inviteProjectName, signUpWithCode, profileOf, updateProfile, saveUserList, changePassword, signOut, requireUser, safeNext, accessToken };
+  return { client, getUser, signIn, inviteProjectName, signUpWithCode, profileOf, updateProfile, saveUserList, changePassword, signOut, requireUser, safeNext, accessToken, storedUserId };
 })();

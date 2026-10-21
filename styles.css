@@ -1031,6 +1031,18 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 /* Skyddade sidor döljs tills LossiAuth.requireUser() vet att man är inloggad */
 .auth-pending body { visibility: hidden; }
 
+/* Mjuka sidbyten mellan appens sidor: topbaren och sidopanelen står stilla
+   (samma namn på båda sidorna), bara innehållet tonar över. Webbläsare utan
+   stöd byter sida som vanligt. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+  .app-topbar { view-transition-name: app-topbar; }
+  .app-aside { view-transition-name: app-aside; }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation-duration: 150ms; }
+}
+
 .user-menu-account {
   display: flex;
   align-items: center;

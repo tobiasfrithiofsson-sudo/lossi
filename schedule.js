@@ -160,6 +160,7 @@ async function renderAsideEvents() {
           <span class="aside-item-meta">${escapeHTML(formatDay(e.start))} ${formatTime(e.start)}</span>
         </a>`).join('')
       : '<div class="aside-item is-placeholder aside-empty">Inget inplanerat</div>';
+    rememberAsidePart('events', list.innerHTML);
   } catch (e) {
     console.warn('Kunde inte hämta kommande händelser:', e);
     list.innerHTML = '<div class="aside-item is-placeholder aside-empty">Kalendern är inte tillgänglig</div>';

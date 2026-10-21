@@ -30,6 +30,7 @@ Mätt före: ~14 databasanrop per sidladdning, uppläggen hämtades 4–5 gånge
 2. **Uppläggssidan** visar "Hämtar upplägget…" (`body.plan-loading`) i stället för demo-innehållet tills upplägget är hämtat.
 3. **Bibliotek:** lucide låst till `1.61.0` (cachas ett år; roller-coaster/candy finns). pptxgenjs laddas först vid PowerPoint-export (`loadPptxLibrary`). `defer` på lucide går inte – sidornas skript anropar `lucide.createIcons()` direkt.
 4. **Skapa** väntar inte på profilen: nytt ämne läggs i sessionStorage (`rememberChoiceLater`) och sparas av `applyUserProfile` på nästa sida.
+5. **Sidbyten (2026-10-21):** sidopanelen ritas direkt från det senast ritade innehållet (sessionStorage `lossi-aside-cache`, per användare + valt projekt, rensas vid utloggning; `paintAsideFromCache/rememberAsidePart` i theme.js) och uppdateras när datan kommit. `auth.js` visar sidan direkt om en sparad inloggning finns (`storedUserId`). Mjuka sidbyten med `@view-transition` (styles.css): topbar och sidopanel står stilla, innehållet tonar 150 ms. Att bara byta page-frame (ensidesapp) valdes bort – för stort ingrepp i upplag.html.
 Större, senare: spara aktiviteter som data i stället för HTML. Låtsas-Supabase förstår nu kolumnlistor och räknar anrop (`window.__mockCalls`). OBS i test: `flushOnLeave` går till riktiga Supabase, vänta i stället in vanliga sparningen (800 ms).
 
 ## Viktiga filer

@@ -585,10 +585,10 @@ function buildAsideHTML() {
 
     ${asideGroupHTML({ id: 'plans', label: 'Upplägg', href: 'index.html', actionLabel: 'Gå till upplägg',
       body: `<div class="aside-plan-list"></div>
-      <a href="index.html" class="aside-item aside-more">
-        <i data-lucide="ellipsis"></i>
-        <span class="aside-item-text">Mer</span>
-      </a>` })}
+      <button type="button" class="aside-item aside-more" onclick="openCreatePlanModal()">
+        <i data-lucide="plus"></i>
+        <span class="aside-item-text">Skapa</span>
+      </button>` })}
 
     ${asideGroupHTML({ id: 'teams', label: 'Team', soon: true, actionLabel: 'Team kommer snart',
       body: APP_TEAMS.map(t => `

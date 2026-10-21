@@ -532,7 +532,6 @@ body.activity-panel-resizing .page-frame {
 .aside-more { color: var(--color-text-secondary); }
 
 /* Lossis sidor längst ner i sidopanelen (asideNavHTML i theme.js) */
-.aside-nav { padding-top: 12px; border-top: 1px solid var(--color-border); }
 .aside-nav .aside-item svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--color-text-secondary); }
 .aside-nav .aside-item.active svg { color: var(--color-primary); }
 .aside-nav .aside-item .soon-badge { margin-left: auto; }

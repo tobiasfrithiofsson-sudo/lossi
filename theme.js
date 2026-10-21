@@ -385,7 +385,7 @@ function renderAppShell(options = {}) {
     aside.addEventListener('click', e => { if (e.target.closest('a[href]')) closeAside(); });
   }
   if (aside) {
-    aside.innerHTML = buildAsideHTML();
+    aside.innerHTML = buildAsideHTML(options.active);
     renderProjectSwitcher(options.onProjectChange);
     renderAsidePlans(options.currentPlanId).catch(e => console.warn('Kunde inte hämta upplägg till sidopanelen:', e));
     if (typeof renderAsideEvents === 'function') renderAsideEvents();
@@ -466,12 +466,10 @@ function buildTopbarHTML(active) {
       </div>
       <span class="logo-text">Lossi</span>
     </a>
-    <nav class="topnav">
-      <a href="index.html" class="topnav-link${active === 'plans' ? ' active' : ''}">Upplägg</a>
-      <a href="calendar.html" class="topnav-link topnav-calendar${active === 'calendar' ? ' active' : ''}">Kalender</a>
-      <span class="topnav-link is-soon" title="Material kommer snart" aria-disabled="true">Material <span class="soon-badge">Snart</span></span>
+    <!-- Sidorna (Upplägg, Kalender …) ligger i sidopanelen, se buildAsideHTML -->
+    <div class="topnav">
       <button class="topnav-create" onclick="openCreatePlanModal()">Skapa</button>
-    </nav>
+    </div>
   </div>
 
   <div class="app-topbar-end">
@@ -566,7 +564,22 @@ function toggleAsideGroup(id) {
   try { localStorage.setItem(ASIDE_COLLAPSED_KEY, JSON.stringify(saved)); } catch (e) {}
 }
 
-function buildAsideHTML() {
+// Lossis sidor, längst ner i sidopanelen (flyttade från topbaren)
+function asideNavHTML(active) {
+  const link = (id, href, icon, label) =>
+    `<a href="${href}" class="aside-item${active === id ? ' active' : ''}"${active === id ? ' aria-current="page"' : ''}><i data-lucide="${icon}"></i><span class="aside-item-text">${label}</span></a>`;
+  const soon = (icon, label, what) =>
+    `<div class="aside-item is-placeholder is-soon" title="${what} kommer snart" aria-disabled="true"><i data-lucide="${icon}"></i><span class="aside-item-text">${label}</span><span class="soon-badge">Snart</span></div>`;
+  return `
+    <nav class="aside-group aside-nav" aria-label="Sidor i Lossi">
+      ${link('plans', 'index.html', 'layers', 'Upplägg')}
+      ${link('calendar', 'calendar.html', 'calendar-days', 'Kalender')}
+      ${soon('folder-open', 'Material', 'Material')}
+      ${soon('store', 'Marknadsplats', 'Marknadsplatsen')}
+    </nav>`;
+}
+
+function buildAsideHTML(active) {
   let inviteDismissed = false;
   try { inviteDismissed = localStorage.getItem('lossi-invite-dismissed') === 'true'; } catch (e) {}
 
@@ -596,6 +609,8 @@ function buildAsideHTML() {
           <span class="aside-dot"></span>
           <span class="aside-item-text">${escapeHTML(t.name)} ${t.emoji}</span>
         </div>`).join('') })}
+
+    ${asideNavHTML(active)}
   </div>
 
   ${inviteDismissed ? '' : `

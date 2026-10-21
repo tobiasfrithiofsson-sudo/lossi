@@ -2046,6 +2046,57 @@ body.activity-panel-open .detail-panel {
 
 .goal-text { flex: 1; outline: none; }
 
+/* Raden som redigeras: en ram i regnbågstoning som sakta snurrar runt,
+   en svag ton i bakgrunden och markören i Lossis blå. Visar tydligt
+   att raden är öppen; Enter eller klick utanför sparar. */
+@property --magic-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes magic-spin { to { --magic-angle: 360deg; } }
+
+body.edit-mode .goal-item:focus-within {
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.08), rgba(41, 102, 206, 0.06) 50%, rgba(18, 194, 233, 0.08));
+  box-shadow: inset 0 0 14px rgba(124, 58, 237, 0.16);
+  overflow: hidden;
+}
+/* En ljusglimt sveper över raden när man går in i den */
+@keyframes magic-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+body.edit-mode .goal-item:focus-within::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+  animation: magic-shimmer 0.9s ease-out 1 forwards;
+  pointer-events: none;
+}
+[data-theme="dark"] body.edit-mode .goal-item:focus-within::after {
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.12) 50%, transparent 70%);
+}
+body.edit-mode .goal-item:focus-within .goal-text { caret-color: var(--color-primary); }
+body.edit-mode .goal-item:focus-within::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 2px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--magic-angle), #7c3aed, #2966ce, #12c2e9, #f5576c, #7c3aed);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: magic-spin 3s linear infinite;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  body.edit-mode .goal-item:focus-within::before { animation: none; }
+  body.edit-mode .goal-item:focus-within::after { display: none; }
+}
+
 .goal-delete {
   display: none;
   background: none;

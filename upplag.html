@@ -169,11 +169,11 @@
 
     <!-- ── Section: Beskrivning ── -->
     <div class="plan-section" id="sec-idea">
-      <div class="section-head" onclick="toggleSection('sec-idea')">
-        <button class="chevron-btn" tabindex="-1">
+      <div class="section-head">
+        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-idea')">
           <i data-lucide="chevron-down"></i>
         </button>
-        <h2>Beskrivning</h2>
+        <h2 class="section-toggle" onclick="toggleSection('sec-idea')">Beskrivning</h2>
       </div>
       <div class="section-body">
         <div class="idea-editor inline-editable-rich">
@@ -195,11 +195,11 @@
 
     <!-- ── Section: Centralt innehåll (sparas som goalsHTML, hette tidigare Lärandemål) ── -->
     <div class="plan-section" id="sec-goals">
-      <div class="section-head" onclick="toggleSection('sec-goals')">
-        <button class="chevron-btn" tabindex="-1">
+      <div class="section-head">
+        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-goals')">
           <i data-lucide="chevron-down"></i>
         </button>
-        <h2>Centralt innehåll</h2>
+        <h2 class="section-toggle" onclick="toggleSection('sec-goals')">Centralt innehåll</h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
           <button class="section-add-btn" onclick="addGoal('goalsList')" title="Lägg till centralt innehåll">
             <i data-lucide="badge-plus"></i>
@@ -247,11 +247,11 @@
          kursen, så här anges vilka delar av betygskriterierna upplägget ger
          eleven chans att visa, inte vad som krävs för E, C eller A. -->
     <div class="plan-section" id="sec-criteria">
-      <div class="section-head" onclick="toggleSection('sec-criteria')">
-        <button class="chevron-btn" tabindex="-1">
+      <div class="section-head">
+        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-criteria')">
           <i data-lucide="chevron-down"></i>
         </button>
-        <h2>Betygskriterier</h2>
+        <h2 class="section-toggle" onclick="toggleSection('sec-criteria')">Betygskriterier</h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
           <button class="section-add-btn" onclick="addGoal('criteriaList')" title="Lägg till betygskriterium">
             <i data-lucide="badge-plus"></i>
@@ -265,11 +265,11 @@
 
     <!-- ── Section: Struktur och tidslinje ── -->
     <div class="plan-section" id="sec-structure">
-      <div class="section-head" onclick="toggleSection('sec-structure')">
-        <button class="chevron-btn" tabindex="-1">
+      <div class="section-head">
+        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-structure')">
           <i data-lucide="chevron-down"></i>
         </button>
-        <h2>Struktur och tidslinje</h2>
+        <h2 class="section-toggle" onclick="toggleSection('sec-structure')">Struktur och tidslinje</h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
           <button class="section-add-btn" onclick="toggleAppPopover(this)" title="Lägg till">
             <i data-lucide="badge-plus"></i>
@@ -800,11 +800,11 @@
 
     <!-- ── Section: Filer ── -->
     <div class="plan-section" id="sec-files">
-      <div class="section-head" onclick="toggleSection('sec-files')">
-        <button class="chevron-btn" tabindex="-1">
+      <div class="section-head">
+        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-files')">
           <i data-lucide="chevron-down"></i>
         </button>
-        <h2>Filer</h2>
+        <h2 class="section-toggle" onclick="toggleSection('sec-files')">Filer</h2>
       </div>
       <div class="section-body">
         <!-- Uppläggets filer (renderPlanFiles); filer i aktiviteter visas i aktivitetspanelen -->
@@ -828,11 +828,11 @@
   <div class="detail-panel">
 
     <div class="plan-section" id="sec-panel-details">
-      <div class="section-head" onclick="toggleSection('sec-panel-details')">
-        <button class="chevron-btn" tabindex="-1">
+      <div class="section-head">
+        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-panel-details')">
           <i data-lucide="chevron-down"></i>
         </button>
-        <h2>Detaljer</h2>
+        <h2 class="section-toggle" onclick="toggleSection('sec-panel-details')">Detaljer</h2>
       </div>
       <div class="section-body">
         <div class="detail-fields">
@@ -882,11 +882,11 @@
     </div>
 
     <div class="plan-section" id="sec-panel-people">
-      <div class="section-head" onclick="toggleSection('sec-panel-people')">
-        <button class="chevron-btn" tabindex="-1">
+      <div class="section-head">
+        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-panel-people')">
           <i data-lucide="chevron-down"></i>
         </button>
-        <h2>Personer</h2>
+        <h2 class="section-toggle" onclick="toggleSection('sec-panel-people')">Personer</h2>
       </div>
       <div class="section-body">
         <div class="detail-fields">
@@ -925,11 +925,11 @@
     </div>
 
     <div class="plan-section" id="sec-panel-dates">
-      <div class="section-head" onclick="toggleSection('sec-panel-dates')">
-        <button class="chevron-btn" tabindex="-1">
+      <div class="section-head">
+        <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-panel-dates')">
           <i data-lucide="chevron-down"></i>
         </button>
-        <h2>Datum</h2>
+        <h2 class="section-toggle" onclick="toggleSection('sec-panel-dates')">Datum</h2>
       </div>
       <div class="section-body">
         <div class="detail-fields">

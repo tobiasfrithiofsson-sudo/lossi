@@ -45,11 +45,11 @@
 
   <!-- Upplägg: alla upplägg i valt projekt (allas, eller bara mina), samlade för överblick -->
   <div class="plan-section" id="sec-plans">
-    <div class="section-head" onclick="toggleSection('sec-plans')">
-      <button class="chevron-btn" tabindex="-1">
+    <div class="section-head">
+      <button class="chevron-btn" tabindex="-1" onclick="toggleSection('sec-plans')">
         <i data-lucide="chevron-down"></i>
       </button>
-      <h2>Upplägg</h2>
+      <h2 class="section-toggle" onclick="toggleSection('sec-plans')">Upplägg</h2>
     </div>
     <div class="section-body">
 

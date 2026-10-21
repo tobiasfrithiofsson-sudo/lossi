@@ -1759,9 +1759,11 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
   align-items: center;
   gap: 8px;
   padding: 14px 0;
-  cursor: pointer;
   user-select: none;
 }
+
+/* Bara pilen och rubriken fäller ihop/ut sektionen, inte hela raden */
+.section-head .section-toggle { cursor: pointer; }
 
 .section-head h2 {
   font-size: var(--font-size-md);

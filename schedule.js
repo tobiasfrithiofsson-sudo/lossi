@@ -116,15 +116,34 @@ function resolveEvents(events, plans) {
   });
 }
 
+// Uppläggen med hela state där det finns händelser (resolveEvents behöver lektionsnamnen)
+async function withEventStates(plans, events) {
+  const ids = new Set(events.map(e => e.planId));
+  const full = await LossiData.withFullStates(plans.filter(p => ids.has(p.id)));
+  const byId = new Map(full.map(p => [p.id, p]));
+  return plans.map(p => byId.get(p.id) || p);
+}
+
 // De närmaste inlagda lektionerna i valt projekt (Kommande i sidopanelen och på översikten).
-// Kalendersidan visar också bara valt projekt.
-async function upcomingInCurrentProject(limit = 3) {
-  const project = await LossiData.currentProject().catch(() => null);
-  const [events, plans] = await Promise.all([
-    LossiData.upcomingEvents(30),
-    LossiData.listPlans(project ? { projectId: project.id } : {}),
-  ]);
-  return resolveEvents(events, plans).slice(0, limit);
+// Kalendersidan visar också bara valt projekt. Sidopanelen och översikten frågar
+// samtidigt när sidan laddas; då görs hämtningen en gång.
+const upcomingRequests = new Map();
+function upcomingInCurrentProject(limit = 3) {
+  return LossiData.currentProject().catch(() => null).then(project => {
+    const key = project?.id || '';
+    if (!upcomingRequests.has(key)) {
+      const request = (async () => {
+        const [events, plans] = await Promise.all([
+          LossiData.upcomingEvents(30),
+          LossiData.listPlans(project ? { projectId: project.id } : {}),
+        ]);
+        return resolveEvents(events, await withEventStates(plans, events));
+      })();
+      upcomingRequests.set(key, request);
+      request.finally(() => upcomingRequests.delete(key)).catch(() => {});
+    }
+    return upcomingRequests.get(key).then(list => list.slice(0, limit));
+  });
 }
 
 // ── Gruppen Kalender i sidopanelen: kommande lektioner ──

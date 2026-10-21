@@ -24,15 +24,13 @@ Läs den här filen först i en ny session. Detaljer (databas, projekt, filer, n
   - **Kalender/Kommande** visar bara valt projekt.
   - **Designsystem:** typsnitt Open Sans; alla knappar 32px, vikt 500, padding 6px 8px, 6px ikongap, hörn `--radius-xs` (regeln "KNAPPAR" sist i styles.css före MOBIL; gäller även landing/login). Sidopanelen: grupper Kalender / Upplägg / Team med rubrik som fäller ihop (chevron syns vid hovring) och pil till sidan; "+ Skapa" under Upplägg; sidorna Upplägg (roller-coaster), Kalender, Material (Snart), Marknadsplats (candy, Snart) längst ner – flyttade från topbaren, som nu bara har Skapa.
 
-## Nästa steg: Lossi har blivit långsam (Tobias vill åtgärda)
-Mätt 2026-10-21 (låtsas-Supabase med räknare): en sidladdning gör ~14 databasanrop; uppläggen hämtas **4–5 gånger** (sidopanelen, översikten, Kommande, sidopanelens Kalender, demo-kontrollen) och varje gång med **hela `state`** – structureHTML är ~4,5 kB per aktivitet (hela redigeringsformuläret sparas), demo-upplägget ~55 kB, ett AI-upplägg med 27 aktiviteter ~150 kB. Delarna av sidan hämtas var för sig och poppar in; uppläggssidan visar demo-innehållet ("Demokrati …") innan det riktiga laddats; pptxgenjs (~160 kB) och lucide (`@latest` = omdirigering, cache 60 s) laddas synkront i `<head>` så sidan blir klickbar sent; Skapa väntar på `rememberChoice` (updateUser, långsamt) innan sidbytet.
-
-Föreslagen städning (Tobias har inte svarat än – fråga om han vill köra 1–4):
-1. **Hämta mindre och en gång:** listor väljer bara `id, owner_id, project_id, title, avatar` + `state->>subject`, `state->>grade`, `state->>demoKey` (PostgREST stödjer `alias:state->>fält`); hela state bara för det öppna upplägget och för upplägg som har kalenderhändelser (lektionsnamn). Dela ett hämtresultat per sida (cache i data.js) i stället för 4–5 anrop.
-2. **Uppläggssidan:** neutral laddningsvy i stället för demo-HTML tills upplägget hämtats.
-3. **Bibliotek:** lås lucide till fast version (t.ex. `lucide@1.61.0` – kontrollera att roller-coaster/candy finns), `defer` där det går, ladda pptxgenjs först vid export.
-4. **Skapa:** kör `rememberChoice` i bakgrunden (theme.js `createPlan`, ai-import.js `createPlanFromAi`).
-Större, senare: spara aktiviteter som data i stället för HTML.
+## Snabbhet (steg 1–4 gjorda 2026-10-21)
+Mätt före: ~14 databasanrop per sidladdning, uppläggen hämtades 4–5 gånger med hela `state` (structureHTML ~4,5 kB per aktivitet, AI-upplägg ~150 kB). Gjort:
+1. **Hämta mindre och en gång:** `LossiData.listPlans` hämtar bara `id, owner_id, project_id` + `title/subject/grade/klass/avatar/demoKey/demo` ur state (`alias:state->>fält`), en gång per sida (delad cache i data.js som hålls aktuell vid spara/ta bort/skapa/projektbyte). Hela state bara för det öppna upplägget och via `loadPlanStates/withFullStates` (kalenderns lektionsnamn: `withEventStates` i schedule.js; kalenderns "Lägg in lektion" hämtar vid klick). Samtidiga anrop delas (Kommande, redigeringsförfrågningar). Översikten: 7 anrop.
+2. **Uppläggssidan** visar "Hämtar upplägget…" (`body.plan-loading`) i stället för demo-innehållet tills upplägget är hämtat.
+3. **Bibliotek:** lucide låst till `1.61.0` (cachas ett år; roller-coaster/candy finns). pptxgenjs laddas först vid PowerPoint-export (`loadPptxLibrary`). `defer` på lucide går inte – sidornas skript anropar `lucide.createIcons()` direkt.
+4. **Skapa** väntar inte på profilen: nytt ämne läggs i sessionStorage (`rememberChoiceLater`) och sparas av `applyUserProfile` på nästa sida.
+Större, senare: spara aktiviteter som data i stället för HTML. Låtsas-Supabase förstår nu kolumnlistor och räknar anrop (`window.__mockCalls`). OBS i test: `flushOnLeave` går till riktiga Supabase, vänta i stället in vanliga sparningen (800 ms).
 
 ## Viktiga filer
 - `theme.js` – app-skal (topbar, sidopanel med grupper/sidor, projektmeny + inställningar, notiser, inbjudningar), profil, `createChoiceList`, Skapa-dialogen.
@@ -50,7 +48,7 @@ Större, senare: spara aktiviteter som data i stället för HTML.
 - Efter UI-ändringar som syns på landningssidan: `node scripts/landing-screenshots.mjs` och committa `landing/`.
 
 ## Öppna trådar
-- **Snabbhet** (ovan) – nästa steg.
+- **Snabbhet:** steg 1–4 gjorda (ovan); testa live att allt känns snabbare.
 - **Filer:** bekräfta att `supabase/files.sql` är körd och testad live.
 - **Steg 5 projekt:** varning när någon annan redigerar samma upplägg + skydd mot att skriva över (sista sparning vinner i dag).
 - **Kalender per lärare:** man kan bara schemalägga egna upplägg; medskapare ser inte kalenderknappen (`lesson_events` har `unique (plan_id, lesson_id)` och kräver ägare).

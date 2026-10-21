@@ -100,6 +100,23 @@ body.activity-panel-resizing .page-frame {
   transition: none;
 }
 
+/* Uppläggssidan innan upplägget hämtats (boot i upplag.html): innehållet
+   döljs men behåller sin plats, och en neutral laddningsrad visas i stället */
+.plan-loading-view { display: none; }
+body.plan-loading .page-frame { position: relative; }
+body.plan-loading .page-frame > :not(.plan-loading-view) { visibility: hidden; }
+body.plan-loading .plan-loading-view {
+  position: absolute;
+  top: 32px;
+  left: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+}
+.plan-loading-view .btn-spinner[hidden] { display: none; }
+
 /* Body row: main content + right-hand detail panel */
 .page-body {
   display: flex;

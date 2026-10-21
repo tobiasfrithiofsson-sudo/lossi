@@ -42,6 +42,22 @@
   ];
   const persist = () => sessionStorage.setItem('mockDb', JSON.stringify(tables));
   window.__mockDb = tables;
+  // Räknar anropen per tabell, så att man kan se hur mycket en sida hämtar (window.__mockCalls)
+  const calls = window.__mockCalls = [];
+  // Som PostgREST: "id, alias:state->>fält, demo:state->demo"; utan lista (eller *) hela raden
+  function project(row, cols) {
+    if (!cols || cols.trim() === '*') return row;
+    const out = {};
+    cols.split(',').map(c => c.trim()).filter(Boolean).forEach(c => {
+      const [alias, expr] = c.includes(':') ? c.split(':') : [null, c];
+      const m = /^(\w+)->(>?)(\w+)$/.exec(expr);
+      if (m) {
+        const v = row[m[1]]?.[m[3]];
+        out[alias || m[3]] = v == null ? null : (m[2] ? (typeof v === 'object' ? JSON.stringify(v) : String(v)) : v);
+      } else out[alias || expr] = row[expr];
+    });
+    return out;
+  }
   function builder(table) {
     const q = { f: [], op: 'select' };
     const rows = () => (tables[table] = tables[table] || []);
@@ -74,12 +90,14 @@
       if (q.order) res = res.slice().sort((a, b) => (a[q.order] > b[q.order] ? 1 : -1) * (q.desc ? -1 : 1));
       if (q.limit) res = res.slice(0, q.limit);
       persist();
+      if (q.op === 'select' || q.cols) res = res.map(r => project(r, q.cols));
+      calls.push({ table, op: q.op, cols: q.cols || '', rows: res.length, bytes: JSON.stringify(res).length });
       if (q.single) return { data: res[0], error: null };
       if (q.maybe) return { data: res[0] || null, error: null };
       return { data: res, error: null };
     };
     const api = {
-      select() { return api; }, order(k, o) { q.order = k; q.desc = o?.ascending === false; return api; }, limit(n) { q.limit = n; return api; },
+      select(cols) { q.cols = cols; return api; }, order(k, o) { q.order = k; q.desc = o?.ascending === false; return api; }, limit(n) { q.limit = n; return api; },
       eq(k, v) { q.f.push(r => String(r[k]) === String(v)); return api; },
       in(k, vs) { q.f.push(r => vs.map(String).includes(String(r[k]))); return api; },
       gte(k, v) { q.f.push(r => r[k] >= v); return api; },

@@ -112,6 +112,26 @@ async function rememberChoice(key, name) {
   }
 }
 
+// Skapa byter sida direkt i stället för att vänta på profilen (updateUser är
+// långsamt och avbryts av sidbytet). Värdet sparas när nästa sida har användaren.
+const PENDING_CHOICE_KEY = 'lossi-pending-choice';
+function rememberChoiceLater(key, name) {
+  try {
+    sessionStorage.setItem(PENDING_CHOICE_KEY, JSON.stringify({ key, name }));
+  } catch (e) {
+    rememberChoice(key, name);
+  }
+}
+
+function savePendingChoice() {
+  let pending = null;
+  try {
+    pending = JSON.parse(sessionStorage.getItem(PENDING_CHOICE_KEY) || 'null');
+    sessionStorage.removeItem(PENDING_CHOICE_KEY);
+  } catch (e) {}
+  if (pending?.key && pending.name) rememberChoice(pending.key, pending.name);
+}
+
 async function forgetChoice(key, name) {
   try {
     currentUser = await LossiAuth.saveUserList(key, savedChoices(key).filter(c => !sameChoice(c, name)));
@@ -1465,13 +1485,21 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') toggleProjectMenu(false);
 });
 
-// Obesvarade förfrågningar om redigeringsrätt per eget upplägg: Map planId → antal
-async function editRequestCounts() {
-  const counts = new Map();
-  try {
-    (await LossiData.listMyEditRequests()).forEach(r => counts.set(r.planId, (counts.get(r.planId) || 0) + 1));
-  } catch (e) {} // t.ex. innan steg 4 i projects.sql körts
-  return counts;
+// Obesvarade förfrågningar om redigeringsrätt per eget upplägg: Map planId → antal.
+// Sidopanelen och översikten frågar samtidigt när sidan laddas; då görs hämtningen en gång.
+let editRequestsRequest = null;
+function editRequestCounts() {
+  if (!editRequestsRequest) {
+    editRequestsRequest = (async () => {
+      const counts = new Map();
+      try {
+        (await LossiData.listMyEditRequests()).forEach(r => counts.set(r.planId, (counts.get(r.planId) || 0) + 1));
+      } catch (e) {} // t.ex. innan steg 4 i projects.sql körts
+      return counts;
+    })();
+    editRequestsRequest.finally(() => { editRequestsRequest = null; });
+  }
+  return editRequestsRequest;
 }
 
 function editRequestBadgeHTML(n) {
@@ -1572,6 +1600,7 @@ function fillUserProfile(root = document) {
 // Anropas av sidorna när LossiAuth.requireUser() har en inloggad lärare
 function applyUserProfile(user) {
   currentUser = user;
+  savePendingChoice();
   const account = document.getElementById('userMenuAccount');
   if (account) {
     document.getElementById('userMenuEmail').textContent = user.email || '';
@@ -1963,7 +1992,7 @@ async function createPlan() {
 
   // Ett ämne som skrivits in men inte valts ur listan sparas också bland lärarens ämnen
   if (state.subject && !subjectItems().some(i => sameChoice(i.name, state.subject))) {
-    await rememberChoice('subjects', state.subject);
+    rememberChoiceLater('subjects', state.subject);
   }
 
   window.location = 'upplag.html?id=' + id;

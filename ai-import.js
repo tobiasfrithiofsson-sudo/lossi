@@ -500,7 +500,7 @@ async function createPlanFromAi() {
     const state = planStateFromAi(aiParsed.plan, avatar);
     const id = await LossiData.createPlan(state, project?.id);
     if (state.subject && !subjectItems().some(i => sameChoice(i.name, state.subject))) {
-      await rememberChoice('subjects', state.subject).catch(() => {});
+      rememberChoiceLater('subjects', state.subject);
     }
     window.location = 'upplag.html?id=' + id;
   } catch (e) {

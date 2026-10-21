@@ -13,8 +13,7 @@
   <link rel="stylesheet" href="tokens.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="theme.css" />
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+  <script src="https://unpkg.com/lucide@1.61.0/dist/umd/lucide.min.js"></script>
   <script src="https://unpkg.com/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
   <script src="config.js"></script>
@@ -26,7 +25,7 @@
   <script src="ai-import.js"></script>
   <script src="feedback.js"></script>
 </head>
-<body class="edit-mode">
+<body class="edit-mode plan-loading">
 
 <!-- ── App topbar (byggs av renderAppShell i theme.js) ── -->
 <header class="app-topbar"></header>
@@ -38,6 +37,12 @@
 
 <!-- ── Page frame ── -->
 <div class="page-frame">
+
+  <!-- Visas tills upplägget hämtats, så att sidans inbyggda exempelinnehåll inte blinkar förbi (boot) -->
+  <div class="plan-loading-view" id="planLoadingView" role="status">
+    <span class="btn-spinner" aria-hidden="true"></span>
+    <span id="planLoadingText">Hämtar upplägget…</span>
+  </div>
 
   <!-- Brödsmulor: projekt › Upplägg › uppläggets titel (renderBreadcrumbs) -->
   <nav class="breadcrumbs" aria-label="Du är här">
@@ -1927,8 +1932,29 @@
     return { title, subject, grade, goals, criteria, lessons };
   }
 
+  // PowerPoint-biblioteket (~160 kB) hämtas först när någon exporterar
+  let pptxLibrary = null;
+  function loadPptxLibrary() {
+    if (window.PptxGenJS) return Promise.resolve();
+    pptxLibrary = pptxLibrary || new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
+      script.onload = resolve;
+      script.onerror = () => { pptxLibrary = null; script.remove(); reject(new Error('Kunde inte hämta PowerPoint-biblioteket')); };
+      document.head.appendChild(script);
+    });
+    return pptxLibrary;
+  }
+
   async function exportAsPptx() {
     closeAllMenuPopovers();
+    try {
+      await loadPptxLibrary();
+    } catch (e) {
+      console.warn(e);
+      alert('Kunde inte förbereda PowerPoint-exporten. Kontrollera uppkopplingen och försök igen.');
+      return;
+    }
     const plan = readPlanForExport();
     const pres = new PptxGenJS();
     pres.layout = 'LAYOUT_WIDE'; // 13.3" x 7.5"
@@ -3179,6 +3205,8 @@
       state = info?.state;
     } catch (e) {
       console.warn('Kunde inte läsa upplägget:', e);
+      document.getElementById('planLoadingText').textContent = 'Kunde inte hämta upplägget.';
+      document.querySelector('#planLoadingView .btn-spinner').hidden = true;
       alert('Kunde inte hämta upplägget. Kontrollera uppkopplingen och ladda om sidan.');
       return;
     }
@@ -3198,6 +3226,7 @@
     document.title = document.getElementById('planTitle').textContent.trim() + ' | Lossi';
     renderBreadcrumbs();
     recalcLessonTimes();
+    document.body.classList.remove('plan-loading');
     // Upplägget öppnas i sitt eget projekt: sidopanelen visar det projektet
     LossiData.currentProject().then(project => {
       if (!planProjectId || project?.id === planProjectId) return;

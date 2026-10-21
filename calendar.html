@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="theme.css" />
   <link rel="stylesheet" href="calendar.css" />
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@1.61.0/dist/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
   <script src="config.js"></script>
   <script src="auth.js"></script>
@@ -148,6 +148,7 @@
         LossiData.listPlans({ ...inProject, mine: true }),
         LossiData.listEvents(new Date(2000, 0, 1), new Date(2100, 0, 1)),
       ]);
+      plans = await withEventStates(plans, allEvents);
       document.getElementById('calNotice').hidden = true;
     } catch (e) {
       console.warn('Kunde inte hämta kalendern:', e);
@@ -274,15 +275,23 @@
   }
 
   // Från kalendern: välj upplägg och lektion
-  function addLesson(start) {
+  async function addLesson(start) {
     if (!myPlans.length) return alert('Skapa ett upplägg i det här projektet först, så kan du lägga in dess lektioner här.');
     if (!start) {
       start = new Date(Math.max(periodDays()[0].getTime(), Date.now()));
       start.setMinutes(0, 0, 0);
       start.setHours(Math.max(start.getHours() + 1, 8));
     }
+    // Lektionerna finns bara i uppläggens hela state, som hämtas först nu
+    let full;
+    try {
+      full = await LossiData.withFullStates(myPlans);
+    } catch (e) {
+      console.warn('Kunde inte hämta uppläggens lektioner:', e);
+      return alert('Kunde inte hämta dina upplägg. Försök igen om en stund.');
+    }
     // Upplägg med lektioner först (demo-upplägg som aldrig öppnats har inga än)
-    const sorted = myPlans.slice().reverse().sort((a, b) => (lessonsFromState(b.state).length > 0) - (lessonsFromState(a.state).length > 0));
+    const sorted = full.slice().reverse().sort((a, b) => (lessonsFromState(b.state).length > 0) - (lessonsFromState(a.state).length > 0));
     openScheduleModal({ plans: sorted, eventsByKey: eventsByKey(), start, onSaved: afterChange });
   }
 

@@ -66,28 +66,91 @@ const LossiData = (() => {
   }
 
   const PLAN_COLUMNS = 'id, state, owner_id, project_id';
+  // Listor (sidopanel, översikt, kalender) behöver bara några fält ur state.
+  // Hela state är 5–150 kB per upplägg (aktiviteterna sparas som HTML) och
+  // hämtas bara för det öppna upplägget och där lektionsnamnen behövs.
+  const SUMMARY_FIELDS = ['title', 'subject', 'grade', 'klass', 'avatar', 'demoKey'];
+  const SUMMARY_COLUMNS = 'id, owner_id, project_id, demo:state->demo, '
+    + SUMMARY_FIELDS.map(f => `${f}:state->>${f}`).join(', ');
 
   function toPlan(r) {
     return { id: String(r.id), state: r.state, ownerId: r.owner_id, projectId: r.project_id != null ? String(r.project_id) : null };
   }
 
-  // [{ id, state, ownerId, projectId }], äldst först.
+  // Samma fält ur ett helt state som SUMMARY_COLUMNS ger
+  function summaryState(source) {
+    const state = {};
+    if (source?.demo === true) state.demo = true;
+    SUMMARY_FIELDS.forEach(f => { if (source?.[f] != null) state[f] = source[f]; });
+    return state;
+  }
+
+  // Alla upplägg man får se, hämtas en gång per sida och delas av alla delar
+  // av sidan. Sparningar, borttagningar och nya upplägg håller listan aktuell.
+  let summariesPromise = null;
+  function allSummaries() {
+    if (!summariesPromise) {
+      summariesPromise = (async () => {
+        await ensureDemoPlans();
+        const rows = check(await db().from('plans').select(SUMMARY_COLUMNS).order('id'));
+        return rows.map(r => ({ ...toPlan(r), state: summaryState(r) }));
+      })();
+      summariesPromise.catch(() => { summariesPromise = null; });
+    }
+    return summariesPromise;
+  }
+
+  function forgetSummaries() {
+    summariesPromise = null;
+  }
+
+  // Håller listan i takt med det som sparats på sidan
+  function updateSummary(id, state) {
+    summariesPromise?.then(plans => {
+      const plan = plans.find(p => p.id === id);
+      if (plan) plan.state = summaryState(state);
+    }).catch(() => {});
+  }
+
+  // [{ id, state, ownerId, projectId }], äldst först. state har bara
+  // titel, ämne, årskurs, klass, avatar, demoKey och demo (se loadPlanStates).
   //   projectId – bara upplägg i det projektet (annars alla man får se)
   //   mine      – bara den inloggades egna upplägg
   async function listPlans({ projectId, mine = false } = {}) {
-    await ensureDemoPlans();
-    let query = db().from('plans').select(PLAN_COLUMNS);
-    if (projectId) query = query.eq('project_id', projectId);
-    if (mine) {
-      const user = await LossiAuth.getUser();
-      query = query.eq('owner_id', user?.id);
-    }
-    return check(await query.order('id')).map(toPlan);
+    const [plans, user] = await Promise.all([allSummaries(), mine ? LossiAuth.getUser() : null]);
+    return plans
+      .filter(p => (!projectId || p.projectId === String(projectId)) && (!mine || p.ownerId === user?.id))
+      .map(p => ({ ...p, state: { ...p.state } }));
   }
 
   // Den inloggades egna upplägg, i alla projekt (kalender, egna klasser/ämnen)
   function listMyPlans() {
     return listPlans({ mine: true });
+  }
+
+  // Hela state för flera upplägg (t.ex. lektionsnamn i kalendern): Map id → state.
+  // Det som redan hämtats (eller håller på att hämtas) på sidan hämtas inte igen.
+  const fullStates = new Map(); // id → Promise<state | undefined>
+  async function loadPlanStates(ids) {
+    ids = [...new Set(ids.map(String))].filter(id => /^\d+$/.test(id));
+    const missing = ids.filter(id => !fullStates.has(id));
+    if (missing.length) {
+      const request = Promise.resolve(db().from('plans').select('id, state').in('id', missing.map(Number)))
+        .then(res => new Map(check(res).map(r => [String(r.id), r.state])));
+      missing.forEach(id => {
+        const one = request.then(states => states.get(id));
+        fullStates.set(id, one);
+        one.catch(() => { if (fullStates.get(id) === one) fullStates.delete(id); });
+      });
+    }
+    const states = await Promise.all(ids.map(id => fullStates.get(id)));
+    return new Map(ids.map((id, i) => [id, states[i]]).filter(([, state]) => state));
+  }
+
+  // Samma upplägg med hela state, i samma ordning
+  async function withFullStates(plans) {
+    const states = await loadPlanStates(plans.map(p => p.id));
+    return plans.map(p => ({ ...p, state: states.get(p.id) || p.state }));
   }
 
   // { state, ownerId, projectId }, eller null om upplägget inte finns eller inte syns för en
@@ -96,6 +159,7 @@ const LossiData = (() => {
     const row = check(await db().from('plans').select(PLAN_COLUMNS).eq('id', id).maybeSingle());
     if (!row) return null;
     lastSaved.set(String(id), JSON.stringify(row.state));
+    fullStates.set(String(id), Promise.resolve(row.state));
     const plan = toPlan(row);
     return { state: plan.state, ownerId: plan.ownerId, projectId: plan.projectId };
   }
@@ -216,12 +280,14 @@ const LossiData = (() => {
   async function removeProjectMember(id, userId) {
     check(await db().rpc('remove_project_member', { pid: Number(id), member: userId }));
     projectsPromise = null;
+    forgetSummaries();
   }
 
   // Lämna projektet (inte ägaren); ens upplägg där flyttas till ens första projekt
   async function leaveProject(id) {
     check(await db().rpc('leave_project', { pid: Number(id) }));
     projectsPromise = null;
+    forgetSummaries();
     try { localStorage.removeItem(CURRENT_PROJECT_KEY); } catch (e) {}
   }
 
@@ -229,6 +295,7 @@ const LossiData = (() => {
   async function deleteProject(id) {
     check(await db().rpc('delete_project', { pid: Number(id) }));
     projectsPromise = null;
+    forgetSummaries();
     try { localStorage.removeItem(CURRENT_PROJECT_KEY); } catch (e) {}
   }
 
@@ -253,6 +320,7 @@ const LossiData = (() => {
   async function answerInvite(id, accept) {
     const projectId = String(check(await db().rpc('answer_invite', { invite: Number(id), accept })));
     projectsPromise = null;
+    forgetSummaries();
     if (accept) setCurrentProject(projectId);
     return projectId;
   }
@@ -291,6 +359,7 @@ const LossiData = (() => {
   async function joinProject(code) {
     const id = String(check(await db().rpc('join_project', { code })));
     projectsPromise = null;
+    forgetSummaries();
     setCurrentProject(id);
     return id;
   }
@@ -326,6 +395,8 @@ const LossiData = (() => {
       const rows = check(await db().from('plans').update(columnsFor(state)).eq('id', id).select('id'));
       if (!rows.length) throw new Error('Upplägget finns inte längre, eller så har du inte längre rätt att ändra det.');
       lastSaved.set(id, json);
+      fullStates.set(id, Promise.resolve(state));
+      updateSummary(id, state);
       if (!pending.has(id)) statusListener('saved');
     } catch (e) {
       statusListener('error', e);
@@ -360,6 +431,8 @@ const LossiData = (() => {
         writePlan(id, state).catch(() => {});
         return;
       }
+      updateSummary(id, state);
+      fullStates.set(id, Promise.resolve(state));
       fetch(`${LOSSI_CONFIG.supabaseUrl}/rest/v1/plans?id=eq.${encodeURIComponent(id)}`, {
         method: 'PATCH',
         keepalive: true,
@@ -394,6 +467,8 @@ const LossiData = (() => {
     const rows = check(await db().from('plans').delete().eq('id', id).select('id'));
     if (!rows.length) throw new Error('Upplägget finns inte längre eller tillhör ett annat konto.');
     lastSaved.delete(id);
+    fullStates.delete(id);
+    forgetSummaries();
   }
 
   // Sparar ett nytt upplägg och returnerar dess id. Utan projekt hamnar det i det egna.
@@ -401,6 +476,7 @@ const LossiData = (() => {
     const columns = columnsFor(state);
     if (projectId) columns.project_id = Number(projectId);
     const row = check(await db().from('plans').insert(columns).select('id').single());
+    forgetSummaries();
     return String(row.id);
   }
 
@@ -557,7 +633,7 @@ const LossiData = (() => {
   }
 
   return {
-    listPlans, listMyPlans, loadPlan, loadPlanInfo, savePlan,
+    listPlans, listMyPlans, loadPlanStates, withFullStates, loadPlan, loadPlanInfo, savePlan,
     listProjects, currentProject, setCurrentProject, inviteByEmail, listProjectInvites, cancelInvite, answerInvite, listNotifications, markNotificationsRead,
     createProject, renameProject, setProjectAvatar, removeProjectMember, leaveProject, deleteProject, joinProject, findMember,
     listPlanEditors, listMyEditRequests, requestPlanEdit, addPlanEditor, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,

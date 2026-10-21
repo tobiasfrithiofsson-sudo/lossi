@@ -1619,10 +1619,28 @@
     saveState();
   }
 
-  // Spara en rad när man klickar utanför den efter redigering
+  // En rad är en rad: Enter sparar (som att klicka utanför) i stället för att
+  // göra radbrytning. En rad som lämnas tom tas bort. Inklistrad text blir en rad.
   Object.keys(GOAL_LISTS).forEach(listId => {
-    document.getElementById(listId).addEventListener('focusout', e => {
-      if (e.target.classList.contains('goal-text')) saveState();
+    const list = document.getElementById(listId);
+    list.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' || e.isComposing || !e.target.classList.contains('goal-text')) return;
+      e.preventDefault();
+      e.target.blur();
+    });
+    list.addEventListener('paste', e => {
+      if (!e.target.closest?.('.goal-text')) return;
+      e.preventDefault();
+      const text = (e.clipboardData?.getData('text/plain') || '').replace(/\s+/g, ' ');
+      document.execCommand('insertText', false, text);
+    });
+    list.addEventListener('focusout', e => {
+      const field = e.target;
+      if (!field.classList.contains('goal-text')) return;
+      const text = field.textContent.replace(/\s+/g, ' ').trim();
+      if (!text) field.closest('.goal-item').remove();
+      else if (field.textContent !== text) field.textContent = text;
+      saveState();
     });
   });
 

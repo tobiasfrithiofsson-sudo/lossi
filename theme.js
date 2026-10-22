@@ -1059,12 +1059,12 @@ function buildInviteModalsHTML() {
 </div>
 
 <div class="modal-overlay" id="projectSettingsModal">
-  <div class="modal modal-md">
-    <div class="modal-header">
-      <h3>Projektinställningar</h3>
-      <button class="btn btn-text btn-icon modal-close" onclick="closeProjectSettings()"><i data-lucide="x"></i></button>
+  <div class="modal settings-modal" role="dialog" aria-label="Projektinställningar">
+    <nav class="settings-nav" id="projectSettingsNav" aria-label="Projektinställningar"></nav>
+    <div class="settings-main">
+      <button class="btn btn-text btn-icon modal-close settings-close" onclick="closeProjectSettings()" aria-label="Stäng"><i data-lucide="x"></i></button>
+      <div class="project-settings" id="projectSettingsBody"></div>
     </div>
-    <div class="modal-body project-settings" id="projectSettingsBody"></div>
   </div>
 </div>
 
@@ -1173,13 +1173,48 @@ async function copyInvite(what, btn) {
 }
 
 // ── Projektinställningar ──
-// Allmänt (avatar + namn, ägaren ändrar), Medlemmar (ägaren kan ta bort),
-// Bjud in (kod + länk) och längst ner Ta bort projektet / Lämna projektet.
+// En dialog med vänstermeny (som Notions inställningar), så att fler delar
+// kan läggas till över tid. Varje del i PROJECT_SETTINGS_TABS ritar sitt
+// innehåll till höger:
+//   Allmänt    – avatar + namn (ägaren ändrar), Ta bort / Lämna projektet
+//   Medlemmar  – medlemmar (ägaren kan ta bort), bjud in (e-post, kod, länk)
+//   Klasser    – projektets klasser (supabase/project-classes.sql): alla
+//                medlemmar lägger till och tar bort
 let settingsProject = null;
 let settingsUser = null;
 let settingsAvatar = null;
+let settingsTab = 'general';
 
-async function openProjectSettings() {
+const PROJECT_SETTINGS_TABS = [
+  { id: 'general', label: 'Allmänt', icon: 'settings', title: 'Allmänt', lead: 'Projektets namn och avatar, och vad som händer med projektet.' },
+  { id: 'members', label: 'Medlemmar', icon: 'users', title: 'Medlemmar', lead: 'Vilka som är med i projektet och hur du bjuder in fler.' },
+  { id: 'classes', label: 'Klasser', icon: 'graduation-cap', title: 'Klasser', lead: 'Klasserna som alla i projektet väljer bland under Detaljer › Klass.' },
+];
+
+function renderSettingsNav() {
+  const p = settingsProject;
+  const nav = document.getElementById('projectSettingsNav');
+  nav.innerHTML = `
+    <div class="settings-nav-project">
+      ${projectAvatarHTML(p, p.avatar, 'settings-nav-avatar')}
+      <span class="settings-nav-name">${escapeHTML(p.name)}</span>
+    </div>
+    <div class="settings-nav-label">Projekt</div>
+    ${PROJECT_SETTINGS_TABS.map(t => `
+      <button type="button" class="settings-nav-item${t.id === settingsTab ? ' is-active' : ''}" onclick="showProjectSettingsTab('${t.id}')"${t.id === settingsTab ? ' aria-current="page"' : ''}>
+        <i data-lucide="${t.icon}"></i><span>${t.label}</span>
+      </button>`).join('')}`;
+  lucide.createIcons({ nodes: [nav] });
+}
+
+function showProjectSettingsTab(id) {
+  settingsTab = id;
+  renderProjectSettings();
+  document.querySelector('#projectSettingsModal .settings-main').scrollTop = 0;
+}
+
+async function openProjectSettings(tab = 'general') {
+  settingsTab = tab;
   try {
     [settingsProject, settingsUser] = await Promise.all([LossiData.currentProject(), LossiAuth.getUser()]);
   } catch (e) {
@@ -1214,7 +1249,7 @@ async function loadSettingsInvites() {
       <i data-lucide="mail" class="project-menu-glyph"></i>
       <span class="pending-invite-email">${escapeHTML(i.email)}</span>
       <span class="pending-invite-status">Väntar på svar</span>
-      ${owner || i.invitedBy === settingsUser?.id ? `<button type="button" class="settings-member-remove" onclick="cancelSettingsInvite('${i.id}')">Ta tillbaka</button>` : ''}
+      ${owner || i.invitedBy === settingsUser?.id ? `<button type="button" class="btn btn-text btn-danger btn-xs" onclick="cancelSettingsInvite('${i.id}')">Ta tillbaka</button>` : ''}
     </div>`).join('');
   lucide.createIcons({ nodes: [box] });
 }
@@ -1233,10 +1268,13 @@ function renderProjectSettings() {
   const p = settingsProject;
   const owner = isProjectOwner(p, settingsUser);
   const members = p.members.slice().sort((a, b) => (b.role === 'owner') - (a.role === 'owner'));
+  const tab = PROJECT_SETTINGS_TABS.find(t => t.id === settingsTab) || PROJECT_SETTINGS_TABS[0];
+  renderSettingsNav();
   const body = document.getElementById('projectSettingsBody');
-  body.innerHTML = `
+  const sections = {
+    general: () => `
     <section class="settings-section">
-      <h4 class="settings-heading">Allmänt</h4>
+      <h4 class="settings-heading">Namn och avatar</h4>
       <div class="settings-general">
         <span class="settings-avatar-preview" id="settingsAvatarPreview">${projectAvatarHTML(p, settingsAvatar)}</span>
         <div class="settings-name">
@@ -1257,6 +1295,14 @@ function renderProjectSettings() {
       </div>` : '<p class="settings-note">Bara projektets ägare kan ändra namn och avatar.</p>'}
     </section>
 
+    <section class="settings-section settings-danger">
+      ${owner
+        ? (p.personal
+          ? '<p class="settings-note">Det här är ditt första projekt. Det kan inte tas bort, eftersom nya upplägg hamnar här och upplägg från borttagna projekt flyttas hit.</p>'
+          : `<div class="settings-danger-row"><span><strong>Ta bort projektet</strong><span class="settings-note">Uppläggen flyttas tillbaka till respektive skapare.</span></span><button type="button" class="btn btn-outline btn-danger" onclick="closeProjectSettings(); openDeleteProjectModal()"><i data-lucide="trash-2"></i>Ta bort</button></div>`)
+        : `<div class="settings-danger-row"><span><strong>Lämna projektet</strong><span class="settings-note">Dina upplägg här flyttas till ditt första projekt.</span></span><button type="button" class="btn btn-outline btn-danger" onclick="leaveProjectFromSettings()"><i data-lucide="log-out"></i>Lämna</button></div>`}
+    </section>`,
+    members: () => `
     <section class="settings-section">
       <h4 class="settings-heading">Medlemmar <span class="settings-count">${members.length}</span></h4>
       <div class="settings-members">
@@ -1271,7 +1317,7 @@ function renderProjectSettings() {
               <span class="settings-member-email">${escapeHTML(m.email || '')}</span>
             </span>
             <span class="settings-role">${m.role === 'owner' ? 'Ägare' : 'Medlem'}</span>
-            ${owner && m.role !== 'owner' ? `<button type="button" class="settings-member-remove" onclick="removeMemberFromSettings('${m.userId}')">Ta bort</button>` : ''}
+            ${owner && m.role !== 'owner' ? `<button type="button" class="btn btn-text btn-danger btn-xs" onclick="removeMemberFromSettings('${m.userId}')">Ta bort</button>` : ''}
           </div>`;
         }).join('') || '<p class="settings-note">Inga medlemmar att visa.</p>'}
       </div>
@@ -1299,15 +1345,105 @@ function renderProjectSettings() {
       </div>` : '<p class="settings-note">Projektet har ingen inbjudningskod än.</p>'}
     </section>
 
-    <section class="settings-section settings-danger">
-      ${owner
-        ? (p.personal
-          ? '<p class="settings-note">Det här är ditt första projekt. Det kan inte tas bort, eftersom nya upplägg hamnar här och upplägg från borttagna projekt flyttas hit.</p>'
-          : `<div class="settings-danger-row"><span><strong>Ta bort projektet</strong><span class="settings-note">Uppläggen flyttas tillbaka till respektive skapare.</span></span><button type="button" class="btn btn-outline btn-danger" onclick="closeProjectSettings(); openDeleteProjectModal()"><i data-lucide="trash-2"></i>Ta bort</button></div>`)
-        : `<div class="settings-danger-row"><span><strong>Lämna projektet</strong><span class="settings-note">Dina upplägg här flyttas till ditt första projekt.</span></span><button type="button" class="btn btn-outline btn-danger" onclick="leaveProjectFromSettings()"><i data-lucide="log-out"></i>Lämna</button></div>`}
-    </section>`;
+`,
+    classes: () => projectClassesHTML(),
+  };
+  body.innerHTML = `
+    <header class="settings-page-head">
+      <h2 class="settings-title">${tab.title}</h2>
+      <p class="settings-lead">${tab.lead}</p>
+    </header>
+    ${sections[tab.id]()}`;
   lucide.createIcons({ nodes: [body] });
-  loadSettingsInvites();
+  if (tab.id === 'members') loadSettingsInvites();
+  if (tab.id === 'classes') loadSettingsClassUsage();
+}
+
+// ── Klasser i projektinställningarna ──
+// Antal upplägg per klass hämtas när delen öppnas (alla medlemmars upplägg i projektet).
+let settingsClassUsage = new Map(); // klass (gemener) → antal upplägg
+
+function projectClassesHTML() {
+  const p = settingsProject;
+  if (!Array.isArray(p.classes)) {
+    return '<section class="settings-section"><p class="settings-note">Klasser i projektet är inte påslaget än.</p></section>';
+  }
+  const classes = mergeChoices(p.classes);
+  return `
+    <section class="settings-section">
+      <h4 class="settings-heading">Lägg till klass</h4>
+      <form class="invite-email-row" onsubmit="event.preventDefault(); addClassFromSettings()">
+        <input class="field-input" type="text" id="settingsClassName" maxlength="${CHOICE_MAX_LENGTH}" placeholder="T.ex. 7B" autocomplete="off" aria-label="Klassens namn" />
+        <button type="submit" class="btn btn-solid">Lägg till</button>
+      </form>
+      <p class="invite-email-message" id="settingsClassMessage" role="status" hidden></p>
+    </section>
+    <section class="settings-section">
+      <h4 class="settings-heading">Projektets klasser <span class="settings-count">${classes.length}</span></h4>
+      <div class="settings-classes" id="settingsClassList">
+        ${classes.map(c => `
+          <div class="settings-class">
+            <span class="class-tag">${escapeHTML(c)}</span>
+            <span class="settings-class-usage" data-class-usage="${escapeHTML(c.toLowerCase())}"></span>
+            <button type="button" class="btn btn-text btn-danger btn-xs" onclick="removeClassFromSettings(this.dataset.name)" data-name="${escapeHTML(c)}"><i data-lucide="trash-2"></i>Ta bort</button>
+          </div>`).join('') || '<p class="settings-note">Projektet har inga klasser än. Lägg till en ovan, eller skriv in en ny under Detaljer › Klass på ett upplägg.</p>'}
+      </div>
+      <p class="settings-note">En klass som tas bort går inte längre att välja, men upplägg som redan har den behåller den.</p>
+    </section>`;
+}
+
+async function loadSettingsClassUsage() {
+  try {
+    const plans = await LossiData.listPlans({ projectId: settingsProject.id });
+    settingsClassUsage = new Map();
+    plans.forEach(pl => {
+      const k = (pl.state?.klass || '').toLowerCase();
+      if (k) settingsClassUsage.set(k, (settingsClassUsage.get(k) || 0) + 1);
+    });
+  } catch (e) {
+    return;
+  }
+  document.querySelectorAll('[data-class-usage]').forEach(el => {
+    const n = settingsClassUsage.get(el.dataset.classUsage) || 0;
+    el.textContent = n ? (n === 1 ? '1 upplägg' : `${n} upplägg`) : 'Används inte';
+  });
+}
+
+function showSettingsClassMessage(text, isError) {
+  const msg = document.getElementById('settingsClassMessage');
+  if (!msg) return;
+  msg.textContent = text;
+  msg.classList.toggle('is-error', !!isError);
+  msg.hidden = !text;
+}
+
+async function addClassFromSettings() {
+  const input = document.getElementById('settingsClassName');
+  const name = normalizeChoice(input.value);
+  if (!name) return showSettingsClassMessage('Skriv klassens namn.', true);
+  if ((settingsProject.classes || []).some(c => sameChoice(c, name))) return showSettingsClassMessage(`${name} finns redan i projektet.`, true);
+  try {
+    settingsProject.classes = await LossiData.addProjectClass(settingsProject.id, name);
+    renderProjectSettings();
+    showSettingsClassMessage(`${name} är tillagd.`);
+    document.getElementById('settingsClassName').focus();
+  } catch (e) {
+    console.warn('Kunde inte lägga till klassen:', e);
+    showSettingsClassMessage('Kunde inte lägga till klassen. Försök igen om en stund.', true);
+  }
+}
+
+async function removeClassFromSettings(name) {
+  const n = settingsClassUsage.get(name.toLowerCase()) || 0;
+  const usage = n ? ` ${n === 1 ? 'Ett upplägg' : n + ' upplägg'} har klassen och behåller den.` : '';
+  if (!confirm(`Ta bort ${name} från ${settingsProject.name}? Ingen i projektet kan välja klassen längre.${usage}`)) return;
+  try {
+    settingsProject.classes = await LossiData.removeProjectClass(settingsProject.id, name);
+    renderProjectSettings();
+  } catch (e) {
+    console.warn('Kunde inte ta bort klassen:', e);
+    alert('Kunde inte ta bort klassen. Försök igen om en stund.');
+  }
 }
 
 function settingsChanged() {

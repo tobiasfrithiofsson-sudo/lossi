@@ -1690,9 +1690,11 @@
     return Array.isArray(planProject?.classes);
   }
 
+  // Med projektets lista: bara den (en klass som tagits bort i projektinställningarna
+  // ska inte dyka upp igen för att ett upplägg använder den). Utan: som förut.
   function classItems() {
-    const own = projectClassesReady() ? planProject.classes : savedChoices('classes');
-    return mergeChoices(own, classesFromPlans).map(name => ({ name, removable: true }));
+    const names = projectClassesReady() ? mergeChoices(planProject.classes) : mergeChoices(savedChoices('classes'), classesFromPlans);
+    return names.map(name => ({ name, removable: true }));
   }
 
   const classChoices = createChoiceList({

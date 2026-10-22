@@ -3571,83 +3571,10 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 
 
 /* ============================================================
-   KNAPPAR
-   ============================================================
-   En knapp = .btn + en variant + (valfritt) en storlek och en ton:
-     variant  .btn-solid    fylld (Lossi-blå)        – huvudhandlingen
-              .btn-outline  ram, ingen fyllning      – vanliga knappar
-              .btn-subtle   grå fyllning, ingen ram  – filter, lugna val
-              .btn-text     bara text/ikon, grå vid hovring – stäng, ikoner
-     storlek  .btn-lg 40px · (standard, sm) 32px · .btn-xs 24px
-     ton      .btn-danger   röd version av vilken variant som helst
-     form     .btn-icon     bara en ikon: kvadratisk
-   Alla varianter har en 1px ram (genomskinlig när den inte syns), så att
-   de är exakt lika höga sida vid sida. */
-:root {
-  --btn-height: 32px;
-  --btn-icon: 16px;
-  --btn-danger: #dc2626;
-  --btn-danger-dark: #b91c1c;
-  --btn-danger-tint: #fee2e2;
-}
-[data-theme="dark"] { --btn-danger: #f87171; --btn-danger-dark: #dc2626; --btn-danger-tint: rgba(248, 113, 113, 0.14); }
-
-.btn {
-  --btn-h: var(--btn-height);
-  --btn-pad: 8px;
-  --btn-gap: 6px;
-  --btn-svg: var(--btn-icon);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--btn-gap);
-  height: var(--btn-h);
-  box-sizing: border-box;
-  padding: 0 var(--btn-pad);
-  border: 1px solid transparent;
-  border-radius: var(--radius-xs);
-  background: none;
-  color: var(--color-text-secondary);
-  font-family: inherit;
-  font-size: var(--font-size-md);
-  font-weight: 500;
-  line-height: 18px;
-  white-space: nowrap;
-  text-decoration: none;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-.btn svg { width: var(--btn-svg); height: var(--btn-svg); flex-shrink: 0; }
-.btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-.btn:disabled { opacity: 0.6; cursor: default; }
-.btn.is-loading { cursor: progress; opacity: 0.9; }
-
-/* Storlekar */
-.btn-lg { --btn-h: 40px; --btn-pad: 12px; --btn-gap: 8px; --btn-svg: 18px; }
-.btn-xs { --btn-h: 24px; --btn-pad: 6px; --btn-gap: 4px; --btn-svg: 14px; font-size: var(--font-size-sm); line-height: 16px; }
-.btn-icon { width: var(--btn-h); padding: 0; }
-
-/* Varianter */
-.btn-solid { background: var(--color-primary); color: #fff; }
-.btn-solid:hover:not(:disabled) { background: var(--color-primary-dark); }
-
-.btn-outline { border-color: var(--color-border); background: var(--color-bg-primary); }
-.btn-outline:hover:not(:disabled) { border-color: var(--color-text-secondary); color: var(--color-text-primary); }
-
-.btn-subtle { background: var(--color-bg-hover); }
-.btn-subtle:hover:not(:disabled) { background: var(--color-aside-active); color: var(--color-text-primary); }
-
-.btn-text:hover:not(:disabled) { background: var(--color-bg-hover); color: var(--color-text-primary); }
-
-/* Röd ton (Ta bort m.m.) */
-.btn-danger { color: var(--btn-danger); }
-.btn-danger.btn-solid { background: var(--btn-danger); color: #fff; }
-.btn-danger.btn-solid:hover:not(:disabled) { background: var(--btn-danger-dark); }
-.btn-danger.btn-outline:hover:not(:disabled) { border-color: var(--btn-danger); background: var(--btn-danger-tint); color: var(--btn-danger); }
-.btn-danger.btn-subtle { background: var(--btn-danger-tint); }
-.btn-danger.btn-subtle:hover:not(:disabled),
-.btn-danger.btn-text:hover:not(:disabled) { background: var(--btn-danger-tint); color: var(--btn-danger-dark); }
+   KNAPPAR I APPEN – själva knappsystemet (.btn, varianter, storlekar)
+   finns i buttons.css, som alla sidor laddar före sina egna stilar.
+   Här: statusknappen och filtren på översikten.
+   ============================================================ */
 
 /* Statusknappen i uppläggshuvudet: färgen kommer från statusen, storleken härifrån */
 .status-btn {

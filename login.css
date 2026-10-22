@@ -8,18 +8,12 @@
 
 :root {
   --login-gradient: linear-gradient(135deg, #FF8A3D, #E24B4A);
-  --login-ink:      #161412;
-  --login-ink-hover:#000;
-  --login-ink-text: #fff;
   --login-danger:   #C2413B;
   --login-success:  #1F9D6B;
   --login-page-bg:  #FBF9F7;
 }
 
 [data-theme="dark"] {
-  --login-ink:      #EEECEA;
-  --login-ink-hover:#fff;
-  --login-ink-text: #141413;
   --login-danger:   #F07A73;
   --login-success:  #4CC79A;
   --login-page-bg:  #141413;
@@ -306,30 +300,8 @@ body {
 .login-btn {
   position: relative;
   width: 100%;
-  height: 32px;
-  box-sizing: border-box;
-  padding: 6px 8px;
   margin-top: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-family: inherit;
-  font-size: var(--font-size-md);
-  font-weight: 500;
-  line-height: 18px;
-  color: var(--login-ink-text);
-  background: var(--login-ink);
-  border: none;
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  transition: background 0.15s, transform 0.1s, opacity 0.15s;
 }
-
-.login-btn:hover:not(:disabled) { background: var(--login-ink-hover); transform: translateY(-1px); }
-.login-btn:active:not(:disabled) { transform: none; }
-.login-btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-primary) 45%, transparent); outline-offset: 2px; }
-.login-btn:disabled { cursor: default; }
 
 .login-spinner {
   position: absolute;

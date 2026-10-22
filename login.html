@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="buttons.css" />
   <link rel="stylesheet" href="theme.css" />
   <link rel="stylesheet" href="login.css" />
   <script src="https://unpkg.com/lucide@1.61.0/dist/umd/lucide.min.js"></script>
@@ -38,7 +39,7 @@
 
 <header class="login-top">
   <a href="landing.html" class="login-back"><i data-lucide="arrow-left"></i>Till startsidan</a>
-  <button class="theme-toggle" onclick="toggleTheme()" title="Byt till mörkt läge"><i data-lucide="moon"></i></button>
+  <button class="btn btn-text btn-icon theme-toggle" onclick="toggleTheme()" title="Byt till mörkt läge"><i data-lucide="moon"></i></button>
 </header>
 
 <main class="login-main">
@@ -66,7 +67,7 @@
       </div>
       <p class="login-error" id="loginError" role="alert" hidden></p>
 
-      <button class="login-btn" id="loginSubmit" type="submit">
+      <button class="btn btn-solid btn-lg login-btn" id="loginSubmit" type="submit">
         <span class="login-btn-label">Logga in</span>
         <span class="login-spinner" aria-hidden="true"></span>
       </button>
@@ -109,7 +110,7 @@
       </div>
       <p class="login-error" id="signupError" role="alert" hidden></p>
 
-      <button class="login-btn" id="signupSubmit" type="submit">
+      <button class="btn btn-solid btn-lg login-btn" id="signupSubmit" type="submit">
         <span class="login-btn-label">Skapa konto</span>
         <span class="login-spinner" aria-hidden="true"></span>
       </button>

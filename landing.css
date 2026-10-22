@@ -13,16 +13,12 @@
   --lp-gradient: linear-gradient(135deg, #FF8A3D, #E24B4A);
   --lp-card-bg: #F7F6F3;
   --lp-media-bg: #EFEDE8;
-  --lp-soft-bg: #E8F0FD;
-  --lp-soft-ink: #1D5FC9;
 }
 
 [data-theme="dark"] {
   --lp-ink: #EEECEA;
   --lp-card-bg: #222220;
   --lp-media-bg: #2A2A27;
-  --lp-soft-bg: rgba(59, 130, 246, 0.16);
-  --lp-soft-ink: #8DB4FF;
 }
 
 html { scroll-behavior: smooth; }
@@ -50,31 +46,6 @@ img { display: block; max-width: 100%; height: auto; }
 .lp-shot-dark { display: none; }
 [data-theme="dark"] .lp-shot-light { display: none; }
 [data-theme="dark"] .lp-shot-dark { display: block; }
-
-/* ── Knappar (samma storlek som i appen: 32px, 500, 6px 8px, 6px mellan ikon och text) ── */
-.lp-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 32px;
-  box-sizing: border-box;
-  padding: 6px 8px;
-  border-radius: var(--radius-xs);
-  font-family: inherit;
-  font-size: var(--font-size-md);
-  font-weight: 500;
-  line-height: 18px;
-  text-decoration: none;
-  transition: transform 0.12s, background 0.15s, box-shadow 0.15s;
-  white-space: nowrap;
-}
-
-.lp-btn:hover { transform: translateY(-1px); }
-.lp-btn-primary { background: var(--color-primary); color: #fff; box-shadow: 0 6px 18px color-mix(in srgb, var(--color-primary) 30%, transparent); }
-.lp-btn-primary:hover { background: var(--color-primary-dark); }
-.lp-btn-soft { background: var(--lp-soft-bg); color: var(--lp-soft-ink); }
-.lp-btn-sm { box-shadow: none; }
 
 /* ── Navigering ── */
 .lp-nav {

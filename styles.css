@@ -1273,23 +1273,7 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
   background: var(--color-bg-secondary);
 }
 
-.toolbar-btn {
-  background: none;
-  border: none;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-sm);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  font-size: var(--font-size-base);
-  font-weight: 700;
-  color: var(--color-text-secondary);
-  transition: background 0.12s;
-}
-
-.toolbar-btn:hover { background: var(--color-border); color: var(--color-text-primary); }
-.toolbar-btn svg { width: 13px; height: 13px; }
+/* Knapparna i verktygsraden är .btn.btn-text.btn-icon.btn-xs (buttons.css) */
 .toolbar-sep { width: 1px; height: 16px; background: var(--color-border); margin: 0 2px; }
 
 .editor-body {
@@ -1427,21 +1411,7 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 .file-card-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
 .file-card.is-uploading { cursor: progress; opacity: 0.75; }
 .file-card.is-uploading .file-card-icon { color: var(--color-text-secondary); }
-.file-card-delete {
-  width: 24px;
-  height: 24px;
-  margin-left: 2px;
-  display: grid;
-  place-items: center;
-  border: none;
-  background: none;
-  border-radius: var(--radius-sm);
-  color: var(--color-text-tertiary);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.file-card-delete:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
-.file-card-delete svg { width: 14px; height: 14px; }
+.file-card-delete { margin-left: 2px; }
 .file-drop.is-dragover { border-color: var(--color-primary); background: var(--color-primary-light); }
 .files-empty { font-size: var(--font-size-base); color: var(--color-text-tertiary); margin: 0 0 12px; }
 .file-message { font-size: var(--font-size-base); color: #C2413B; margin-top: 8px; }

@@ -100,12 +100,12 @@ function buildActivityMarkup(id, { type = 'Diskussion', title = 'Ny aktivitet', 
           <label class="field-label">Beskrivning</label>
           <div class="inline-editable-rich">
             <div class="inline-editable-toolbar">
-              <button class="toolbar-btn" title="Stycke">T</button>
-              <button class="toolbar-btn" title="Fet" style="font-weight:800;">B</button>
+              <button class="btn btn-text btn-icon btn-xs toolbar-btn" title="Stycke">T</button>
+              <button class="btn btn-text btn-icon btn-xs toolbar-btn" title="Fet" style="font-weight:800;">B</button>
               <div class="toolbar-sep"></div>
-              <button class="toolbar-btn" title="Lista"><i data-lucide="list"></i></button>
-              <button class="toolbar-btn" title="Citat"><i data-lucide="quote"></i></button>
-              <button class="toolbar-btn" title="Mer">···</button>
+              <button class="btn btn-text btn-icon btn-xs toolbar-btn" title="Lista"><i data-lucide="list"></i></button>
+              <button class="btn btn-text btn-icon btn-xs toolbar-btn" title="Citat"><i data-lucide="quote"></i></button>
+              <button class="btn btn-text btn-icon btn-xs toolbar-btn" title="Mer">···</button>
             </div>
             <div class="inline-editable-body" contenteditable="true" data-placeholder="Glöm inte bort vad som är viktigt">${descHTML}</div>
           </div>
@@ -132,8 +132,8 @@ function buildActivityMarkup(id, { type = 'Diskussion', title = 'Ny aktivitet', 
             <i data-lucide="trash-2"></i>
             Ta bort
           </button>
-          <button class="btn btn-solid" onclick="saveActivity('${id}')">Spara</button>
           <button class="btn btn-outline" onclick="closeActivity('${id}')">Avbryt</button>
+          <button class="btn btn-solid" onclick="saveActivity('${id}')">Spara</button>
         </div>
       </div>
       <div class="activity-read">
@@ -180,4 +180,32 @@ function buildLessonGroupHTML({ lessonId, name, minutes = null, activities = [] 
       </div>
       <div class="lesson-activities">${activities.map(a => `<div class="activity-wrapper" id="${a.id}">${buildActivityMarkup(a.id, a)}</div>`).join('')}</div>
     </div>`;
+}
+
+// Aktiviteternas formulär sparas som HTML i upplägget. Upplägg sparade före
+// knappsystemet (buttons.css, 2026-10-22) har de gamla klasserna; de byts här
+// när upplägget öppnas, och Avbryt flyttas före Spara som i dialogerna.
+const LEGACY_BUTTON_CLASSES = {
+  'btn-primary': 'btn btn-solid',
+  'btn-ghost': 'btn btn-outline',
+  'btn-danger-solid': 'btn btn-solid btn-danger',
+  'btn-danger': 'btn btn-outline btn-danger',
+  'browse-btn': 'btn btn-outline btn-xs',
+  'toolbar-btn': 'btn btn-text btn-icon btn-xs',
+};
+
+function upgradeSavedButtons(root) {
+  if (!root) return;
+  Object.entries(LEGACY_BUTTON_CLASSES).forEach(([old, next]) => {
+    root.querySelectorAll('.' + old).forEach(el => {
+      if (el.classList.contains('btn')) return; // redan uppgraderad
+      if (old !== 'browse-btn' && old !== 'toolbar-btn') el.classList.remove(old);
+      el.classList.add(...next.split(' '));
+    });
+  });
+  root.querySelectorAll('.form-actions').forEach(actions => {
+    const save = actions.querySelector('[onclick^="saveActivity"]');
+    const cancel = actions.querySelector('[onclick^="closeActivity"]');
+    if (save && cancel && save.nextElementSibling === cancel) actions.insertBefore(cancel, save);
+  });
 }

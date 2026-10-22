@@ -19,8 +19,8 @@
       { plan_id: 6, user_id: 'u1', status: 'approved' },
     ],
     projects: [
-      { id: 1, name: 'Sandlådan', personal_owner: 'u1', invite_code: 'SND2PQ7K', created_at: '2026-10-19T10:00:00Z' },
-      { id: 2, name: 'Engelska skolan', personal_owner: null, invite_code: 'K7P4M2QX', created_at: '2026-10-19T11:00:00Z' },
+      { id: 1, name: 'Sandlådan', personal_owner: 'u1', invite_code: 'SND2PQ7K', created_at: '2026-10-19T10:00:00Z', classes: [] },
+      { id: 2, name: 'Engelska skolan', personal_owner: null, invite_code: 'K7P4M2QX', created_at: '2026-10-19T11:00:00Z', classes: ['8A', '9C'] },
       // Ett projekt man inte är med i än (för Gå med med kod); filtreras bort tills man gått med
       { id: 3, name: 'Norra skolan', personal_owner: null, invite_code: 'NRSK2026', created_at: '2026-10-19T12:00:00Z', _hidden: true },
     ],
@@ -187,6 +187,15 @@
         if (e) editors.splice(editors.indexOf(e), 1);
         persist();
         return { data: null, error: null };
+      }
+      // Projektets klasser (supabase/project-classes.sql)
+      if (name === 'add_project_class' || name === 'remove_project_class') {
+        const p = tables.projects.find(x => x.id === params.pid);
+        const clean = String(params.class_name || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+        p.classes = (p.classes || []).filter(c => c.toLowerCase() !== clean.toLowerCase());
+        if (name === 'add_project_class' && clean) p.classes.push(clean);
+        persist();
+        return { data: p.classes.slice(), error: null };
       }
       if (name === 'set_project_avatar') {
         tables.projects.find(x => x.id === Number(params.pid)).avatar = params.avatar_id || null;

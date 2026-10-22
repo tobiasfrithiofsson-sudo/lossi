@@ -1676,16 +1676,23 @@
     }
   });
 
-  // ── Klass och Ämne: välj bland lärarens egna eller skriv in nytt ──
-  // Klicka på värdet under Detaljer: en lista visas och filtreras när man
-  // skriver; ett nytt namn läggs till ("Lägg till '7B'") och sparas i lärarens
-  // profil så att det finns i alla upplägg (createChoiceList m.fl. i theme.js).
+  // ── Klass: projektets klasser ──
+  // Klasser tillhör projektet (supabase/project-classes.sql): alla medlemmar
+  // ser samma lista, och en ny klass ("Lägg till '7B'") sparas på projektet.
+  // Klasser som används på projektets upplägg syns också. Innan SQL:en körts
+  // (projektet saknar listan) används lärarens egna sparade klasser som förut.
   // Ett upplägg behöver ingen klass — "Ej tilldelad" är giltigt och låter
   // läraren bygga upplägg i förväg, innan klassen finns.
   let classesFromPlans = [];
+  let planProject = null; // uppläggets projekt (med dess klasser)
+
+  function projectClassesReady() {
+    return Array.isArray(planProject?.classes);
+  }
 
   function classItems() {
-    return mergeChoices(savedChoices('classes'), classesFromPlans).map(name => ({ name, removable: true }));
+    const own = projectClassesReady() ? planProject.classes : savedChoices('classes');
+    return mergeChoices(own, classesFromPlans).map(name => ({ name, removable: true }));
   }
 
   const classChoices = createChoiceList({
@@ -1693,14 +1700,24 @@
     list: document.getElementById('classOptions'),
     getItems: classItems,
     getCurrent: () => document.getElementById('classPickerTrigger').dataset.klass,
-    emptyText: 'Du har inga klasser än. Skriv namnet på en klass, t.ex. <strong>7B</strong>, och tryck Enter.',
+    emptyText: 'Projektet har inga klasser än. Skriv namnet på en klass, t.ex. <strong>7B</strong>, och tryck Enter.',
     onPick: (name, isNew) => {
       selectClass(name);
-      if (isNew) rememberChoice('classes', name);
+      if (!isNew) return;
+      if (projectClassesReady()) {
+        LossiData.addProjectClass(planProject.id, name).catch(e => console.warn('Kunde inte spara klassen i projektet:', e));
+      } else {
+        rememberChoice('classes', name);
+      }
     },
     onForget: async name => {
       classesFromPlans = classesFromPlans.filter(c => !sameChoice(c, name));
-      await forgetChoice('classes', name);
+      if (projectClassesReady()) {
+        planProject.classes = planProject.classes.filter(c => !sameChoice(c, name));
+        await LossiData.removeProjectClass(planProject.id, name).catch(e => console.warn('Kunde inte ta bort klassen ur projektet:', e));
+      } else {
+        await forgetChoice('classes', name);
+      }
     },
   });
 
@@ -1715,8 +1732,14 @@
     onPick: name => setDetailField('detailGrade', normalizeGrade(name)),
   });
 
+  // Projektets klasser och de klasser som används på projektets upplägg (alla medlemmars)
   async function loadClassesFromPlans() {
-    classesFromPlans = await planFieldValues('klass');
+    const [projects, plans] = await Promise.all([
+      LossiData.listProjects().catch(() => []),
+      LossiData.listPlans(planProjectId ? { projectId: planProjectId } : {}).catch(() => []),
+    ]);
+    planProject = projects.find(p => p.id === planProjectId) || null;
+    classesFromPlans = plans.map(p => p.state?.klass).filter(Boolean);
   }
 
   // Öppnar Klass-/Ämnesmenyn med ett tomt sökfält i fokus

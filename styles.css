@@ -3884,6 +3884,49 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 .notif-btn svg,
 .modal-close svg { width: var(--btn-icon); height: var(--btn-icon); }
 
+/* Filtren på översikten (Alla/Bara mina, Ämne, Årskurs) ser ut som .btn-ghost:
+   32px, 1px ram, 4px hörn, 6px 8px luft, 16px ikoner. Ämne/Årskurs är en riktig
+   <select> i en ram, med egen pil i stället för webbläsarens. */
+.filter-select {
+  position: relative;
+  height: var(--btn-height);
+  box-sizing: border-box;
+  padding: 0 8px;
+  gap: 6px;
+  border-radius: var(--radius-xs);
+  color: var(--color-text-secondary);
+}
+.filter-select:hover { color: var(--color-text-primary); }
+.filter-select svg { width: var(--btn-icon); height: var(--btn-icon); color: currentColor; }
+.filter-select select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 100%;
+  padding: 0 22px 0 0;
+  margin-right: -22px; /* pilen ligger ovanpå selectens högra kant, så hela ytan är klickbar */
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  line-height: 18px;
+  color: inherit;
+}
+.filter-select .filter-select-chevron { pointer-events: none; }
+
+.filter-toggle {
+  height: var(--btn-height);
+  box-sizing: border-box;
+  padding: 2px;
+  gap: 2px;
+  border-radius: var(--radius-xs);
+}
+.filter-toggle button {
+  height: 100%;
+  padding: 0 8px;
+  border-radius: 2px;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  line-height: 18px;
+}
+
 .btn-primary:disabled,
 .btn-ghost:disabled,
 .btn-danger:disabled,
@@ -3960,7 +4003,7 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
   .filter-bar { flex-wrap: wrap; }
   .filter-toggle { flex: 1 1 100%; }
   .filter-toggle button { flex: 1; }
-  .filter-select { flex: 1 1 0; min-width: 0; padding: 8px 12px; }
+  .filter-select { flex: 1 1 0; min-width: 0; }
   .filter-select select { min-width: 0; width: 100%; }
 
   /* Uppläggssidan: innehåll först, Detaljer under */

@@ -18,7 +18,7 @@ function buildFeedbackModalHTML() {
   <div class="modal modal-sm">
     <div class="modal-header">
       <h3>Ge feedback</h3>
-      <button class="modal-close" onclick="closeFeedbackModal()" aria-label="Stäng">
+      <button class="btn btn-text btn-icon modal-close" onclick="closeFeedbackModal()" aria-label="Stäng">
         <i data-lucide="x"></i>
       </button>
     </div>
@@ -42,8 +42,8 @@ function buildFeedbackModalHTML() {
       <p>Din feedback är skickad. Den läses och hjälper till att forma Lossi.</p>
     </div>
     <div class="modal-footer" id="feedbackFooter">
-      <button class="btn-ghost" onclick="closeFeedbackModal()">Avbryt</button>
-      <button class="btn-primary" id="feedbackSendBtn" onclick="sendFeedbackForm()">
+      <button class="btn btn-outline" onclick="closeFeedbackModal()">Avbryt</button>
+      <button class="btn btn-solid" id="feedbackSendBtn" onclick="sendFeedbackForm()">
         <i data-lucide="send"></i>
         Skicka
       </button>

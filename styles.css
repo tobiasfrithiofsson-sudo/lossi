@@ -195,21 +195,8 @@ body.plan-loading .plan-loading-view {
 
 /* ── Notiser: klockan i topbaren (theme.js) ── */
 .notif-wrap { position: relative; }
-.notif-btn {
-  position: relative;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: none;
-  background: none;
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.notif-btn:hover, .notif-btn[aria-expanded="true"] { background: var(--color-bg-hover); color: var(--color-text-primary); }
-.notif-btn svg { width: 18px; height: 18px; }
+.notif-btn { position: relative; }
+.notif-btn[aria-expanded="true"] { background: var(--color-bg-hover); color: var(--color-text-primary); }
 .notif-badge {
   position: absolute;
   top: 2px;
@@ -654,7 +641,7 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 .invite-code { white-space: nowrap; }
 .invite-email-row { display: flex; gap: 8px; }
 .invite-email-row .field-input { flex: 1; min-width: 0; }
-.invite-email-row .btn-primary { flex-shrink: 0; }
+.invite-email-row .btn { flex-shrink: 0; }
 .invite-email-message { font-size: var(--font-size-sm); margin: 0; line-height: 1.45; color: var(--color-text-secondary); }
 .invite-email-message.is-ok { color: #15803D; }
 .invite-email-message.is-error { color: #C2413B; }
@@ -698,21 +685,7 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 .topnav-link:hover { background: var(--color-bg-hover); }
 .topnav-link.active { color: var(--color-primary); }
 
-.topnav-create {
-  margin-left: 4px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-primary);
-  color: #fff;
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.topnav-create:hover { background: var(--color-primary-dark); }
+.topnav-create { margin-left: 4px; }
 
 
 /* ============================================================
@@ -924,25 +897,8 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 .schedule-footer [hidden] { display: none; }
 
 /* ── Feedback (feedback.js) ── */
-.feedback-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-right: 4px;
-  padding: 6px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  background: var(--color-bg-primary);
-  font: inherit;
-  font-size: var(--font-size-base);
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.feedback-btn:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
-.feedback-btn svg { width: 15px; height: 15px; color: #E24B4A; }
+.feedback-btn { margin-right: 4px; }
+.feedback-btn svg { color: #E24B4A; }
 
 #feedbackModal [hidden] { display: none; }
 
@@ -1198,103 +1154,6 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 .user-menu-item svg { width: 14px; height: 14px; flex-shrink: 0; }
 .user-menu-sep { height: 1px; background: var(--color-border); margin: 4px 0; }
 
-
-/* ============================================================
-   BUTTONS
-   ============================================================ */
-
-.btn-primary {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--color-primary);
-  color: var(--color-bg-primary);
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 8px 18px;
-  font-size: var(--font-size-md);
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.btn-primary svg { width: 14px; height: 14px; }
-
-.btn-primary:hover { background: var(--color-primary-dark); }
-
-.btn-ghost {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 8px 16px;
-  font-size: var(--font-size-md);
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.btn-ghost svg { width: 14px; height: 14px; }
-
-.btn-ghost:hover { border-color: var(--color-text-secondary); color: var(--color-text-primary); }
-
-.btn-danger {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  color: #dc2626;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 8px 16px;
-  font-size: var(--font-size-md);
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.btn-danger:hover { border-color: #dc2626; background: #fee2e2; }
-.btn-danger svg { width: 14px; height: 14px; }
-
-.btn-danger-solid {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #dc2626;
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 8px 18px;
-  font-size: var(--font-size-md);
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.btn-danger-solid:hover { background: #b91c1c; }
-.btn-danger-solid svg { width: 14px; height: 14px; }
-
-.browse-btn {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 5px 12px;
-  font-size: var(--font-size-base);
-  font-family: inherit;
-  cursor: pointer;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  transition: border-color 0.15s;
-}
-
-.browse-btn:hover { border-color: var(--color-text-secondary); }
 
 /* Add row — dashed "add new item" button */
 .add-row {
@@ -1663,40 +1522,8 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 
 .popover-wrap { position: relative; }
 
-.icon-btn {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-primary);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.icon-btn:hover { border-color: var(--color-text-secondary); color: var(--color-text-primary); }
-.icon-btn svg { width: 16px; height: 16px; }
-
-/* Status pill button + its color variants */
-.status-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 8px 14px;
-  font-size: var(--font-size-md);
-  font-weight: 600;
-  font-family: inherit;
-  color: #fff;
-  cursor: pointer;
-  transition: filter 0.15s;
-}
-
+.status-btn { border: none; color: #fff; font-family: inherit; cursor: pointer; transition: filter 0.15s; }
 .status-btn:hover { filter: brightness(0.94); }
-.status-btn svg { width: 13px; height: 13px; }
 
 .status-started  { background: #3b82f6; }
 .status-finished { background: #16a34a; }
@@ -1713,7 +1540,7 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 
 .share-popover-row { display: flex; gap: 8px; }
 .share-popover-row .field-input { flex: 1; }
-.share-popover-row .btn-primary { white-space: nowrap; }
+.share-popover-row .btn { white-space: nowrap; }
 
 .plan-meta {
   display: flex;
@@ -1811,21 +1638,7 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 /* "Add" icon button in a section head, opening a choice popover */
 .section-head-actions { margin-left: auto; position: relative; }
 
-.section-add-btn {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border: none;
-  border-radius: var(--radius-xs);
-  background: none;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
 
-.section-add-btn:hover { background: var(--color-aside-hover); color: var(--color-primary); }
-.section-add-btn svg { width: 20px; height: 20px; }
 
 /* Generic popover menu (add-buttons, etc.) */
 .menu-popover {
@@ -3346,59 +3159,8 @@ a.upcoming-card { text-decoration: none; color: inherit; }
   margin-bottom: var(--space-3);
 }
 
-/* Visuellt samma komponent som .btn-ghost (se rad ~551), fast en div som
-   omsluter en riktig <select> istället för en <button> — en <select> kan
-   inte ligga inuti en <button>. */
-.filter-select {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 8px 16px;
-  transition: border-color 0.15s, color 0.15s;
-}
 
-.filter-select:hover { border-color: var(--color-text-secondary); }
-.filter-select:focus-within { border-color: var(--color-primary); }
 
-/* Alla / Bara mina på översikten (segmenterad knapp, samma höjd som filtren) */
-.filter-toggle {
-  display: flex;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 3px;
-  gap: 2px;
-}
-.filter-toggle[hidden] { display: none; }
-.filter-toggle button {
-  background: none;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 4px 12px;
-  font-family: inherit;
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.filter-toggle button:hover { color: var(--color-text-primary); }
-.filter-toggle button[aria-pressed="true"] { background: var(--color-aside-active); color: var(--color-text-primary); font-weight: 500; }
-.filter-select svg { width: 14px; height: 14px; color: var(--color-text-tertiary); flex-shrink: 0; }
-
-.filter-select select {
-  background: none;
-  border: none;
-  outline: none;
-  font-size: var(--font-size-md);
-  font-weight: 500;
-  font-family: inherit;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.filter-select:hover select { color: var(--color-text-primary); }
 
 
 /* ============================================================
@@ -3486,7 +3248,6 @@ body.read-mode .class-picker-trigger > svg { display: none; }
 .read-banner-avatar .user-face-initials { font-size: 11px; }
 .read-banner-text { flex: 1; min-width: 0; }
 .read-banner-btn { flex-shrink: 0; background: var(--color-bg-primary); }
-.read-banner-btn svg { width: 14px; height: 14px; }
 .read-banner + .plan-header { padding-top: 20px; }
 .read-banner-actions { display: flex; gap: var(--space-2); flex-shrink: 0; }
 .read-banner-actions [hidden] { display: none; }
@@ -3616,7 +3377,7 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 .ai-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* Laddning i en knapp (setAiLoading i ai-import.js) */
-.btn-primary.is-loading { cursor: progress; opacity: 0.9; }
+.btn.is-loading { cursor: progress; opacity: 0.9; }
 .btn-spinner {
   width: 14px;
   height: 14px;
@@ -3743,22 +3504,6 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 
 .modal-header h3 { font-size: var(--font-size-lg); font-weight: 700; }
 
-.modal-close {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border: none;
-  background: none;
-  border-radius: var(--radius-sm);
-  color: var(--color-text-tertiary);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.modal-close:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
-.modal-close svg { width: 16px; height: 16px; }
-
 .modal-body {
   padding: 24px;
   display: flex;
@@ -3826,29 +3571,43 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 
 
 /* ============================================================
-   KNAPPAR – en knapp är en knapp: samma höjd för alla sorter
+   KNAPPAR
    ============================================================
-   Textknappar: 500 i vikt, 6px 8px luft, 6px mellan ikon och text, hörn xs (4px).
-   Ikonknappar är lika höga som textknapparna (och kvadratiska).
-   Den här delen ligger sist (före mobil) så att den gäller över
-   knapparnas äldre, enskilda storlekar längre upp. */
-:root { --btn-height: 32px; --btn-icon: 16px; }
+   En knapp = .btn + en variant + (valfritt) en storlek och en ton:
+     variant  .btn-solid    fylld (Lossi-blå)        – huvudhandlingen
+              .btn-outline  ram, ingen fyllning      – vanliga knappar
+              .btn-subtle   grå fyllning, ingen ram  – filter, lugna val
+              .btn-text     bara text/ikon, grå vid hovring – stäng, ikoner
+     storlek  .btn-lg 40px · (standard, sm) 32px · .btn-xs 24px
+     ton      .btn-danger   röd version av vilken variant som helst
+     form     .btn-icon     bara en ikon: kvadratisk
+   Alla varianter har en 1px ram (genomskinlig när den inte syns), så att
+   de är exakt lika höga sida vid sida. */
+:root {
+  --btn-height: 32px;
+  --btn-icon: 16px;
+  --btn-danger: #dc2626;
+  --btn-danger-dark: #b91c1c;
+  --btn-danger-tint: #fee2e2;
+}
+[data-theme="dark"] { --btn-danger: #f87171; --btn-danger-dark: #dc2626; --btn-danger-tint: rgba(248, 113, 113, 0.14); }
 
-.btn-primary,
-.btn-ghost,
-.btn-danger,
-.btn-danger-solid,
-.status-btn,
-.topnav-create,
-.feedback-btn,
-.browse-btn {
+.btn {
+  --btn-h: var(--btn-height);
+  --btn-pad: 8px;
+  --btn-gap: 6px;
+  --btn-svg: var(--btn-icon);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: var(--btn-height);
+  gap: var(--btn-gap);
+  height: var(--btn-h);
   box-sizing: border-box;
-  padding: 6px 8px;
+  padding: 0 var(--btn-pad);
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--color-text-secondary);
   font-family: inherit;
   font-size: var(--font-size-md);
   font-weight: 500;
@@ -3856,81 +3615,101 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
   white-space: nowrap;
   text-decoration: none;
   flex-shrink: 0;
-  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
+.btn svg { width: var(--btn-svg); height: var(--btn-svg); flex-shrink: 0; }
+.btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.btn:disabled { opacity: 0.6; cursor: default; }
+.btn.is-loading { cursor: progress; opacity: 0.9; }
 
-.btn-primary svg,
-.btn-ghost svg,
-.btn-danger svg,
-.btn-danger-solid svg,
-.status-btn svg,
-.feedback-btn svg,
-.browse-btn svg { width: var(--btn-icon); height: var(--btn-icon); flex-shrink: 0; }
+/* Storlekar */
+.btn-lg { --btn-h: 40px; --btn-pad: 12px; --btn-gap: 8px; --btn-svg: 18px; }
+.btn-xs { --btn-h: 24px; --btn-pad: 6px; --btn-gap: 4px; --btn-svg: 14px; font-size: var(--font-size-sm); line-height: 16px; }
+.btn-icon { width: var(--btn-h); padding: 0; }
 
-.icon-btn,
-.notif-btn,
-.modal-close {
-  display: inline-grid;
-  place-items: center;
-  width: var(--btn-height);
-  height: var(--btn-height);
-  box-sizing: border-box;
-  padding: 0;
-  flex-shrink: 0;
-  border-radius: var(--radius-xs);
-}
+/* Varianter */
+.btn-solid { background: var(--color-primary); color: #fff; }
+.btn-solid:hover:not(:disabled) { background: var(--color-primary-dark); }
 
-.icon-btn svg,
-.notif-btn svg,
-.modal-close svg { width: var(--btn-icon); height: var(--btn-icon); }
+.btn-outline { border-color: var(--color-border); background: var(--color-bg-primary); }
+.btn-outline:hover:not(:disabled) { border-color: var(--color-text-secondary); color: var(--color-text-primary); }
 
-/* Filtren på översikten (Alla/Bara mina, Ämne, Årskurs) ser ut som .btn-ghost:
-   32px, 1px ram, 4px hörn, 6px 8px luft, 16px ikoner. Ämne/Årskurs är en riktig
-   <select> i en ram, med egen pil i stället för webbläsarens. */
-.filter-select {
-  position: relative;
+.btn-subtle { background: var(--color-bg-hover); }
+.btn-subtle:hover:not(:disabled) { background: var(--color-aside-active); color: var(--color-text-primary); }
+
+.btn-text:hover:not(:disabled) { background: var(--color-bg-hover); color: var(--color-text-primary); }
+
+/* Röd ton (Ta bort m.m.) */
+.btn-danger { color: var(--btn-danger); }
+.btn-danger.btn-solid { background: var(--btn-danger); color: #fff; }
+.btn-danger.btn-solid:hover:not(:disabled) { background: var(--btn-danger-dark); }
+.btn-danger.btn-outline:hover:not(:disabled) { border-color: var(--btn-danger); background: var(--btn-danger-tint); color: var(--btn-danger); }
+.btn-danger.btn-subtle { background: var(--btn-danger-tint); }
+.btn-danger.btn-subtle:hover:not(:disabled),
+.btn-danger.btn-text:hover:not(:disabled) { background: var(--btn-danger-tint); color: var(--btn-danger-dark); }
+
+/* Statusknappen i uppläggshuvudet: färgen kommer från statusen, storleken härifrån */
+.status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   height: var(--btn-height);
   box-sizing: border-box;
   padding: 0 8px;
-  gap: 6px;
   border-radius: var(--radius-xs);
-  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
 }
-.filter-select:hover { color: var(--color-text-primary); }
-.filter-select svg { width: var(--btn-icon); height: var(--btn-icon); color: currentColor; }
+.status-btn svg { width: var(--btn-icon); height: var(--btn-icon); flex-shrink: 0; }
+
+/* Filtren på översikten. Ämne/Årskurs: en .btn.btn-subtle runt en riktig
+   <select> (en <select> kan inte ligga i en <button>), med egen pil. */
+.filter-select { position: relative; }
 .filter-select select {
   appearance: none;
   -webkit-appearance: none;
   height: 100%;
   padding: 0 22px 0 0;
   margin-right: -22px; /* pilen ligger ovanpå selectens högra kant, så hela ytan är klickbar */
-  font-size: var(--font-size-md);
-  font-weight: 500;
-  line-height: 18px;
+  border: none;
+  outline: none;
+  background: none;
+  font: inherit;
   color: inherit;
+  cursor: pointer;
 }
 .filter-select .filter-select-chevron { pointer-events: none; }
 
+/* Alla / Bara mina: segmenterad knapp, 32px som de andra */
 .filter-toggle {
+  display: flex;
   height: var(--btn-height);
   box-sizing: border-box;
   padding: 2px;
   gap: 2px;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
 }
+.filter-toggle[hidden] { display: none; }
 .filter-toggle button {
   height: 100%;
   padding: 0 8px;
+  border: none;
   border-radius: 2px;
+  background: none;
+  font-family: inherit;
   font-size: var(--font-size-md);
   font-weight: 500;
   line-height: 18px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
-
-.btn-primary:disabled,
-.btn-ghost:disabled,
-.btn-danger:disabled,
-.btn-danger-solid:disabled { opacity: 0.6; cursor: default; }
+.filter-toggle button:hover { color: var(--color-text-primary); }
+.filter-toggle button[aria-pressed="true"] { background: var(--color-aside-active); color: var(--color-text-primary); }
 
 
 /* ============================================================
@@ -4195,8 +3974,7 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 .lesson-group .activity-icon,
 .lesson-group .activity-time,
 .lesson-group .activity-more-btn,
-.lesson-group .file-chip-sm,
-.section-add-btn {
+.lesson-group .file-chip-sm {
   box-sizing: border-box;
   height: 24px;
   min-height: 24px;
@@ -4209,8 +3987,7 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 .lesson-more-btn,
 .lesson-add-activity,
 .lesson-group .activity-icon,
-.lesson-group .activity-more-btn,
-.section-add-btn { width: 24px; }
+.lesson-group .activity-more-btn { width: 24px; }
 
 .lesson-group .week-pill,
 .lesson-group .lesson-time-pill,
@@ -4234,7 +4011,6 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 .lesson-group .activity-more-btn svg { width: 16px; height: 16px; }
 
 .lesson-group .activity-icon svg { width: 14px; height: 14px; }
-.section-add-btn svg { width: 18px; height: 18px; }
 
 @media (max-width: 760px) {
   .lesson-group { padding: 10px; }

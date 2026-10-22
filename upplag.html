@@ -58,14 +58,14 @@
     <div class="read-banner-avatar" id="readBannerAvatar"></div>
     <div class="read-banner-text" id="readBannerText"></div>
     <div class="read-banner-actions">
-      <button type="button" class="btn-ghost read-banner-btn" id="requestEditBtn" onclick="requestEdit()" hidden>
+      <button type="button" class="btn btn-outline read-banner-btn" id="requestEditBtn" onclick="requestEdit()" hidden>
         <i data-lucide="pencil"></i>
         Be om redigeringsrätt
       </button>
-      <button type="button" class="btn-ghost read-banner-btn" id="cancelRequestBtn" onclick="cancelEditRequest()" hidden>
+      <button type="button" class="btn btn-outline read-banner-btn" id="cancelRequestBtn" onclick="cancelEditRequest()" hidden>
         Ångra förfrågan
       </button>
-      <button type="button" class="btn-ghost read-banner-btn" onclick="duplicatePlan()">
+      <button type="button" class="btn btn-outline read-banner-btn" onclick="duplicatePlan()">
         <i data-lucide="copy"></i>
         Duplicera till mina upplägg
       </button>
@@ -101,7 +101,7 @@
         </div>
       </div>
       <div class="popover-wrap" onclick="event.stopPropagation()">
-        <button class="icon-btn" onclick="toggleAppPopover(this)" title="Dela">
+        <button class="btn btn-outline btn-icon" onclick="toggleAppPopover(this)" title="Dela">
           <i data-lucide="share-2"></i>
         </button>
         <div class="menu-popover" id="shareMenu">
@@ -109,14 +109,14 @@
             <label class="field-label">Skicka till e-postadress</label>
             <div class="share-popover-row">
               <input class="field-input" type="email" id="shareEmailInput" placeholder="namn@skola.se" />
-              <button class="btn-primary" onclick="sendShareEmail()">Skicka</button>
+              <button class="btn btn-solid" onclick="sendShareEmail()">Skicka</button>
             </div>
           </div>
         </div>
       </div>
 
       <div class="popover-wrap" onclick="event.stopPropagation()">
-        <button class="btn-ghost" onclick="toggleAppPopover(this)">
+        <button class="btn btn-outline" onclick="toggleAppPopover(this)">
           <i data-lucide="download"></i>
           Exportera
           <i data-lucide="chevron-down"></i>
@@ -138,7 +138,7 @@
       </div>
 
       <div class="popover-wrap" onclick="event.stopPropagation()">
-        <button class="icon-btn" onclick="toggleAppPopover(this)" title="Mer" aria-label="Mer">
+        <button class="btn btn-outline btn-icon" onclick="toggleAppPopover(this)" title="Mer" aria-label="Mer">
           <i data-lucide="ellipsis"></i>
         </button>
         <div class="menu-popover" id="planMoreMenu">
@@ -184,8 +184,8 @@
           <div class="idea-text inline-editable-body" contenteditable="true" data-placeholder="Beskriv upplägget">Upplägget syftar till att ge eleverna en stabil grund i vad demokrati är, hur demokratiska processer fungerar i praktiken och vilka utmaningar demokratin står inför idag. Undervisningen rör sig från begrepp och historisk kontext till tillämpning och reflektion.</div>
         </div>
         <div class="inline-editable-actions">
-          <button class="btn-primary" onclick="saveIdeaText()">Spara</button>
-          <button class="btn-ghost" onclick="cancelIdeaText()">Avbryt</button>
+          <button class="btn btn-solid" onclick="saveIdeaText()">Spara</button>
+          <button class="btn btn-outline" onclick="cancelIdeaText()">Avbryt</button>
         </div>
       </div>
     </div>
@@ -195,7 +195,7 @@
       <div class="section-head">
         <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-goals" onclick="toggleSection('sec-goals')">Centralt innehåll<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
-          <button class="section-add-btn" onclick="addGoal('goalsList')" title="Lägg till centralt innehåll">
+          <button class="btn btn-text btn-icon section-add-btn" onclick="addGoal('goalsList')" title="Lägg till centralt innehåll">
             <i data-lucide="badge-plus"></i>
           </button>
         </div>
@@ -244,7 +244,7 @@
       <div class="section-head">
         <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-criteria" onclick="toggleSection('sec-criteria')">Betygskriterier<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
-          <button class="section-add-btn" onclick="addGoal('criteriaList')" title="Lägg till betygskriterium">
+          <button class="btn btn-text btn-icon section-add-btn" onclick="addGoal('criteriaList')" title="Lägg till betygskriterium">
             <i data-lucide="badge-plus"></i>
           </button>
         </div>
@@ -259,7 +259,7 @@
       <div class="section-head">
         <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-structure" onclick="toggleSection('sec-structure')">Struktur och tidslinje<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
-          <button class="section-add-btn" onclick="toggleAppPopover(this)" title="Lägg till">
+          <button class="btn btn-text btn-icon section-add-btn" onclick="toggleAppPopover(this)" title="Lägg till">
             <i data-lucide="badge-plus"></i>
           </button>
           <div class="menu-popover" id="structureAddMenu">
@@ -371,17 +371,17 @@
                   <div class="file-drop-text">
                     <i data-lucide="paperclip"></i>
                     Släpp filer att bifoga eller
-                    <button class="browse-btn">Bläddra</button>
+                    <button class="btn btn-outline btn-xs browse-btn">Bläddra</button>
                   </div>
                 </div>
               </div>
               <div class="form-actions">
-                <button class="btn-danger" onclick="confirmDeleteActivity('act1')" style="margin-right:auto;">
+                <button class="btn btn-outline btn-danger" onclick="confirmDeleteActivity('act1')" style="margin-right:auto;">
                   <i data-lucide="trash-2"></i>
                   Ta bort
                 </button>
-                <button class="btn-primary" onclick="saveActivity('act1')">Spara</button>
-                <button class="btn-ghost" onclick="closeActivity('act1')">Avbryt</button>
+                <button class="btn btn-solid" onclick="saveActivity('act1')">Spara</button>
+                <button class="btn btn-outline" onclick="closeActivity('act1')">Avbryt</button>
               </div>
             </div>
             <!-- Read view -->
@@ -479,7 +479,7 @@
                   <div class="file-drop-text">
                     <i data-lucide="paperclip"></i>
                     Släpp filer att bifoga eller
-                    <button class="browse-btn">Bläddra</button>
+                    <button class="btn btn-outline btn-xs browse-btn">Bläddra</button>
                   </div>
                 </div>
               </div>
@@ -520,12 +520,12 @@
                 </div>
               </div>
               <div class="form-actions">
-                <button class="btn-danger" onclick="confirmDeleteActivity('act2')" style="margin-right:auto;">
+                <button class="btn btn-outline btn-danger" onclick="confirmDeleteActivity('act2')" style="margin-right:auto;">
                   <i data-lucide="trash-2"></i>
                   Ta bort
                 </button>
-                <button class="btn-primary" onclick="saveActivity('act2')">Spara</button>
-                <button class="btn-ghost" onclick="closeActivity('act2')">Avbryt</button>
+                <button class="btn btn-solid" onclick="saveActivity('act2')">Spara</button>
+                <button class="btn btn-outline" onclick="closeActivity('act2')">Avbryt</button>
               </div>
             </div>
             <div class="activity-read">
@@ -603,12 +603,12 @@
                 </div>
               </div>
               <div class="form-actions">
-                <button class="btn-danger" onclick="confirmDeleteActivity('act3')" style="margin-right:auto;">
+                <button class="btn btn-outline btn-danger" onclick="confirmDeleteActivity('act3')" style="margin-right:auto;">
                   <i data-lucide="trash-2"></i>
                   Ta bort
                 </button>
-                <button class="btn-primary" onclick="saveActivity('act3')">Spara</button>
-                <button class="btn-ghost" onclick="closeActivity('act3')">Avbryt</button>
+                <button class="btn btn-solid" onclick="saveActivity('act3')">Spara</button>
+                <button class="btn btn-outline" onclick="closeActivity('act3')">Avbryt</button>
               </div>
             </div>
             <div class="activity-read">
@@ -683,12 +683,12 @@
                 <label class="field-label">Filer</label>
               </div>
               <div class="form-actions">
-                <button class="btn-danger" onclick="confirmDeleteActivity('act4')" style="margin-right:auto;">
+                <button class="btn btn-outline btn-danger" onclick="confirmDeleteActivity('act4')" style="margin-right:auto;">
                   <i data-lucide="trash-2"></i>
                   Ta bort
                 </button>
-                <button class="btn-primary" onclick="saveActivity('act4')">Spara</button>
-                <button class="btn-ghost" onclick="closeActivity('act4')">Avbryt</button>
+                <button class="btn btn-solid" onclick="saveActivity('act4')">Spara</button>
+                <button class="btn btn-outline" onclick="closeActivity('act4')">Avbryt</button>
               </div>
             </div>
             <div class="activity-read">
@@ -760,12 +760,12 @@
                 </div>
               </div>
               <div class="form-actions">
-                <button class="btn-danger" onclick="confirmDeleteActivity('act5')" style="margin-right:auto;">
+                <button class="btn btn-outline btn-danger" onclick="confirmDeleteActivity('act5')" style="margin-right:auto;">
                   <i data-lucide="trash-2"></i>
                   Ta bort
                 </button>
-                <button class="btn-primary" onclick="saveActivity('act5')">Spara</button>
-                <button class="btn-ghost" onclick="closeActivity('act5')">Avbryt</button>
+                <button class="btn btn-solid" onclick="saveActivity('act5')">Spara</button>
+                <button class="btn btn-outline" onclick="closeActivity('act5')">Avbryt</button>
               </div>
             </div>
             <div class="activity-read">
@@ -799,7 +799,7 @@
           <div class="file-drop-text">
             <i data-lucide="paperclip"></i>
             Släpp filer här eller
-            <button class="browse-btn">Bläddra</button>
+            <button class="btn btn-outline btn-xs browse-btn">Bläddra</button>
           </div>
         </div>
         <p class="file-message" id="planFileMessage" role="alert" hidden></p>
@@ -943,10 +943,10 @@
       <span class="activity-panel-title inline-editable-plain" id="activityPanelTitle" contenteditable="true">Aktivitet</span>
     </div>
     <div class="activity-panel-header-actions">
-      <button class="icon-btn" id="activityPanelExpandBtn" onclick="toggleActivityPanelFullscreen()" title="Expandera till helskärm">
+      <button class="btn btn-outline btn-icon" id="activityPanelExpandBtn" onclick="toggleActivityPanelFullscreen()" title="Expandera till helskärm">
         <i data-lucide="maximize-2"></i>
       </button>
-      <button class="icon-btn" onclick="closeActivityPanel()" title="Stäng">
+      <button class="btn btn-outline btn-icon" onclick="closeActivityPanel()" title="Stäng">
         <i data-lucide="x"></i>
       </button>
     </div>
@@ -959,7 +959,7 @@
   <div class="modal modal-sm">
     <div class="modal-header">
       <h3>Ta bort aktivitet?</h3>
-      <button class="modal-close" onclick="closeDeleteActivityModal()">
+      <button class="btn btn-text btn-icon modal-close" onclick="closeDeleteActivityModal()">
         <i data-lucide="x"></i>
       </button>
     </div>
@@ -967,8 +967,8 @@
       <p>Är du säker på att du vill ta bort <strong id="deleteActivityName">den här aktiviteten</strong>? Det går inte att ångra.</p>
     </div>
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeDeleteActivityModal()">Avbryt</button>
-      <button class="btn-danger-solid" onclick="deleteActivityConfirmed()">
+      <button class="btn btn-outline" onclick="closeDeleteActivityModal()">Avbryt</button>
+      <button class="btn btn-solid btn-danger" onclick="deleteActivityConfirmed()">
         <i data-lucide="trash-2"></i>
         Ta bort
       </button>
@@ -981,7 +981,7 @@
   <div class="modal modal-sm">
     <div class="modal-header">
       <h3>Ta bort lektionen?</h3>
-      <button class="modal-close" onclick="closeDeleteLessonModal()">
+      <button class="btn btn-text btn-icon modal-close" onclick="closeDeleteLessonModal()">
         <i data-lucide="x"></i>
       </button>
     </div>
@@ -989,8 +989,8 @@
       <p>Är du säker på att du vill ta bort <strong id="deleteLessonName">lektionen</strong>? <span id="deleteLessonExtra"></span>Det går inte att ångra.</p>
     </div>
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeDeleteLessonModal()">Avbryt</button>
-      <button class="btn-danger-solid" onclick="deleteLessonConfirmed()">
+      <button class="btn btn-outline" onclick="closeDeleteLessonModal()">Avbryt</button>
+      <button class="btn btn-solid btn-danger" onclick="deleteLessonConfirmed()">
         <i data-lucide="trash-2"></i>
         Ta bort lektion
       </button>
@@ -1003,7 +1003,7 @@
   <div class="modal modal-sm">
     <div class="modal-header">
       <h3>Ta bort upplägget?</h3>
-      <button class="modal-close" onclick="closeDeletePlanModal()">
+      <button class="btn btn-text btn-icon modal-close" onclick="closeDeletePlanModal()">
         <i data-lucide="x"></i>
       </button>
     </div>
@@ -1012,8 +1012,8 @@
       <p class="password-message is-error" id="deletePlanError" role="alert" hidden></p>
     </div>
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeDeletePlanModal()">Avbryt</button>
-      <button class="btn-danger-solid" id="deletePlanBtn" onclick="deletePlanConfirmed()">
+      <button class="btn btn-outline" onclick="closeDeletePlanModal()">Avbryt</button>
+      <button class="btn btn-solid btn-danger" id="deletePlanBtn" onclick="deletePlanConfirmed()">
         <i data-lucide="trash-2"></i>
         Ta bort upplägg
       </button>
@@ -1026,7 +1026,7 @@
   <div class="modal modal-md">
     <div class="modal-header">
       <h3>Föreslå lektion</h3>
-      <button class="modal-close" onclick="closeSuggestLessonModal()">
+      <button class="btn btn-text btn-icon modal-close" onclick="closeSuggestLessonModal()">
         <i data-lucide="x"></i>
       </button>
     </div>
@@ -2762,8 +2762,8 @@
         <div class="read-banner-avatar">${userAvatarHTML(p.profile)}</div>
         <div class="read-banner-text"><strong>${escapeHTML(profileName(p.profile) || 'En kollega')}</strong> vill kunna redigera det här upplägget.</div>
         <div class="read-banner-actions">
-          <button type="button" class="btn-ghost read-banner-btn" onclick="decideEdit('${p.userId}', false)">Neka</button>
-          <button type="button" class="btn-primary read-banner-btn-primary" onclick="decideEdit('${p.userId}', true)"><i data-lucide="check"></i>Godkänn</button>
+          <button type="button" class="btn btn-outline read-banner-btn" onclick="decideEdit('${p.userId}', false)">Neka</button>
+          <button type="button" class="btn btn-solid read-banner-btn-primary" onclick="decideEdit('${p.userId}', true)"><i data-lucide="check"></i>Godkänn</button>
         </div>
       </div>`).join('');
     banner.hidden = false;
@@ -2907,7 +2907,7 @@
     // Äldre aktiviteter (t.ex. i demo-upplägget) saknar släppyta under Filer
     if (content.matches('.activity-form') && !content.querySelector('.file-drop')) {
       const field = [...content.querySelectorAll('.field-group')].find(g => g.querySelector('.field-label')?.textContent.trim() === 'Filer');
-      field?.insertAdjacentHTML('beforeend', `<div class="file-drop"><div class="file-drop-text"><i data-lucide="paperclip"></i>Släpp filer att bifoga eller <button class="browse-btn">Bläddra</button></div></div>`);
+      field?.insertAdjacentHTML('beforeend', `<div class="file-drop"><div class="file-drop-text"><i data-lucide="paperclip"></i>Släpp filer att bifoga eller <button class="btn btn-outline btn-xs browse-btn">Bläddra</button></div></div>`);
     }
     let box = content.querySelector('.activity-files');
     if (!box) {

@@ -276,7 +276,7 @@
   gap: 6px;
 }
 
-.cal-popover-actions .btn-ghost { text-decoration: none; }
+.cal-popover-actions .btn { text-decoration: none; }
 .cal-popover-remove { color: #dc2626; }
 .cal-popover-remove:hover { background: #fee2e2; }
 [data-theme="dark"] .cal-popover-remove:hover { background: rgba(220, 38, 38, 0.18); }

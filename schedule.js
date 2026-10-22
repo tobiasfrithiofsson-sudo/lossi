@@ -181,7 +181,7 @@ function buildScheduleModalHTML() {
   <div class="modal modal-sm">
     <div class="modal-header">
       <h3 id="scheduleModalTitle">Lägg in i kalendern</h3>
-      <button class="modal-close" onclick="closeScheduleModal()">
+      <button class="btn btn-text btn-icon modal-close" onclick="closeScheduleModal()">
         <i data-lucide="x"></i>
       </button>
     </div>
@@ -221,12 +221,12 @@ function buildScheduleModalHTML() {
       <button type="submit" hidden></button>
     </form>
     <div class="modal-footer schedule-footer">
-      <button class="btn-ghost schedule-remove" id="scheduleRemoveBtn" onclick="removeSchedule()" hidden>
+      <button class="btn btn-outline schedule-remove" id="scheduleRemoveBtn" onclick="removeSchedule()" hidden>
         <i data-lucide="calendar-x"></i>
         Ta bort från kalendern
       </button>
-      <button class="btn-ghost" onclick="closeScheduleModal()">Avbryt</button>
-      <button class="btn-primary" id="scheduleSaveBtn" onclick="saveSchedule()">Spara</button>
+      <button class="btn btn-outline" onclick="closeScheduleModal()">Avbryt</button>
+      <button class="btn btn-solid" id="scheduleSaveBtn" onclick="saveSchedule()">Spara</button>
     </div>
   </div>
 </div>`;

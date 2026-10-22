@@ -123,17 +123,17 @@ function buildActivityMarkup(id, { type = 'Diskussion', title = 'Ny aktivitet', 
             <div class="file-drop-text">
               <i data-lucide="paperclip"></i>
               Släpp filer att bifoga eller
-              <button class="browse-btn">Bläddra</button>
+              <button class="btn btn-outline btn-xs browse-btn">Bläddra</button>
             </div>
           </div>
         </div>
         <div class="form-actions">
-          <button class="btn-danger" onclick="confirmDeleteActivity('${id}')" style="margin-right:auto;">
+          <button class="btn btn-outline btn-danger" onclick="confirmDeleteActivity('${id}')" style="margin-right:auto;">
             <i data-lucide="trash-2"></i>
             Ta bort
           </button>
-          <button class="btn-primary" onclick="saveActivity('${id}')">Spara</button>
-          <button class="btn-ghost" onclick="closeActivity('${id}')">Avbryt</button>
+          <button class="btn btn-solid" onclick="saveActivity('${id}')">Spara</button>
+          <button class="btn btn-outline" onclick="closeActivity('${id}')">Avbryt</button>
         </div>
       </div>
       <div class="activity-read">

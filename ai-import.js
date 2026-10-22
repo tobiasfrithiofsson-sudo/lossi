@@ -251,7 +251,7 @@ function buildAiPlanModalHTML() {
   <div class="modal ai-modal">
     <div class="modal-header">
       <h3><i data-lucide="sparkles" class="ai-modal-icon"></i><span id="aiModalTitle">Skapa med AI</span></h3>
-      <button class="modal-close" onclick="closeAiPlanModal()"><i data-lucide="x"></i></button>
+      <button class="btn btn-text btn-icon modal-close" onclick="closeAiPlanModal()"><i data-lucide="x"></i></button>
     </div>
 
     <div class="modal-body ai-step" id="aiStepPaste">
@@ -259,8 +259,8 @@ function buildAiPlanModalHTML() {
         <div class="ai-section-head"><span class="ai-step-num">1</span>Ge din AI Lossis instruktion</div>
         <p class="ai-help" id="aiHelp"></p>
         <div class="ai-actions">
-          <button type="button" class="btn-primary" id="aiCopyBtn" onclick="copyAiPrompt()"><i data-lucide="copy"></i><span>Kopiera instruktion</span></button>
-          <button type="button" class="btn-ghost" onclick="toggleAiPrompt()" id="aiShowPromptBtn">Visa instruktionen</button>
+          <button type="button" class="btn btn-solid" id="aiCopyBtn" onclick="copyAiPrompt()"><i data-lucide="copy"></i><span>Kopiera instruktion</span></button>
+          <button type="button" class="btn btn-outline" onclick="toggleAiPrompt()" id="aiShowPromptBtn">Visa instruktionen</button>
         </div>
         <textarea class="field-input ai-prompt" id="aiPrompt" readonly hidden></textarea>
       </section>
@@ -278,8 +278,8 @@ function buildAiPlanModalHTML() {
     </div>
 
     <div class="modal-footer">
-      <button class="btn-ghost" id="aiBackBtn" onclick="aiBack()">Avbryt</button>
-      <button class="btn-primary" id="aiNextBtn" onclick="aiNext()">Granska</button>
+      <button class="btn btn-outline" id="aiBackBtn" onclick="aiBack()">Avbryt</button>
+      <button class="btn btn-solid" id="aiNextBtn" onclick="aiNext()">Granska</button>
     </div>
   </div>
 </div>`;

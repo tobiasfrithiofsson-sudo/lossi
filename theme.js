@@ -537,14 +537,14 @@ function buildTopbarHTML(active) {
     </a>
     <!-- Sidorna (Upplägg, Kalender …) ligger i sidopanelen, se buildAsideHTML -->
     <div class="topnav">
-      <button class="topnav-create" onclick="openCreatePlanModal()">Skapa</button>
+      <button class="btn btn-solid topnav-create" onclick="openCreatePlanModal()">Skapa</button>
     </div>
   </div>
 
   <div class="app-topbar-end">
     <!-- Notiser (renderNotifications): inbjudningar, förfrågningar, medskapare, nya medlemmar -->
     <div class="notif-wrap" id="notifWrap">
-      <button type="button" class="notif-btn" id="notifBtn" onclick="toggleNotifications()" aria-label="Notiser" aria-expanded="false" title="Notiser">
+      <button type="button" class="btn btn-text btn-icon notif-btn" id="notifBtn" onclick="toggleNotifications()" aria-label="Notiser" aria-expanded="false" title="Notiser">
         <i data-lucide="bell"></i>
         <span class="notif-badge" id="notifBadge" hidden></span>
       </button>
@@ -553,7 +553,7 @@ function buildTopbarHTML(active) {
         <div class="notif-list" id="notifList"></div>
       </div>
     </div>
-    <button class="feedback-btn" onclick="openFeedbackModal()" title="Ge feedback – idéer, tankar eller buggar">
+    <button class="btn btn-outline feedback-btn" onclick="openFeedbackModal()" title="Ge feedback – idéer, tankar eller buggar">
       <i data-lucide="message-square-heart"></i>
       <span class="feedback-btn-label">Feedback</span>
     </button>
@@ -864,8 +864,8 @@ function notificationHTML(n) {
   if (n.kind === 'project_invite') {
     actions = n.pending
       ? `<div class="notif-actions">
-           <button type="button" class="btn-ghost notif-action" onclick="answerNotificationInvite('${n.inviteId}', false)">Avböj</button>
-           <button type="button" class="btn-primary notif-action" onclick="answerNotificationInvite('${n.inviteId}', true)">Gå med</button>
+           <button type="button" class="btn btn-outline notif-action" onclick="answerNotificationInvite('${n.inviteId}', false)">Avböj</button>
+           <button type="button" class="btn btn-solid notif-action" onclick="answerNotificationInvite('${n.inviteId}', true)">Gå med</button>
          </div>`
       : '<div class="notif-done">Besvarad</div>';
   } else if (n.planId && (n.kind === 'edit_request' || n.kind === 'editor_added')) {
@@ -975,14 +975,14 @@ function buildInviteModalsHTML() {
   <div class="modal modal-sm">
     <div class="modal-header">
       <h3 id="inviteModalTitle">Bjud in kollegor</h3>
-      <button class="modal-close" onclick="closeInviteModal()"><i data-lucide="x"></i></button>
+      <button class="btn btn-text btn-icon modal-close" onclick="closeInviteModal()"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body">
       <form class="invite-field" onsubmit="event.preventDefault(); sendEmailInvite('inviteEmail', 'inviteEmailMessage')">
         <label class="invite-label" for="inviteEmail">Bjud in med e-post</label>
         <div class="invite-email-row">
           <input class="field-input" type="email" id="inviteEmail" placeholder="namn@skola.se" autocomplete="off" />
-          <button type="submit" class="btn-primary">Bjud in</button>
+          <button type="submit" class="btn btn-solid">Bjud in</button>
         </div>
         <p class="invite-email-message" id="inviteEmailMessage" role="status" hidden></p>
       </form>
@@ -991,14 +991,14 @@ function buildInviteModalsHTML() {
         <span class="invite-label">Inbjudningskod</span>
         <div class="invite-copy-row">
           <span class="invite-code" id="inviteCode"></span>
-          <button class="btn-ghost invite-copy-btn" onclick="copyInvite('code', this)"><i data-lucide="copy"></i><span>Kopiera</span></button>
+          <button class="btn btn-outline invite-copy-btn" onclick="copyInvite('code', this)"><i data-lucide="copy"></i><span>Kopiera</span></button>
         </div>
       </div>
       <div class="invite-field">
         <span class="invite-label">Eller skicka länken</span>
         <div class="invite-copy-row">
           <span class="invite-link" id="inviteLink"></span>
-          <button class="btn-ghost invite-copy-btn" onclick="copyInvite('link', this)"><i data-lucide="copy"></i><span>Kopiera</span></button>
+          <button class="btn btn-outline invite-copy-btn" onclick="copyInvite('link', this)"><i data-lucide="copy"></i><span>Kopiera</span></button>
         </div>
       </div>
       <div class="invite-field" id="inviteMembersField">
@@ -1007,7 +1007,7 @@ function buildInviteModalsHTML() {
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-primary" onclick="closeInviteModal()">Klar</button>
+      <button class="btn btn-solid" onclick="closeInviteModal()">Klar</button>
     </div>
   </div>
 </div>
@@ -1016,7 +1016,7 @@ function buildInviteModalsHTML() {
   <div class="modal modal-sm">
     <div class="modal-header">
       <h3>Skapa projekt</h3>
-      <button class="modal-close" onclick="closeCreateProjectModal()"><i data-lucide="x"></i></button>
+      <button class="btn btn-text btn-icon modal-close" onclick="closeCreateProjectModal()"><i data-lucide="x"></i></button>
     </div>
     <form class="modal-body" id="createProjectForm" onsubmit="event.preventDefault(); createProjectFromModal()">
       <p class="invite-lead">Ett projekt samlar upplägg som ni delar, t.ex. för en skola eller ett arbetslag. Du får en inbjudningskod som du kan ge till kollegorna.</p>
@@ -1030,8 +1030,8 @@ function buildInviteModalsHTML() {
       <button type="submit" hidden></button>
     </form>
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeCreateProjectModal()">Avbryt</button>
-      <button class="btn-primary" id="createProjectBtn" onclick="createProjectFromModal()">Skapa projekt</button>
+      <button class="btn btn-outline" onclick="closeCreateProjectModal()">Avbryt</button>
+      <button class="btn btn-solid" id="createProjectBtn" onclick="createProjectFromModal()">Skapa projekt</button>
     </div>
   </div>
 </div>
@@ -1040,7 +1040,7 @@ function buildInviteModalsHTML() {
   <div class="modal modal-sm">
     <div class="modal-header">
       <h3 id="deleteProjectTitle">Ta bort projektet</h3>
-      <button class="modal-close" onclick="closeDeleteProjectModal()"><i data-lucide="x"></i></button>
+      <button class="btn btn-text btn-icon modal-close" onclick="closeDeleteProjectModal()"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body">
       <p class="invite-lead" id="deleteProjectText"></p>
@@ -1052,8 +1052,8 @@ function buildInviteModalsHTML() {
       <p class="password-message is-error" id="deleteProjectMessage" role="status" hidden></p>
     </div>
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeDeleteProjectModal()">Avbryt</button>
-      <button class="btn-danger-solid" id="deleteProjectBtn" onclick="deleteProjectConfirmed()"><i data-lucide="trash-2"></i>Ta bort projektet</button>
+      <button class="btn btn-outline" onclick="closeDeleteProjectModal()">Avbryt</button>
+      <button class="btn btn-solid btn-danger" id="deleteProjectBtn" onclick="deleteProjectConfirmed()"><i data-lucide="trash-2"></i>Ta bort projektet</button>
     </div>
   </div>
 </div>
@@ -1062,7 +1062,7 @@ function buildInviteModalsHTML() {
   <div class="modal modal-md">
     <div class="modal-header">
       <h3>Projektinställningar</h3>
-      <button class="modal-close" onclick="closeProjectSettings()"><i data-lucide="x"></i></button>
+      <button class="btn btn-text btn-icon modal-close" onclick="closeProjectSettings()"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body project-settings" id="projectSettingsBody"></div>
   </div>
@@ -1072,7 +1072,7 @@ function buildInviteModalsHTML() {
   <div class="modal modal-sm">
     <div class="modal-header">
       <h3>Gå med i ett projekt</h3>
-      <button class="modal-close" onclick="closeJoinModal()"><i data-lucide="x"></i></button>
+      <button class="btn btn-text btn-icon modal-close" onclick="closeJoinModal()"><i data-lucide="x"></i></button>
     </div>
     <form class="modal-body" id="joinForm" onsubmit="event.preventDefault(); joinWithCode()">
       <div class="field-group">
@@ -1085,8 +1085,8 @@ function buildInviteModalsHTML() {
       <button type="submit" hidden></button>
     </form>
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeJoinModal()">Avbryt</button>
-      <button class="btn-primary" id="joinBtn" onclick="joinWithCode()">Gå med</button>
+      <button class="btn btn-outline" onclick="closeJoinModal()">Avbryt</button>
+      <button class="btn btn-solid" id="joinBtn" onclick="joinWithCode()">Gå med</button>
     </div>
   </div>
 </div>`;
@@ -1253,7 +1253,7 @@ function renderProjectSettings() {
       </div>
       <div class="settings-actions">
         <p class="password-message" id="settingsMessage" role="status" hidden></p>
-        <button type="button" class="btn-primary" id="settingsSaveBtn" onclick="saveProjectSettings()" disabled>Spara</button>
+        <button type="button" class="btn btn-solid" id="settingsSaveBtn" onclick="saveProjectSettings()" disabled>Spara</button>
       </div>` : '<p class="settings-note">Bara projektets ägare kan ändra namn och avatar.</p>'}
     </section>
 
@@ -1282,7 +1282,7 @@ function renderProjectSettings() {
       <form class="invite-field" onsubmit="event.preventDefault(); sendEmailInvite('settingsInviteEmail', 'settingsInviteMessage', loadSettingsInvites)">
         <div class="invite-email-row">
           <input class="field-input" type="email" id="settingsInviteEmail" placeholder="namn@skola.se" autocomplete="off" aria-label="E-postadress att bjuda in" />
-          <button type="submit" class="btn-primary">Bjud in</button>
+          <button type="submit" class="btn btn-solid">Bjud in</button>
         </div>
         <p class="invite-email-message" id="settingsInviteMessage" role="status" hidden></p>
       </form>
@@ -1291,11 +1291,11 @@ function renderProjectSettings() {
       ${p.inviteCode ? `
       <div class="invite-copy-row">
         <span class="invite-code">${escapeHTML(formatInviteCode(p.inviteCode))}</span>
-        <button class="btn-ghost invite-copy-btn" onclick="copyInvite('code', this)"><i data-lucide="copy"></i><span>Kopiera kod</span></button>
+        <button class="btn btn-outline invite-copy-btn" onclick="copyInvite('code', this)"><i data-lucide="copy"></i><span>Kopiera kod</span></button>
       </div>
       <div class="invite-copy-row">
         <span class="invite-link">${escapeHTML(inviteLink(p.inviteCode))}</span>
-        <button class="btn-ghost invite-copy-btn" onclick="copyInvite('link', this)"><i data-lucide="copy"></i><span>Kopiera länk</span></button>
+        <button class="btn btn-outline invite-copy-btn" onclick="copyInvite('link', this)"><i data-lucide="copy"></i><span>Kopiera länk</span></button>
       </div>` : '<p class="settings-note">Projektet har ingen inbjudningskod än.</p>'}
     </section>
 
@@ -1303,8 +1303,8 @@ function renderProjectSettings() {
       ${owner
         ? (p.personal
           ? '<p class="settings-note">Det här är ditt första projekt. Det kan inte tas bort, eftersom nya upplägg hamnar här och upplägg från borttagna projekt flyttas hit.</p>'
-          : `<div class="settings-danger-row"><span><strong>Ta bort projektet</strong><span class="settings-note">Uppläggen flyttas tillbaka till respektive skapare.</span></span><button type="button" class="btn-danger" onclick="closeProjectSettings(); openDeleteProjectModal()"><i data-lucide="trash-2"></i>Ta bort</button></div>`)
-        : `<div class="settings-danger-row"><span><strong>Lämna projektet</strong><span class="settings-note">Dina upplägg här flyttas till ditt första projekt.</span></span><button type="button" class="btn-danger" onclick="leaveProjectFromSettings()"><i data-lucide="log-out"></i>Lämna</button></div>`}
+          : `<div class="settings-danger-row"><span><strong>Ta bort projektet</strong><span class="settings-note">Uppläggen flyttas tillbaka till respektive skapare.</span></span><button type="button" class="btn btn-outline btn-danger" onclick="closeProjectSettings(); openDeleteProjectModal()"><i data-lucide="trash-2"></i>Ta bort</button></div>`)
+        : `<div class="settings-danger-row"><span><strong>Lämna projektet</strong><span class="settings-note">Dina upplägg här flyttas till ditt första projekt.</span></span><button type="button" class="btn btn-outline btn-danger" onclick="leaveProjectFromSettings()"><i data-lucide="log-out"></i>Lämna</button></div>`}
     </section>`;
   lucide.createIcons({ nodes: [body] });
   loadSettingsInvites();
@@ -1745,7 +1745,7 @@ function buildProfileModalHTML() {
   <div class="modal modal-sm">
     <div class="modal-header">
       <h3 id="profileModalTitle">Din profil</h3>
-      <button class="modal-close" onclick="closeProfileModal()">
+      <button class="btn btn-text btn-icon modal-close" onclick="closeProfileModal()">
         <i data-lucide="x"></i>
       </button>
     </div>
@@ -1774,8 +1774,8 @@ function buildProfileModalHTML() {
       <button type="submit" hidden></button>
     </form>
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeProfileModal()">Avbryt</button>
-      <button class="btn-primary" id="profileSaveBtn" onclick="saveProfile()">Spara</button>
+      <button class="btn btn-outline" onclick="closeProfileModal()">Avbryt</button>
+      <button class="btn btn-solid" id="profileSaveBtn" onclick="saveProfile()">Spara</button>
     </div>
   </div>
 </div>`;
@@ -1881,7 +1881,7 @@ function buildCreatePlanModalHTML() {
   <div class="modal">
     <div class="modal-header">
       <h3>Skapa upplägg</h3>
-      <button class="modal-close" onclick="closeCreatePlanModal()">
+      <button class="btn btn-text btn-icon modal-close" onclick="closeCreatePlanModal()">
         <i data-lucide="x"></i>
       </button>
     </div>
@@ -1939,8 +1939,8 @@ function buildCreatePlanModalHTML() {
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeCreatePlanModal()">Avbryt</button>
-      <button class="btn-primary" onclick="createPlan()">Skapa</button>
+      <button class="btn btn-outline" onclick="closeCreatePlanModal()">Avbryt</button>
+      <button class="btn btn-solid" onclick="createPlan()">Skapa</button>
     </div>
   </div>
 </div>`;
@@ -1956,7 +1956,7 @@ function buildPasswordModalHTML() {
   <div class="modal modal-sm">
     <div class="modal-header">
       <h3>Byt lösenord</h3>
-      <button class="modal-close" onclick="closePasswordModal()">
+      <button class="btn btn-text btn-icon modal-close" onclick="closePasswordModal()">
         <i data-lucide="x"></i>
       </button>
     </div>
@@ -1978,8 +1978,8 @@ function buildPasswordModalHTML() {
       <button type="submit" hidden></button>
     </form>
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="closePasswordModal()">Avbryt</button>
-      <button class="btn-primary" id="passwordSaveBtn" onclick="savePassword()">Spara lösenord</button>
+      <button class="btn btn-outline" onclick="closePasswordModal()">Avbryt</button>
+      <button class="btn btn-solid" id="passwordSaveBtn" onclick="savePassword()">Spara lösenord</button>
     </div>
   </div>
 </div>`;

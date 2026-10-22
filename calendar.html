@@ -39,11 +39,11 @@
         <div class="cal-range" id="calRange"></div>
       </div>
       <div class="cal-nav">
-        <button class="btn-ghost" onclick="goToday()">Idag</button>
-        <button class="icon-btn" onclick="shiftPeriod(-1)" title="Föregående" aria-label="Föregående"><i data-lucide="chevron-left"></i></button>
-        <button class="icon-btn" onclick="shiftPeriod(1)" title="Nästa" aria-label="Nästa"><i data-lucide="chevron-right"></i></button>
-        <button class="btn-ghost cal-weekend-btn" id="weekendBtn" onclick="toggleWeekend()" aria-pressed="false" title="Visa lördag och söndag">Helg</button>
-        <button class="btn-primary" onclick="addLesson()"><i data-lucide="plus"></i><span class="cal-add-label">Lägg in lektion</span></button>
+        <button class="btn btn-outline" onclick="goToday()">Idag</button>
+        <button class="btn btn-outline btn-icon" onclick="shiftPeriod(-1)" title="Föregående" aria-label="Föregående"><i data-lucide="chevron-left"></i></button>
+        <button class="btn btn-outline btn-icon" onclick="shiftPeriod(1)" title="Nästa" aria-label="Nästa"><i data-lucide="chevron-right"></i></button>
+        <button class="btn btn-outline cal-weekend-btn" id="weekendBtn" onclick="toggleWeekend()" aria-pressed="false" title="Visa lördag och söndag">Helg</button>
+        <button class="btn btn-solid" onclick="addLesson()"><i data-lucide="plus"></i><span class="cal-add-label">Lägg in lektion</span></button>
       </div>
     </div>
 
@@ -66,13 +66,13 @@
       <div class="cal-popover-lesson" id="calPopLesson"></div>
       <div class="cal-popover-plan" id="calPopPlan"></div>
     </div>
-    <button class="modal-close" onclick="closePopover()" aria-label="Stäng"><i data-lucide="x"></i></button>
+    <button class="btn btn-text btn-icon modal-close" onclick="closePopover()" aria-label="Stäng"><i data-lucide="x"></i></button>
   </div>
   <div class="cal-popover-when" id="calPopWhen"></div>
   <div class="cal-popover-actions">
-    <a class="btn-ghost" id="calPopOpen" href="#"><i data-lucide="external-link"></i>Öppna upplägg</a>
-    <button class="btn-ghost" onclick="editSelected()"><i data-lucide="clock"></i>Ändra tid</button>
-    <button class="btn-ghost cal-popover-remove" onclick="removeSelected()"><i data-lucide="calendar-x"></i>Ta bort</button>
+    <a class="btn btn-outline" id="calPopOpen" href="#"><i data-lucide="external-link"></i>Öppna upplägg</a>
+    <button class="btn btn-outline" onclick="editSelected()"><i data-lucide="clock"></i>Ändra tid</button>
+    <button class="btn btn-outline cal-popover-remove" onclick="removeSelected()"><i data-lucide="calendar-x"></i>Ta bort</button>
   </div>
 </div>
 

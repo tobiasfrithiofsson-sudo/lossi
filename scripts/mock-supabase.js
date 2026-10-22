@@ -282,10 +282,9 @@
       signOut: async () => ({ error: null }),
       signInWithPassword: async () => ({ error: null }),
       signUp: async ({ email, options }) => {
-        // Som supabase/access-codes.sql: giltig kod eller väntande inbjudan till adressen
+        // Som supabase/access-codes.sql: bara med giltig kod
         const code = String(options?.data?.access_code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-        const invited = (tables.project_invites || []).some(i => i.status === 'pending' && i.email === email.toLowerCase());
-        if (!validAccessCode(code) && !invited) return { data: {}, error: { message: 'Database error saving new user', status: 500 } };
+        if (!validAccessCode(code)) return { data: {}, error: { message: 'Database error saving new user', status: 500 } };
         const first = options?.data?.first_name;
         if (first) tables.projects.find(p => p.personal_owner === user.id).name = /[sxz]$/i.test(first) ? first + ' yta' : first + 's yta';
         if (validAccessCode(code)) (tables.access_code_signups = tables.access_code_signups || []).push({ code, email, name: options?.data?.display_name || email, created_at: new Date().toISOString() });

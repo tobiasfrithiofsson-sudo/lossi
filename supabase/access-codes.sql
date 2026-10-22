@@ -5,10 +5,10 @@
 -- Under testperioden skapar administratörerna koder på admin-sidan. En kod
 -- är inte kopplad till något projekt och kan användas av flera: den gäller
 -- tills ett datum (eller tills vidare) och kan avslutas när som helst.
--- Ett konto kan skapas med
---   * en giltig kod, eller
---   * en väntande inbjudan till e-postadressen (från en kollega i Lossi).
--- Projektens gamla inbjudningskoder slutar gälla: kollegor bjuds in med e-post.
+-- Ett konto kan bara skapas med en giltig kod (även den som bjudits in till
+-- ett projekt med sin e-postadress behöver en kod; inbjudan väntar sedan i
+-- Lossi). Projektens gamla inbjudningskoder slutar gälla: kollegor bjuds in
+-- med e-post.
 --
 -- Nya konton får sitt första projekt döpt efter förnamnet ("Annas yta").
 
@@ -92,8 +92,9 @@ as $$
 $$;
 
 
--- ── Vem får skapa konto ──
--- Ersätter regeln i projects.sql/notifications.sql (projektets inbjudningskod).
+-- ── Vem får skapa konto: bara med giltig kod ──
+-- Ersätter regeln i projects.sql/notifications.sql (projektets kod eller en
+-- väntande inbjudan räckte där).
 create or replace function public.require_invite_code()
 returns trigger
 language plpgsql
@@ -101,8 +102,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  if public.valid_access_code_id(new.raw_user_meta_data->>'access_code') is null
-     and not exists (select 1 from public.project_invites i where i.status = 'pending' and i.email = lower(new.email)) then
+  if public.valid_access_code_id(new.raw_user_meta_data->>'access_code') is null then
     raise exception 'Ogiltig kod' using errcode = 'P0002';
   end if;
   return new;

@@ -84,7 +84,7 @@
        Knappen "Skapa konto" på inloggningen öppnar steg 1; login.html?kod=ABC123 fyller i koden. -->
   <div class="ob-card" id="signupCard" hidden>
     <form class="ob-form" id="obForm" novalidate>
-      <!-- Steg 1: kod (eller tomt om man bjudits in via e-post) -->
+      <!-- Steg 1: kod (krävs av alla) -->
       <section class="ob-step" data-step="1">
         <h1 class="ob-title">Ange kod</h1>
         <p class="ob-lead">Lossi är i en sluten testperiod. Du behöver ange din inbjudningskod för att kunna skapa ett konto.</p>
@@ -98,7 +98,7 @@
           <input class="ob-code-box" id="obCode5" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Tecken 6 av 6" />
         </div>
         <p class="ob-error" id="obCodeError" role="alert" hidden></p>
-        <p class="ob-help">Har en kollega bjudit in din e-postadress kan du lämna fältet tomt. Inbjudan väntar då i Lossi när du har loggat in.</p>
+        <p class="ob-help">Har en kollega bjudit in dig till ett projekt? Skapa kontot med samma e-postadress, så väntar inbjudan på dig i nästa steg.</p>
       </section>
 
       <!-- Steg 2: uppgifter om sig själv; kontot skapas när man går vidare -->

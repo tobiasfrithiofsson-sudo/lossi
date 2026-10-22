@@ -1,9 +1,9 @@
 // ── Skapa konto (onboarding) – login.html ──
 // Tre steg i ett kort med en bild till höger:
-//   1. Ange kod: sex rutor, man hoppar vidare automatiskt. Tomt går också om
-//      en kollega bjudit in e-postadressen (databasen avgör i steg 2).
+//   1. Ange kod: sex rutor, man hoppar vidare automatiskt. Alla behöver en
+//      giltig kod, även den som bjudits in till ett projekt.
 //   2. Skapa konto: förnamn, efternamn, e-post, lösenord. Kontot skapas här
-//      (supabase/access-codes.sql kontrollerar koden eller inbjudan).
+//      (supabase/access-codes.sql kontrollerar koden igen).
 //   3. Ditt projekt: ens egen yta ("Annas yta") och inbjudningar till
 //      kollegors projekt (Gå med / Avstå). Starta öppnar alltid den egna ytan.
 // Till höger: maskoten (steg 1–2), vars ögon följer pekaren och tittar på
@@ -145,14 +145,12 @@ obEl('obCode').addEventListener('focusin', e => { if (e.target.select) e.target.
 
 async function obSubmitCode() {
   const code = obCodeValue();
-  if (!code) {
-    // Ingen kod: kontot kan skapas om e-postadressen bjudits in (avgörs i steg 2)
-    obState.code = '';
-    return obGoStep(2);
-  }
   if (code.length < OB_CODE_LENGTH) {
     obCodeBoxes().forEach(b => { if (!b.value) b.classList.add('is-invalid'); });
-    return obShowError('obCodeError', `Koden har ${OB_CODE_LENGTH} tecken. Lämna rutorna tomma om du har bjudits in till din e-postadress.`);
+    (obCodeBoxes().find(b => !b.value) || obCodeBoxes()[0]).focus();
+    return obShowError('obCodeError', code
+      ? `Koden har ${OB_CODE_LENGTH} tecken.`
+      : 'Skriv koden du har fått. Den har 6 tecken.');
   }
   obSetLoading(true);
   try {
@@ -190,11 +188,7 @@ function obFail(id, text) {
 
 function obAccountError(err) {
   const msg = (err && err.message) || '';
-  if (/ogiltig kod|database error saving new user/i.test(msg)) {
-    return obState.code
-      ? 'Koden gäller inte längre. Gå tillbaka och skriv en ny kod.'
-      : 'Vi hittade ingen inbjudan till den e-postadressen. Gå tillbaka och skriv koden du har fått, eller be kollegan bjuda in just den adressen.';
-  }
+  if (/ogiltig kod|database error saving new user/i.test(msg)) return 'Koden gäller inte längre. Gå tillbaka och skriv en ny kod.';
   if (/already registered|already exists/i.test(msg)) return 'Det finns redan ett konto med den e-postadressen. Gå tillbaka och logga in i stället.';
   if (/password/i.test(msg)) return `Lösenordet måste vara minst ${OB_MIN_PASSWORD} tecken.`;
   if (/email not confirmed/i.test(msg)) return 'Kontot skapades men måste aktiveras. Hör av dig till oss.';

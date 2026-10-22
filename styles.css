@@ -2542,23 +2542,27 @@ body.edit-mode .activity-more-btn { display: grid; }
    full-width focus view.
    ============================================================ */
 
-:root { --activity-panel-w: 480px; }
+:root { --activity-panel-w: 480px; --activity-panel-gap: 12px; }
 
+/* Panelen svävar: luft mot topbaren och fönstrets kanter, rundade hörn och
+   skugga. Ingen mörkläggning eller blur – sidan bredvid är fullt synlig. */
 .activity-panel {
   position: fixed;
-  top: 56px; /* below the app topbar */
-  bottom: 0;
-  right: 0;
+  top: calc(56px + var(--activity-panel-gap)); /* below the app topbar */
+  bottom: var(--activity-panel-gap);
+  right: var(--activity-panel-gap);
   width: var(--activity-panel-w);
   min-width: 360px;
   max-width: calc(100vw - 80px);
   background: var(--color-bg-primary);
-  border-left: 1px solid var(--color-border);
-  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   z-index: 100;
-  transform: translateX(100%);
+  transform: translateX(calc(100% + var(--activity-panel-gap) + 24px));
   transition: transform 0.2s ease;
 }
 
@@ -2570,14 +2574,14 @@ body.edit-mode .activity-more-btn { display: grid; }
 .activity-panel.resizing { transition: none; }
 
 .activity-panel.fullscreen {
-  left: 0;
+  left: var(--activity-panel-gap);
   width: auto !important;
   max-width: none;
 }
 
 .activity-panel-resize-handle {
   position: absolute;
-  left: -4px;
+  left: 0;
   top: 0;
   bottom: 0;
   width: 9px;
@@ -2588,9 +2592,10 @@ body.edit-mode .activity-more-btn { display: grid; }
 .activity-panel-resize-handle::after {
   content: '';
   position: absolute;
-  left: 4px;
-  top: 0;
-  bottom: 0;
+  left: 0;
+  top: 16px;
+  bottom: 16px;
+  border-radius: 1px;
   width: 1px;
   background: var(--color-primary);
   opacity: 0;
@@ -2651,6 +2656,21 @@ body.edit-mode .activity-more-btn { display: grid; }
 .activity-panel-body {
   flex: 1;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.activity-panel-body > .activity-form,
+.activity-panel-body > .activity-read { flex: 1 0 auto; }
+
+/* Ta bort / Avbryt / Spara i en fast rad längst ner i panelen */
+.activity-panel-body .form-actions {
+  position: sticky;
+  bottom: calc(-1 * var(--space-4));
+  margin: auto calc(-1 * var(--space-4)) calc(-1 * var(--space-4));
+  padding: 12px var(--space-4);
+  background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-border);
+  z-index: 1;
 }
 
 .activity-panel-body .activity-form,
@@ -3789,11 +3809,16 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
   /* Bifogad fil hamnar på en egen rad under titeln */
   .activity-row .file-chip-sm { order: 99; margin-left: 32px; }
 
-  /* Aktivitetspanelen täcker sidan i stället för att trycka ihop den */
+  /* Aktivitetspanelen täcker sidan i stället för att trycka ihop den (utan att sväva) */
   .activity-panel {
+    top: 56px;
+    bottom: 0;
+    right: 0;
     width: 100vw;
     min-width: 0;
     max-width: 100vw;
+    border: none;
+    border-radius: 0;
   }
   .activity-panel-resize-handle { display: none; }
   body.activity-panel-open .page-frame { padding-right: 0; }

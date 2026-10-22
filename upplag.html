@@ -1408,10 +1408,17 @@
   // realtid — även medan man drar i resize-handtaget. I helskärmsläge
   // är panelen inte "bredvid" sidan utan täcker den helt, så då rör vi
   // inte variabeln (sidan ligger ändå dold under panelen).
+  // På mobil täcker panelen hela skärmen och svävar inte
+  function isActivityPanelFloating() {
+    return !window.matchMedia('(max-width: 760px)').matches;
+  }
+
   function syncActivityPanelWidthVar() {
     const panel = document.getElementById('activityPanel');
     if (panel.classList.contains('fullscreen')) return;
-    const width = panel.getBoundingClientRect().width;
+    // Panelen svävar med luft på båda sidor: sidan lämnar plats för panel + luft
+    const gap = parseFloat(getComputedStyle(panel).right) || 0;
+    const width = panel.getBoundingClientRect().width + (isActivityPanelFloating() ? gap * 2 : 0);
     document.documentElement.style.setProperty('--activity-panel-current-w', width + 'px');
   }
 

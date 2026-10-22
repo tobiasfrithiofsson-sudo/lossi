@@ -1506,9 +1506,16 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 .file-viewer-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .file-viewer-name { font-size: var(--font-size-md); font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-viewer-meta { font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
-.file-viewer-stage { flex: 1; min-height: 0; display: grid; place-items: center; background: var(--color-bg-hover); }
-.file-viewer-stage.is-image { padding: 16px; }
-.file-viewer-stage.is-image img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--radius-xs); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); }
+.file-viewer-stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; background: var(--color-bg-hover); }
+/* Bilden fyller ytan (minus 16px luft) och skalas ner så att hela bilden syns */
+.file-viewer-stage.is-image img {
+  position: absolute;
+  inset: 16px;
+  width: calc(100% - 32px);
+  height: calc(100% - 32px);
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.14));
+}
 .file-viewer-stage.is-document iframe { width: 100%; height: 100%; border: none; background: #fff; }
 .file-viewer-stage.is-message { align-content: center; gap: 12px; padding: 24px; text-align: center; color: var(--color-text-secondary); font-size: var(--font-size-base); }
 .file-viewer-stage.is-message p { margin: 0; max-width: 360px; }

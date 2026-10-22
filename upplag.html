@@ -955,6 +955,21 @@
   <div class="activity-panel-body" id="activityPanelBody"></div>
 </div>
 
+<!-- ── Förhandsvisning av en bifogad fil (openFileViewer) ── -->
+<div class="modal-overlay" id="fileViewerModal">
+  <div class="modal file-viewer" role="dialog" aria-labelledby="fileViewerName">
+    <div class="file-viewer-head">
+      <div class="file-viewer-title">
+        <span class="file-viewer-name" id="fileViewerName"></span>
+        <span class="file-viewer-meta" id="fileViewerMeta"></span>
+      </div>
+      <button type="button" class="btn btn-outline" onclick="downloadFile(viewedFileId)"><i data-lucide="download"></i>Ladda ner</button>
+      <button type="button" class="btn btn-text btn-icon modal-close" onclick="closeFileViewer()" aria-label="Stäng"><i data-lucide="x"></i></button>
+    </div>
+    <div class="file-viewer-stage" id="fileViewerStage"></div>
+  </div>
+</div>
+
 <!-- ── Modal: Ta bort aktivitet (bekräftelse) ── -->
 <div class="modal-overlay" id="deleteActivityModal">
   <div class="modal modal-sm">
@@ -1512,7 +1527,8 @@
   }
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && openActivityId) closeActivityPanel();
+    // En öppen dialog (t.ex. förhandsvisning av en fil) stängs först
+    if (e.key === 'Escape' && openActivityId && !document.querySelector('.modal-overlay.open')) closeActivityPanel();
   });
 
   // Manuell breddändring: dra i handtaget på panelens vänsterkant
@@ -1962,8 +1978,11 @@
         const descField = Array.from(node.querySelectorAll('.activity-read .read-field')).find(f =>
           f.querySelector('.read-field-label')?.textContent.trim() === 'Beskrivning');
         const desc = descField ? descField.querySelector('.read-field-value').textContent.trim() : '';
-        const file = planFiles.filter(f => f.activityId === node.id).map(f => f.name).join(', ');
-        return { type, typeClass, title: activityTitle, time, desc, file };
+        const files = planFiles.filter(f => f.activityId === node.id);
+        // Bilder läggs in på bilden (PowerPoint); övriga filer nämns med namn
+        const images = files.filter(isImageFile);
+        const file = files.filter(f => !isImageFile(f)).map(f => f.name).join(', ');
+        return { type, typeClass, title: activityTitle, time, desc, file, images };
       });
       return {
         name: group.querySelector('.week-pill').textContent.trim(),
@@ -1989,6 +2008,31 @@
     return pptxLibrary;
   }
 
+  // Bifogade bilder till PowerPoint: hämtas, ritas om till PNG/JPEG (som
+  // PowerPoint säkert kan visa, även WebP) och får sina mått. Högst fyra per
+  // aktivitet. Går en bild inte att hämta hoppas den över.
+  const EXPORT_IMAGE_MAX_PX = 1600;
+  async function loadExportImages(plan) {
+    const files = plan.lessons.flatMap(l => l.activities.flatMap(a => a.images.slice(0, 4)));
+    const result = new Map();
+    await Promise.all(files.map(async f => {
+      try {
+        const blob = await (await fetch(await LossiData.fileViewUrl(f))).blob();
+        const bitmap = await createImageBitmap(blob);
+        const scale = Math.min(1, EXPORT_IMAGE_MAX_PX / Math.max(bitmap.width, bitmap.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(bitmap.width * scale);
+        canvas.height = Math.round(bitmap.height * scale);
+        canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        const jpeg = f.mime === 'image/jpeg';
+        result.set(f.id, { data: canvas.toDataURL(jpeg ? 'image/jpeg' : 'image/png', 0.9), w: canvas.width, h: canvas.height });
+      } catch (e) {
+        console.warn('Kunde inte ta med bilden i PowerPointen:', f.name, e);
+      }
+    }));
+    return result;
+  }
+
   async function exportAsPptx() {
     closeAllMenuPopovers();
     try {
@@ -1999,6 +2043,7 @@
       return;
     }
     const plan = readPlanForExport();
+    const images = await loadExportImages(plan);
     const pres = new PptxGenJS();
     pres.layout = 'LAYOUT_WIDE'; // 13.3" x 7.5"
     const H = 7.5;
@@ -2081,7 +2126,17 @@
         }
 
         const boxH = H - 0.6 - contentTop;
-        if (boxH > 1.2) {
+        const pictures = a.images.map(f => images.get(f.id)).filter(Boolean);
+        if (pictures.length && boxH > 0.8) {
+          // Bilderna sida vid sida i ytan under texten, utan att förvrängas
+          const gap = 0.25, areaW = 11.9;
+          const cellW = (areaW - gap * (pictures.length - 1)) / pictures.length;
+          pictures.forEach((pic, i) => {
+            const scale = Math.min(cellW / pic.w, boxH / pic.h);
+            const w = pic.w * scale, h = pic.h * scale;
+            s.addImage({ data: pic.data, x: 0.7 + i * (cellW + gap) + (cellW - w) / 2, y: contentTop + (boxH - h) / 2, w, h });
+          });
+        } else if (boxH > 1.2) {
           s.addShape('roundRect', { x: 0.7, y: contentTop, w: 11.9, h: boxH, rectRadius: 0.1, fill: { type: 'none' }, line: { color: PPTX_FAINT, width: 1.5, dashType: 'dash' } });
           s.addText('+', { x: 6.05, y: contentTop + boxH / 2 - 0.65, w: 1.2, h: 0.7, isTextBox: true, margin: 0, align: 'center', valign: 'middle', fontFace: 'Calibri', fontSize: 34, color: 'B7BECC' });
           s.addText('Lägg till bilder, frågor eller material här', { x: 0.7, y: contentTop + boxH / 2 + 0.15, w: 11.9, h: 0.4, isTextBox: true, margin: 0, align: 'center', fontFace: 'Calibri', fontSize: 13, color: '9AA2B1' });
@@ -2956,8 +3011,8 @@
     const files = planFiles.filter(f => (f.activityId || null) === (activityId || null));
     const uploading = uploadingFiles.filter(u => (u.activityId || null) === (activityId || null));
     return files.map(f => `
-      <div class="file-card" role="button" tabindex="0" data-file-id="${f.id}" title="Ladda ner ${escapeHTML(f.name)}">
-        <div class="file-card-icon"><i data-lucide="${fileIcon(f.mime)}"></i></div>
+      <div class="file-card${isImageFile(f) ? ' is-image' : ''}" role="button" tabindex="0" data-file-id="${f.id}" title="Visa ${escapeHTML(f.name)}">
+        <div class="file-card-icon">${isImageFile(f) ? `<img alt="" data-thumb="${f.id}" />` : `<i data-lucide="${fileIcon(f.mime)}"></i>`}</div>
         <div class="file-card-text">
           <div class="file-card-name">${escapeHTML(f.name)}</div>
           <div class="file-card-size">${formatFileSize(f.size)}</div>
@@ -2973,11 +3028,25 @@
       </div>`).join('');
   }
 
+  function isImageFile(f) {
+    return /^image\//.test(f?.mime || '');
+  }
+
+  // Bildernas miniatyrer hämtas efter att korten ritats
+  function fillFileThumbs(root) {
+    root.querySelectorAll('img[data-thumb]:not([src])').forEach(img => {
+      const file = planFiles.find(f => f.id === img.dataset.thumb);
+      if (!file) return;
+      LossiData.fileViewUrl(file).then(url => { img.src = url; }).catch(() => {});
+    });
+  }
+
   function renderPlanFiles() {
     const list = document.getElementById('planFilesList');
     list.innerHTML = fileCardsHTML(null);
     document.getElementById('planFilesEmpty').hidden = !!list.children.length || canEditFiles();
     lucide.createIcons({ nodes: [list] });
+    fillFileThumbs(list);
     if (openActivityId) renderActivityFiles(openActivityId);
   }
 
@@ -3002,6 +3071,7 @@
       ? `<div class="files-grid">${cards}</div>`
       : (canEditFiles() ? '' : '<p class="files-empty">Inga filer.</p>');
     lucide.createIcons({ nodes: [box] });
+    fillFileThumbs(box);
   }
 
   async function loadPlanFiles() {
@@ -3041,6 +3111,60 @@
       renderPlanFiles();
     }
   }
+
+  // ── Förhandsvisning av en fil (klick på filkortet) ──
+  // Bilder och PDF/text visas i Lossi. Office-filer kan webbläsaren inte visa
+  // (det skulle kräva att filen skickas till Microsoft), så där finns Ladda ner.
+  let viewedFileId = null;
+
+  async function openFileViewer(fileId) {
+    const file = planFiles.find(f => f.id === fileId);
+    if (!file) return;
+    viewedFileId = fileId;
+    document.getElementById('fileViewerName').textContent = file.name;
+    document.getElementById('fileViewerMeta').textContent = formatFileSize(file.size);
+    const stage = document.getElementById('fileViewerStage');
+    stage.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span>';
+    stage.className = 'file-viewer-stage';
+    document.getElementById('fileViewerModal').classList.add('open');
+    const inline = isImageFile(file) || /pdf|text\/plain/.test(file.mime || '');
+    if (!inline) {
+      stage.classList.add('is-message');
+      stage.innerHTML = `
+        <div class="file-viewer-icon"><i data-lucide="${fileIcon(file.mime)}"></i></div>
+        <p>Den här filtypen går inte att visa i Lossi. Ladda ner den för att öppna den.</p>`;
+      lucide.createIcons({ nodes: [stage] });
+      return;
+    }
+    try {
+      const url = await LossiData.fileViewUrl(file);
+      if (viewedFileId !== fileId) return;
+      if (isImageFile(file)) {
+        stage.classList.add('is-image');
+        stage.innerHTML = `<img src="${url}" alt="${escapeHTML(file.name)}" />`;
+      } else {
+        stage.classList.add('is-document');
+        stage.innerHTML = `<iframe src="${url}" title="${escapeHTML(file.name)}"></iframe>`;
+      }
+    } catch (e) {
+      console.warn('Kunde inte visa filen:', e);
+      stage.classList.add('is-message');
+      stage.innerHTML = '<p>Kunde inte visa filen. Försök igen om en stund.</p>';
+    }
+  }
+
+  function closeFileViewer() {
+    viewedFileId = null;
+    document.getElementById('fileViewerModal').classList.remove('open');
+    document.getElementById('fileViewerStage').innerHTML = '';
+  }
+
+  document.getElementById('fileViewerModal').addEventListener('click', e => {
+    if (e.target.id === 'fileViewerModal') closeFileViewer();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && viewedFileId) closeFileViewer();
+  });
 
   async function downloadFile(fileId) {
     const file = planFiles.find(f => f.id === fileId);
@@ -3110,14 +3234,14 @@
       return;
     }
     const card = e.target.closest('.file-card[data-file-id]');
-    if (card) downloadFile(card.dataset.fileId);
+    if (card) openFileViewer(card.dataset.fileId);
   });
 
   document.addEventListener('keydown', e => {
     const card = e.target.closest?.('.file-card[data-file-id]');
     if (card && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
-      downloadFile(card.dataset.fileId);
+      openFileViewer(card.dataset.fileId);
     }
   });
 

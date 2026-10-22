@@ -1491,6 +1491,29 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 .file-card.is-uploading { cursor: progress; opacity: 0.75; }
 .file-card.is-uploading .file-card-icon { color: var(--color-text-secondary); }
 .file-card-delete { margin-left: 2px; }
+/* Bildfiler: själva bilden i stället för ikonen */
+.file-card.is-image .file-card-icon { width: 40px; height: 40px; overflow: hidden; background: var(--color-bg-hover); }
+.file-card-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.file-card-icon img:not([src]) { visibility: hidden; }
+/* I aktivitetspanelen: bilden i full bredd ovanför namnet */
+.activity-files .file-card.is-image { flex-wrap: wrap; padding: 8px 8px 8px 14px; }
+.activity-files .file-card.is-image .file-card-icon { flex: 0 0 calc(100% + 6px); height: 160px; margin: 0 0 2px -6px; border-radius: var(--radius-sm); }
+.activity-files .file-card-text { flex: 1; }
+
+/* Förhandsvisning av en fil (upplag.html, openFileViewer) */
+.modal.file-viewer { width: 960px; height: min(820px, 100%); display: flex; flex-direction: column; overflow: hidden; }
+.file-viewer-head { display: flex; align-items: center; gap: 8px; padding: 12px 12px 12px 20px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+.file-viewer-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.file-viewer-name { font-size: var(--font-size-md); font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-viewer-meta { font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
+.file-viewer-stage { flex: 1; min-height: 0; display: grid; place-items: center; background: var(--color-bg-hover); }
+.file-viewer-stage.is-image { padding: 16px; }
+.file-viewer-stage.is-image img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--radius-xs); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); }
+.file-viewer-stage.is-document iframe { width: 100%; height: 100%; border: none; background: #fff; }
+.file-viewer-stage.is-message { align-content: center; gap: 12px; padding: 24px; text-align: center; color: var(--color-text-secondary); font-size: var(--font-size-base); }
+.file-viewer-stage.is-message p { margin: 0; max-width: 360px; }
+.file-viewer-icon { display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto; border-radius: var(--radius-lg); background: var(--color-bg-primary); }
+.file-viewer-icon svg { width: 24px; height: 24px; color: var(--color-text-secondary); }
 .file-drop.is-dragover { border-color: var(--color-primary); background: var(--color-primary-light); }
 .files-empty { font-size: var(--font-size-base); color: var(--color-text-tertiary); margin: 0 0 12px; }
 .file-message { font-size: var(--font-size-base); color: #C2413B; margin-top: 8px; }

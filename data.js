@@ -629,6 +629,18 @@ const LossiData = (() => {
   }
 
   // Tillfällig länk som laddar ner filen med sitt riktiga namn
+  // Länk för att visa filen i Lossi (bild, PDF): ingen nedladdning, gäller en
+  // timme och återanvänds under tiden så att miniatyrerna inte hämtas om.
+  const viewUrls = new Map(); // filens id → { url, until }
+  async function fileViewUrl(file) {
+    const hit = viewUrls.get(file.id);
+    if (hit && hit.until > Date.now()) return hit.url;
+    const { data, error } = await db().storage.from(FILE_BUCKET).createSignedUrl(file.path, 3600);
+    if (error) throw error;
+    viewUrls.set(file.id, { url: data.signedUrl, until: Date.now() + 50 * 60 * 1000 });
+    return data.signedUrl;
+  }
+
   async function fileDownloadUrl(file) {
     const { data, error } = await db().storage.from(FILE_BUCKET).createSignedUrl(file.path, 60, { download: file.name });
     if (error) throw error;
@@ -661,6 +673,6 @@ const LossiData = (() => {
     listPlanEditors, listMyEditRequests, requestPlanEdit, addPlanEditor, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,
-    listPlanFiles, uploadPlanFile, deletePlanFiles, fileDownloadUrl, fileProblem, FILE_MAX_BYTES,
+    listPlanFiles, uploadPlanFile, deletePlanFiles, fileDownloadUrl, fileViewUrl, fileProblem, FILE_MAX_BYTES,
   };
 })();

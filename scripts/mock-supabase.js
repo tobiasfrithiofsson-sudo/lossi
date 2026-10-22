@@ -120,12 +120,14 @@
         await new Promise(r => setTimeout(r, Number(sessionStorage.getItem('mockUploadDelay') || 300)));
         if (stored[path]) return { data: null, error: { message: 'The resource already exists' } };
         stored[path] = { bucket, size: file.size, name: file.name };
+        // Själva filen finns bara kvar tills sidan laddas om (för förhandsvisning i test)
+        (window.__mockBlobs = window.__mockBlobs || {})[path] = URL.createObjectURL(file);
         persistStorage();
         return { data: { path }, error: null };
       },
       remove: async paths => { paths.forEach(p => delete stored[p]); persistStorage(); return { data: paths, error: null }; },
       createSignedUrl: async (path, secs, opts) => stored[path]
-        ? { data: { signedUrl: `mock://${bucket}/${path}?download=${encodeURIComponent(opts?.download || '')}` }, error: null }
+        ? { data: { signedUrl: (!opts?.download && window.__mockBlobs?.[path]) || `mock://${bucket}/${path}?download=${encodeURIComponent(opts?.download || '')}` }, error: null }
         : { data: null, error: { message: 'Object not found' } },
     }),
   };

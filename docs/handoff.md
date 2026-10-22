@@ -1,57 +1,76 @@
-# Lossi – överlämning (2026-10-21)
+# Lossi – överlämning (2026-10-22)
 
 Läs den här filen först i en ny session. Detaljer (databas, projekt, filer, notiser, AI) finns i `docs/migration-plan.md`; minnesanteckningarna (MEMORY.md m.fl.) laddas automatiskt.
 
 ## Vem och hur
-- **Tobias** är UX-designer/systemvetare, inte kodare. Svara på **svenska**, förklara konkret och ge rekommendationer.
-- Han skissar i Figma och skickar skärmbilder; matcha mått exakt. Han ger ofta korta CSS-önskemål ("ändra X till padding 6px 8px") – gör exakt det.
-- **Databasändringar:** skriv alltid ut hela SQL:en i ett kodblock **i chattmeddelandet, före wrap_up-rutan**, med direktlänk till SQL Editor: https://supabase.com/dashboard/project/mqzmtndjfgeujaqzqpeb/sql/new, och säg vad resultatet ska bli ("Success. No rows returned"). Lägg gärna också SQL:en i urklipp (`pbcopy`). Detta har missats två gånger – Tobias har bett om det uttryckligen. Hemligheter (feedbacknyckeln) visas aldrig i chatten.
+- **Tobias** är UX-designer/systemvetare, inte kodare. Svara på **svenska**, förklara konkret och ge rekommendationer (en tydlig rekommendation, inte en lista med alternativ).
+- Han skissar i Figma och skickar skärmbilder; matcha mått exakt. Han ger ofta korta CSS-önskemål ("ändra X till padding 6px 8px") – gör exakt det. Han vill ha designen så nära skisserna som möjligt.
+- **Databasändringar:** skriv alltid ut hela SQL:en i ett kodblock **i chattmeddelandet, före wrap_up-rutan**, med direktlänk till SQL Editor: https://supabase.com/dashboard/project/mqzmtndjfgeujaqzqpeb/sql/new, och säg vad resultatet ska bli ("Success. No rows returned"). Lägg också SQL:en i urklipp (`pbcopy`). Hemligheter (feedbacknyckeln) visas aldrig i chatten.
 - **Filer i `.github/workflows/`** kan inte pushas – Tobias skapar dem via GitHubs webb.
-- Committa och pusha till `main` när en ändring är testad; Cloudflare deployar automatiskt (~30 s).
+- **Committa och pusha till `main`** när en ändring är testad; Cloudflare deployar (~40–60 s). **Kontrollera alltid att ändringen faktiskt är live** (curl på en ny sträng i filen) innan du säger att den är klar. 2026-10-22 missade Cloudflare en push helt (ingen bock på commiten i GitHub); en tom commit (`git commit --allow-empty`) satte igång bygget igen.
+- Feedback från testare: `bash scripts/feedback.sh list` (se minnet lossi-feedback).
+
+## Nästa steg: onboarding inne i appen
+Tobias (2026-10-22): onboardingen fram till Starta "ser riktigt bra ut", men **vi behöver arbeta mer med onboardingen när användaren väl har kommit in i applikationen**. Inget är bestämt – börja med att fråga honom vad han ser framför sig, och föreslå gärna:
+- Vad som finns i dag: efter Starta öppnas den egna ytan ("{Förnamn}s yta") med tre demo-upplägg och en välkomstruta på översikten (`#welcomeCard` i index.html, visas när `localStorage['lossi-welcome'] = '1'`, sätts av `obStart()` i onboarding.js; påminner om att inte skriva in elevers personuppgifter; knappar "Skapa ditt första upplägg" och "Jag förstår").
+- Idéer att ta upp: en kort rundtur/checklista (skapa upplägg, lägg till lektion, lägg in i kalendern, bjud in kollega), tips första gången man öppnar ett upplägg (dra och släpp, ⋯-menyn, Prov/Inlämning, filer), tomma lägen med hjälptext, maskoten (finns i onboarding.js) som återkommer i appen. Tobias gillade maskoten med ögonen.
+- Demo-uppläggen saknar sparade lektioner tills de öppnas (feedback #4) – kan påverka en rundtur som visar kalendern.
+
+## SQL som Tobias ska ha kört (fråga och bekräfta)
+Alla filer går att köra om. Ordning: efter `projects.sql`, `notifications.sql`, `feedback-admin.sql`.
+1. `supabase/calendar-shared.sql` – medlemmar ser varandras kalenderhändelser (#9). Tobias testade kalendern men hade inte kollat kollegornas lektioner.
+2. `supabase/project-classes.sql` – klasser tillhör projektet.
+3. `supabase/access-codes.sql` – fristående koder, onboarding. **Utan den går det inte att skapa konto med kod live.**
+4. Om (3) kördes före 2026-10-22 kl ~22: den lilla uppdateringen av `require_invite_code()` (kod krävs av alla, även inbjudna) – den finns redan i filen, så det räcker att köra om hela `access-codes.sql`.
+Efter (3): skapa en kod på **Admin → Koder** för att testa onboardingen live.
 
 ## Läget
-- **Live:** https://lossi.tobias-frithiofsson.workers.dev/ (app), `/landing`, `/login`. Repo: `tobiasfrithiofsson-sudo/lossi` (privat).
-- **Stack:** statisk HTML/CSS/JS utan byggsteg (lucide, SortableJS, pptxgenjs, supabase-js från CDN). Supabase för data/inloggning/fillagring, Cloudflare Workers (static assets) för hosting.
-- **Konton (sedan 2026-10-22):** Skapa konto är en onboarding i tre steg (`onboarding.js`, login.html): 1 kod (6 tecken, krävs av alla – även den som bjudits in via e-post), 2 förnamn/efternamn/e-post/lösenord (kontot skapas), 3 egna ytan "{Förnamn}s yta" + inbjudningar (Gå med/Avstå), Starta → egna ytan med välkomstruta (påminner om att inte skriva in elevers uppgifter). Koderna är fristående och skapas av administratörer på **admin.html → Koder** (gäller till ett datum eller tills vidare, kan avslutas, visar vilka som skapat konto). `supabase/access-codes.sql`. Projektens koder och "Gå med med kod" är borttagna: kollegor bjuds in med e-post. Lossi skickar inga mejl. Maskoten (ögon som följer pekaren, blundar vid lösenord) är min egen SVG – kan bytas mot Tobias Figma-export. E-postbekräftelse avstängd. "Add user" i Supabase-panelen fungerar inte längre (kontot saknar kod). Tobias är admin (`app_metadata.role = 'admin'`).
-- **Byggt (allt testat live om inget annat sägs):**
-  - Översikt, uppläggssida (lektioner/aktiviteter, dra och släpp, fäll ihop, ⋯-meny, duplicera/ta bort, export Word/PowerPoint), kalender, profiler, egna klasser/ämnen, feedback + admin-sida (admin.html: Feedback och Koder; feedbackboard.html leder dit), mobil, landningssida med riktiga skärmbilder.
-  - **Projekt:** flera projekt per användare; alla får ett första projekt "Sandlådan" (delbart som andra, kan bara inte tas bort). Projektmeny (Notion-lik, 28px rader) med Inställningar – sedan 2026-10-22 en dialog med vänstermeny (`PROJECT_SETTINGS_TABS` i theme.js; lägg nya delar där): Allmänt (namn, avatar, ta bort / lämna), Medlemmar (medlemmar, bjud in), Klasser (lägg till/ta bort projektets klasser, antal upplägg per klass); `openProjectSettings('classes')` öppnar en viss del, Bjud in medlemmar, Nytt projekt, Gå med med kod. Översikten visar alla i projektet med Alla/Bara mina; andras upplägg öppnas i läsläge.
-  - **Medskapare:** be om redigeringsrätt, skaparen godkänner/nekar eller lägger till medlemmar direkt (välj-lista som Klass), × tar bort. Raden Medskapare visas bara när projektet har ≥ 2 medlemmar.
-  - **Inbjudan via e-post + notiser:** klockan i topbaren (inbjudan med Gå med/Avböj, begäran om redigering, blev medskapare, ny medlem). Inbjudan till adress utan konto sparas och räcker för att skapa konto utan kod.
-  - **Skapa med AI / Fyll i med AI** (ai-import.js): läraren kopierar en instruktion till sin egen AI och klistrar in ett JSON-kodblock; Lossi anropar aldrig någon AI. Laddningssnurra i knappen.
-  - **Filer** på upplägg och aktiviteter (Supabase Storage `plan-files`, 25 MB). Bilder visas som miniatyr (stor i aktivitetspanelen); klick på en fil öppnar förhandsvisning i Lossi (`openFileViewer`: bild, PDF, text; Office-filer → Ladda ner). PowerPoint-exporten lägger in aktivitetens bilder (högst 4, omgjorda till PNG/JPEG, `loadExportImages`). `supabase/files.sql` körd; fungerar live (Tobias 2026-10-21).
-  - **Brödsmulor** på uppläggssidan (projekt › Upplägg › titel).
-  - **Kalender/Kommande** visar bara valt projekt. **Projektets kalender (feedback #9, 2026-10-22):** medlemmar ser varandras inlagda lektioner (`supabase/calendar-shared.sql`, bara läsa – ändra/ta bort gäller egna). Kalendern har Mina / Alla i projektet, klassfilter (uppläggets klass), Prov/Inlämning-märkning och en varning när en klass har ≥ 3 prov + inlämningar samma vecka (`LOAD_WARNING_AT` i calendar.html, räknar alla lärare). Lektioner markeras som Prov/Inlämning i lektionens ⋯-meny (`data-assessment` på `.lesson-group`, `LESSON_ASSESSMENTS` i schedule.js). Kommande i sidopanelen/översikten är fortfarande bara egna. **Klasser tillhör projektet (2026-10-22):** `projects.classes` + RPC `add_project_class`/`remove_project_class` (`supabase/project-classes.sql`, flyttar in medlemmarnas profilklasser och uppläggens klasser en gång). Klasslistan i Detaljer visar projektets klasser + klasser på projektets upplägg; utan SQL:en används profilens klasser som förut.
-  - **Designsystem:** typsnitt Open Sans. **Knappar (2026-10-22):** `.btn` + variant `.btn-solid` / `.btn-outline` / `.btn-subtle` / `.btn-text`, storlek `.btn-lg` 40px / standard (sm) 32px / `.btn-xs` 24px, ton `.btn-danger`, form `.btn-icon` (kvadratisk). Vikt 500, hörn `--radius-xs`, 1px ram på alla. Systemet bor i `buttons.css`, som alla sidor (även landning och inloggning) laddar direkt efter tokens.css och före sina egna stilar. Landningen använder `.btn-lg`, inloggningens Logga in/Skapa konto också (fälten är 48px). De gamla klasserna (btn-primary, btn-ghost, btn-danger-solid, icon-btn, lp-btn) finns inte längre. Sidopanelen: grupper Kalender / Upplägg / Team med rubrik som fäller ihop (chevron syns vid hovring) och pil till sidan; "+ Skapa" under Upplägg; sidorna Upplägg (roller-coaster), Kalender, Material (Snart), Marknadsplats (candy; `marknadsplats.html` är en teaser med påhittad förhandsvisning, knappen öppnar feedback) längst ner – flyttade från topbaren, som nu bara har Skapa.
-
-## Snabbhet (steg 1–4 gjorda 2026-10-21)
-Mätt före: ~14 databasanrop per sidladdning, uppläggen hämtades 4–5 gånger med hela `state` (structureHTML ~4,5 kB per aktivitet, AI-upplägg ~150 kB). Gjort:
-1. **Hämta mindre och en gång:** `LossiData.listPlans` hämtar bara `id, owner_id, project_id` + `title/subject/grade/klass/avatar/demoKey/demo` ur state (`alias:state->>fält`), en gång per sida (delad cache i data.js som hålls aktuell vid spara/ta bort/skapa/projektbyte). Hela state bara för det öppna upplägget och via `loadPlanStates/withFullStates` (kalenderns lektionsnamn: `withEventStates` i schedule.js; kalenderns "Lägg in lektion" hämtar vid klick). Samtidiga anrop delas (Kommande, redigeringsförfrågningar). Översikten: 7 anrop.
-2. **Uppläggssidan** visar "Hämtar upplägget…" (`body.plan-loading`) i stället för demo-innehållet tills upplägget är hämtat.
-3. **Bibliotek:** lucide låst till `1.61.0` (cachas ett år; roller-coaster/candy finns). pptxgenjs laddas först vid PowerPoint-export (`loadPptxLibrary`). `defer` på lucide går inte – sidornas skript anropar `lucide.createIcons()` direkt.
-4. **Skapa** väntar inte på profilen: nytt ämne läggs i sessionStorage (`rememberChoiceLater`) och sparas av `applyUserProfile` på nästa sida.
-5. **Sidbyten (2026-10-21):** sidopanelen ritas direkt från det senast ritade innehållet (sessionStorage `lossi-aside-cache`, per användare + valt projekt, rensas vid utloggning; `paintAsideFromCache/rememberAsidePart` i theme.js) och uppdateras när datan kommit. `auth.js` visar sidan direkt om en sparad inloggning finns (`storedUserId`). Mjuka sidbyten med `@view-transition` (styles.css): topbar och sidopanel står stilla, innehållet tonar 150 ms. Att bara byta page-frame (ensidesapp) valdes bort – för stort ingrepp i upplag.html.
-Större, senare: spara aktiviteter som data i stället för HTML. Låtsas-Supabase förstår nu kolumnlistor och räknar anrop (`window.__mockCalls`). OBS i test: `flushOnLeave` går till riktiga Supabase, vänta i stället in vanliga sparningen (800 ms).
+- **Live:** https://lossi.tobias-frithiofsson.workers.dev/ (app), `/landing`, `/login`, `/admin`. Repo: `tobiasfrithiofsson-sudo/lossi` (privat).
+- **Stack:** statisk HTML/CSS/JS utan byggsteg (lucide 1.61.0, SortableJS, pptxgenjs vid export, supabase-js från CDN). Supabase för data/inloggning/fillagring, Cloudflare Workers (static assets) för hosting.
+- **Konton:** Skapa konto är en onboarding i tre steg (`onboarding.js`, login.html; prickar visar steget):
+  1. **Ange kod** – 6 rutor (större text, hopp till nästa ruta, klistra in, `login.html?kod=ABC123` fyller i). **Alla behöver en kod**, även den som bjudits in via e-post.
+  2. **Skapa konto** – förnamn, efternamn, e-post (info: använd privat e-post under testperioden), lösenord. Kontot skapas här.
+  3. **Ditt projekt** – den egna ytan "{Förnamn}s yta" (avatar + namn, inget fält) och inbjudningar till kollegors projekt (Gå med / Avstå). Ingen Tillbaka. **Starta** öppnar alltid den egna ytan.
+  Högerytan: maskoten (min egen SVG efter Tobias bild; ögonen följer pekaren och fältet man skriver i, blundar vid lösenordet, blinkar, glad/ledsen vid rätt/fel kod) och i steg 3 en liten projektväljare som visar projekt man går med i. Bilden döljs under 900 px.
+  Koderna skapas av administratörer på **admin.html → Koder** (gäller till ett datum eller tills vidare, kan avslutas/öppnas igen, kopiera kod/länk, visar vilka som skapat konto med koden). Inte kopplade till projekt, kan användas av flera. Databas: `supabase/access-codes.sql`. Tobias är admin (`app_metadata.role = 'admin'`). E-postbekräftelse avstängd; Lossi skickar inga mejl. "Add user" i Supabase-panelen fungerar inte (kontot saknar kod).
+- **Admin-sidan** `admin.html` (vänstermeny: Feedback, Koder; `#koder` öppnar Koder). `feedbackboard.html` leder dit. Länken "Admin" i användarmenyn syns bara för administratörer.
+- **Projekt:** flera projekt per användare; alla har ett första projekt (nya konton: "{Förnamn}s yta", äldre: "Sandlådan") som kan delas men inte tas bort. Projektmeny med Inställningar, Bjud in medlemmar, Nytt projekt. **Inställningar** är en dialog med vänstermeny (`PROJECT_SETTINGS_TABS` i theme.js – lägg nya delar där): Allmänt (namn, avatar, ta bort/lämna), Medlemmar (medlemmar, bjud in via e-post), Klasser (projektets klasser, antal upplägg per klass, ta bort). Översikten visar alla i projektet med Alla/Bara mina; andras upplägg öppnas i läsläge.
+- **Inbjudan:** bara via e-post (Bjud in). Har personen konto får hen en notis under klockan; annars väntar inbjudan tills hen skapar konto **med kod** och samma adress (visas i steg 3). Projektkoder och "Gå med med kod" är borttagna.
+- **Medskapare:** be om redigeringsrätt, skaparen godkänner/nekar eller lägger till direkt.
+- **Klasser tillhör projektet:** `projects.classes` (+ RPC `add_project_class`/`remove_project_class`). Detaljer › Klass visar bara projektets lista (när den finns), så en borttagen klass kommer inte tillbaka via gamla upplägg.
+- **Årskurs** är välj-eller-skriv som Ämne (förslag F–9, egna i profilen, `normalizeGrade`/`gradeLabel` i theme.js).
+- **Kalender:** Mina / Alla i projektet, klassfilter, Prov/Inlämning-etiketter, kollegors lektioner grå och skrivskyddade, varning när en klass har ≥ 3 prov + inlämningar samma vecka (`LOAD_WARNING_AT` i calendar.html; räknar alla lärares inlagda lektioner hela veckan; klassen kommer från uppläggets Klass). Lektioner markeras som Prov/Inlämning i lektionens ⋯-meny (`data-assessment` på `.lesson-group`, `LESSON_ASSESSMENTS` i schedule.js). Kommande i sidopanelen/översikten = bara egna.
+- **Uppläggssidan:** lektioner/aktiviteter, dra och släpp, fäll ihop, export Word/PowerPoint, brödsmulor, "Hämtar upplägget…" medan det laddas. **Aktivitetspanelen** svävar (12 px luft, 16 px hörn, skugga, ingen blur) med Ta bort / Avbryt / Spara i en fast rad i botten. Centralt innehåll/Betygskriterier: Enter sparar raden, tom rad tas bort, "magisk" ram när raden redigeras. Sektionsrubriker som sidopanelens grupper (rubriken är klickytan, pil vid hovring).
+- **Filer:** bilder som miniatyr (stor i aktivitetspanelen); klick öppnar förhandsvisning i Lossi (bild, PDF, text; Office → Ladda ner); PowerPoint-exporten lägger in aktivitetens bilder (högst 4).
+- **Marknadsplats:** `marknadsplats.html` är en teaser (knappen öppnar feedback).
+- **Designsystem:** Open Sans. **Knappar** i `buttons.css` (alla sidor laddar den efter tokens.css): `.btn` + `.btn-solid` / `.btn-outline` / `.btn-subtle` / `.btn-text`, storlek `.btn-lg` 40 / standard 32 / `.btn-xs` 24, ton `.btn-danger`, `.btn-icon` kvadratisk. Upplägg sparade före knappsystemet uppgraderas när de öppnas (`upgradeSavedButtons` i plan-markup.js). Sidopanelen: Kalender / Upplägg / Team, sidorna Upplägg, Kalender, Material (Snart), Marknadsplats längst ner.
+- **Snabbhet (2026-10-21):** smala listor en gång per sida (cache i data.js), hela state bara där det behövs, sidopanelen ritas från sessionStorage vid sidbyte, mjuka sidbyten med `@view-transition`. Detaljer i git-historiken (commits f34c9ab, c2537f0).
 
 ## Viktiga filer
-- `theme.js` – app-skal (topbar, sidopanel med grupper/sidor, projektmeny + inställningar, notiser, inbjudningar), profil, `createChoiceList`, Skapa-dialogen.
-- `data.js` – all data via `LossiData` (upplägg, projekt, medskapare, inbjudningar, notiser, filer, kalender, feedback). `auth.js` – `LossiAuth`.
-- `upplag.html` – uppläggssidan (mest logik: läsläge, medskapare, filer, Fyll i med AI, brödsmulor). `plan-markup.js` – gemensam HTML för aktiviteter/lektioner/målrader (escapar text). `ai-import.js` – Skapa/Fyll i med AI. `schedule.js` – kalenderdialog, Kommande. `calendar.html`, `feedbackboard.html`, `login.html` (Skapa konto med kod/inbjudan), `landing.html`.
-- `styles.css` – app-stilar; "KNAPPAR" och "MOBIL" sist. `tokens.css` – färger, typsnitt, radier.
-- `supabase/projects.sql` (steg 1–4f, kör i ordning), `supabase/notifications.sql` (ersätter `require_invite_code` – kör om efter projects.sql), `supabase/files.sql`, m.fl. `*.local.sql` och `.feedback-token` är git-ignorerade hemligheter.
-- `scripts/feedback.sh` – läs/markera feedback. `scripts/landing-screenshots.mjs` – nya skärmbilder (lokal server på 8765). `scripts/mock-supabase.js` – låtsas-Supabase (projekt, medskapare, inbjudningar, notiser, filer).
+- `theme.js` – app-skal (topbar, sidopanel, projektmeny + inställningar, notiser, inbjudan), profil, `createChoiceList`, ämnen/årskurser/klasser, Skapa-dialogen.
+- `data.js` – all data via `LossiData` (upplägg, projekt, klasser, medskapare, inbjudningar, notiser, filer, kalender, feedback, koder). `auth.js` – `LossiAuth` (inloggning, `checkAccessCode`, `signUp`).
+- `upplag.html` – uppläggssidan (mest logik). `plan-markup.js` – gemensam HTML för aktiviteter/lektioner/målrader. `ai-import.js`, `schedule.js`, `calendar.html`, `admin.html`, `login.html` + `onboarding.js`, `landing.html`, `marknadsplats.html`.
+- `styles.css` (app; "KNAPPAR I APPEN" och "MOBIL" sist), `buttons.css`, `tokens.css`, `login.css` (inkl. ONBOARDING sist), `feedbackboard.css` (admin-sidan).
+- `supabase/*.sql` – se "SQL som Tobias ska ha kört" ovan. `*.local.sql` och `.feedback-token` är git-ignorerade hemligheter.
+- `scripts/feedback.sh`, `scripts/landing-screenshots.mjs`, `scripts/mock-supabase.js` (låtsas-Supabase: projekt, klasser, medskapare, inbjudningar, notiser, filer, koder, admin), `scripts/drag-test.mjs`, `scripts/sql-tests/*.test.mjs`.
 
 ## Testa lokalt
-- Starta `lossi-static` (python http.server på 8765, `preview_start`). Låtsas-Supabase: kopiera `scripts/mock-supabase.js` till `_mock-supabase.js` och gör `_mobile-*.html`-kopior med supabase-taggen utbytt (sed-mönstret: `s#<script src="https://cdn\.jsdelivr\.net/npm/@supabase/supabase-js@[^"]+"></script>#<script src="_mock-supabase.js"></script>#; s#upplag\.html\?id=#_mobile-upplag.html?id=#g`). Radera kopiorna efteråt.
-- SQL testas i lokal Postgres (PGlite) med scratchpad-skriptet `pgtest/test.mjs` (172 kontroller) – det försvinner med sessionen; skriv ett nytt vid behov (auth-schema + roller anon/authenticated + `request.jwt.claim.sub`).
-- Dra och släpp: riktiga mushändelser via headless Chrome + CDP, **alltid även efter spara + omladdning**.
-- Kontrollera att dolda element verkligen döljs (computed `display`, inte bara `hidden`-attributet) – `.read-field { display:flex }` lurade oss en gång.
+- Starta `lossi-static` (python http.server på 8765, `preview_start`). Låtsas-Supabase: kopiera `scripts/mock-supabase.js` till `_mock-supabase.js` och gör `_mobile-*.html`-kopior med supabase-taggen utbytt (sed: `s#<script src="https://cdn\.jsdelivr\.net/npm/@supabase/supabase-js@[^"]+"></script>#<script src="_mock-supabase.js"></script>#; s#upplag\.html\?id=#_mobile-upplag.html?id=#g`). Radera kopiorna efteråt (de är git-exkluderade).
+  - Onboarding: `sessionStorage.mockLoggedOut = '1'` **innan** sidan laddas (annars skickas man vidare till index). Giltig kod i låtsasdatat: `ABC123`; utgången: `OLD999`. I login-kopian, byt `index.html` mot `_mobile-index.html` och `onboarding.js` mot en kopia med samma byte.
+  - Låtsas-Supabase sparar inte profilen mellan sidladdningar och tappar uppladdade filer vid omladdning – det är inte buggar i appen.
+- **SQL:** `scripts/sql-tests/` testar calendar-shared, project-classes och access-codes i lokal Postgres (PGlite). Kör: `npm install @electric-sql/pglite@0.2.17` i en scratchpad-mapp, kopiera dit testfilen och kör `node <test>.mjs "<sökväg till Lossi>"`. Testerna har hittat riktiga fel två gånger (parametrar som krockar med kolumnnamn – i SQL-funktioner vinner kolumnen).
+- **Dra och släpp:** `node scripts/drag-test.mjs` (headless Chrome + riktiga mushändelser, kräver `_mobile-upplag.html` + `_mock-supabase.js` på 8765) – **alltid även efter spara + omladdning**. Vänta in vanliga sparningen (800 ms); `flushOnLeave` går förbi låtsas-Supabase.
+- Kontrollera att dolda element verkligen döljs (computed `display`). Riktiga tangenttryck i webbläsarpanelen: `type` skickar hela strängen på en gång.
 - Efter UI-ändringar som syns på landningssidan: `node scripts/landing-screenshots.mjs` och committa `landing/`.
 
 ## Öppna trådar
-- **Snabbhet:** steg 1–4 gjorda (ovan); testa live att allt känns snabbare.
-- **Steg 5 projekt:** varning när någon annan redigerar samma upplägg + skydd mot att skriva över (sista sparning vinner i dag).
-- **Kalender per lärare:** man ser kollegornas lektioner men kan bara schemalägga egna upplägg; medskapare ser inte kalenderknappen (`lesson_events` har `unique (plan_id, lesson_id)` och kräver ägare).
-- **Feedback #4 (Albin):** nya konton har demo-upplägg utan sparade lektioner. Tobias: "låt det vara".
-- **Frågor till Tobias:** "aktivitet" → "moment"? Ska `/` visa landningssidan? (Gymnasiet som årskurs: löst 2026-10-21, läraren skriver årskursen själv.)
+- **Onboarding i appen** – nästa steg (ovan).
+- **Feedback:** #9 (projektets kalender) är byggd men inte markerad klar – markera `done` när Tobias bekräftat att kollegors lektioner syns live. #7 markerad `done` 2026-10-22. #8 (Ida: koppla centralt innehåll till lektionen) är inte påbörjad.
+- **Maskoten:** byt till Tobias Figma-export (SVG med separata lager: bakgrund, mun, ögonvitor, pupiller i mitten) om han skickar en.
+- **Verktygsraden i Beskrivning** (T, B, lista, citat) gör ingenting när man klickar – fråga Tobias om den ska kopplas in eller tas bort.
+- **Lektionsradens små kontroller** (kalender, ⋯, tid) är inte flyttade till knappsystemet.
+- **Kalender:** klass gäller hela upplägget (inte per lektion); gränsen 3 för varningen är ett förslag; Skapa med AI kan inte markera prov.
+- **Steg 5 projekt:** varning när någon annan redigerar samma upplägg (sista sparning vinner i dag).
+- **Säkerhet senare:** e-postbekräftelse när Lossi får mejlutskick.
+- **Frågor till Tobias:** "aktivitet" → "moment"? Ska `/` visa landningssidan?
 - **Steg 7:** testa export av databasen (`pg_dump`).

@@ -2281,8 +2281,20 @@
           </div>`);
       }
 
+      // Prov / Inlämning i ⋯-menyn (läggs till även i menyer som sparats före funktionen)
+      const menu = row.querySelector('.lesson-more .menu-popover');
+      if (menu && !menu.querySelector('[data-lesson-action="assessment"]')) {
+        menu.querySelector('.menu-popover-sep')?.insertAdjacentHTML('beforebegin', `
+          <div class="menu-popover-sep"></div>
+          ${Object.entries(LESSON_ASSESSMENTS).map(([key, a]) => `
+            <button type="button" class="menu-popover-item" data-lesson-action="assessment" data-assessment="${key}" role="menuitemcheckbox" aria-checked="false">
+              <i data-lucide="${a.icon}"></i>${a.label}<i data-lucide="check" class="menu-popover-check"></i>
+            </button>`).join('')}`);
+      }
+      syncLessonAssessment(group);
+
       // Fast ordning: namn + fäll ihop till vänster, resten samlat till höger
-      const order = ['.week-pill', '.lesson-collapse-btn', '.lesson-schedule-btn', '.lesson-status-btn', '.lesson-time-pill', '.lesson-more'];
+      const order = ['.week-pill', '.lesson-collapse-btn', '.lesson-assessment-tag', '.lesson-schedule-btn', '.lesson-status-btn', '.lesson-time-pill', '.lesson-more'];
       order.forEach(sel => { const el = row.querySelector(':scope > ' + sel); if (el) row.append(el); });
 
       // + under lektionens aktiviteter: lägg till en aktivitet i just den här lektionen
@@ -2309,8 +2321,42 @@
     closeAllMenuPopovers();
     if (addBtn || action.dataset.lessonAction === 'add') addActivity(group.querySelector('.lesson-activities'));
     else if (action.dataset.lessonAction === 'duplicate') duplicateLesson(group);
+    else if (action.dataset.lessonAction === 'assessment') toggleLessonAssessment(group, action.dataset.assessment);
     else if (action.dataset.lessonAction === 'delete') confirmDeleteLesson(group);
   }, true); // capture: ⋯-menyn stoppar klicket på väg upp (stopPropagation)
+
+  // Prov / Inlämning: sparas som data-assessment på lektionen (ingen = vanlig
+  // lektion). Kalendern visar det och varnar när en klass får mycket samma vecka.
+  function toggleLessonAssessment(group, key) {
+    if (group.dataset.assessment === key) delete group.dataset.assessment;
+    else group.dataset.assessment = key;
+    syncLessonAssessment(group);
+    saveState();
+  }
+
+  function syncLessonAssessment(group) {
+    if (!group) return;
+    const key = LESSON_ASSESSMENTS[group.dataset.assessment] ? group.dataset.assessment : null;
+    const row = group.querySelector(':scope > .week-row');
+    let tag = row?.querySelector('.lesson-assessment-tag');
+    if (key && row) {
+      if (!tag) {
+        tag = document.createElement('span');
+        tag.className = 'lesson-assessment-tag';
+        const collapse = row.querySelector('.lesson-collapse-btn');
+        if (collapse) collapse.after(tag);
+        else row.append(tag);
+      }
+      tag.dataset.kind = key;
+      tag.innerHTML = `<i data-lucide="${LESSON_ASSESSMENTS[key].icon}"></i>${LESSON_ASSESSMENTS[key].label}`;
+      lucide.createIcons({ nodes: [tag] });
+    } else {
+      tag?.remove();
+    }
+    group.querySelectorAll('[data-lesson-action="assessment"]').forEach(item => {
+      item.setAttribute('aria-checked', String(item.dataset.assessment === key));
+    });
+  }
 
   // Kopian hamnar direkt efter originalet, med nytt lektions-id och nya
   // aktivitets-id:n. Den ligger inte i kalendern (det gör bara originalet).

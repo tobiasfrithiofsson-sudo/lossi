@@ -56,6 +56,26 @@
 
 .cal-notice[hidden] { display: none; }
 
+/* Vems lektioner / vilken klass (ovanför rutnätet) */
+.cal-filters { margin-bottom: 12px; }
+
+/* Hög belastning på en klass (renderLoadWarning) */
+.cal-load-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, #d97706 12%, var(--color-bg-primary));
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  line-height: 1.45;
+}
+.cal-load-warning[hidden] { display: none; }
+.cal-load-row { display: flex; align-items: flex-start; gap: 8px; }
+.cal-load-row svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; color: #d97706; }
+
 /* ── Rutnätet ── */
 .cal-grid {
   --time-col: 56px;
@@ -216,6 +236,31 @@
   -webkit-box-orient: vertical;
 }
 
+/* Prov / Inlämning före lektionens namn */
+.cal-event-badge {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 16px;
+  vertical-align: 1px;
+  color: #fff;
+  background: #7c3aed;
+}
+.cal-event[data-assessment="inlamning"] .cal-event-badge { background: #d97706; }
+
+/* Kollegors lektioner: gråare, så att de egna syns först */
+.cal-event.is-other .cal-event-inner {
+  border-left-color: var(--color-text-tertiary);
+  background: color-mix(in srgb, var(--color-text-tertiary) 14%, var(--color-bg-primary));
+}
+.cal-event.is-other:hover .cal-event-inner,
+.cal-event.is-other:focus-visible .cal-event-inner {
+  background: color-mix(in srgb, var(--color-text-tertiary) 24%, var(--color-bg-primary));
+}
+
 .cal-event-meta {
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
@@ -269,6 +314,9 @@
 }
 
 .cal-popover-when::first-letter { text-transform: uppercase; }
+
+.cal-popover-owner { margin: -6px 0 12px; font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
+.cal-popover-owner[hidden], .cal-own-only[hidden] { display: none; }
 
 .cal-popover-actions {
   display: flex;

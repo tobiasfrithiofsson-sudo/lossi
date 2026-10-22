@@ -81,7 +81,7 @@
         res = [].concat(q.p).map(p => {
           const hit = rows().find(r => keys.every(k => String(r[k]) === String(p[k])));
           if (hit) { Object.assign(hit, p); return hit; }
-          const row = { id: nextId(), ...p }; rows().push(row); return row;
+          const row = { id: nextId(), ...(table === 'lesson_events' ? { owner_id: user.id } : {}), ...p }; rows().push(row); return row;
         });
       }
       if (q.op === 'update') res.forEach(r => Object.assign(r, q.p));

@@ -481,11 +481,13 @@ const LossiData = (() => {
   }
 
   // ── Kalender: lektioner inlagda på en tid (tabellen lesson_events, supabase/calendar.sql) ──
-  // En händelse = { id, planId, lessonId, start (Date), durationMin }.
-  const EVENT_COLUMNS = 'id, plan_id, lesson_id, starts_at, duration_min';
+  // En händelse = { id, planId, lessonId, start (Date), durationMin, ownerId }.
+  // Man ser sina egna händelser och (supabase/calendar-shared.sql) de andra
+  // medlemmarnas i sina projekt; ändra och ta bort gäller bara egna.
+  const EVENT_COLUMNS = 'id, plan_id, lesson_id, starts_at, duration_min, owner_id';
 
   function toEvent(r) {
-    return { id: String(r.id), planId: String(r.plan_id), lessonId: r.lesson_id, start: new Date(r.starts_at), durationMin: r.duration_min };
+    return { id: String(r.id), planId: String(r.plan_id), lessonId: r.lesson_id, start: new Date(r.starts_at), durationMin: r.duration_min, ownerId: r.owner_id || null };
   }
 
   // Händelser som börjar i intervallet [from, to)
@@ -500,12 +502,13 @@ const LossiData = (() => {
     return rows.map(toEvent);
   }
 
-  // De närmaste händelserna som inte är slut än
+  // Den inloggades närmaste händelser som inte är slut än (Kommande är personligt)
   async function upcomingEvents(limit = 5) {
     const now = new Date();
     const since = new Date(now.getTime() - 10 * 60 * 60 * 1000);
+    const user = await LossiAuth.getUser();
     const rows = check(await db().from('lesson_events').select(EVENT_COLUMNS)
-      .gte('starts_at', since.toISOString()).order('starts_at').limit(limit + 10));
+      .eq('owner_id', user?.id).gte('starts_at', since.toISOString()).order('starts_at').limit(limit + 10));
     return rows.map(toEvent)
       .filter(e => e.start.getTime() + e.durationMin * 60000 > now.getTime())
       .slice(0, limit);

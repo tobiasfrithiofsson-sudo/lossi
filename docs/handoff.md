@@ -21,7 +21,7 @@ Läs den här filen först i en ny session. Detaljer (databas, projekt, filer, n
   - **Skapa med AI / Fyll i med AI** (ai-import.js): läraren kopierar en instruktion till sin egen AI och klistrar in ett JSON-kodblock; Lossi anropar aldrig någon AI. Laddningssnurra i knappen.
   - **Filer** på upplägg och aktiviteter (Supabase Storage `plan-files`, 25 MB). `supabase/files.sql` körd; fungerar live (Tobias 2026-10-21).
   - **Brödsmulor** på uppläggssidan (projekt › Upplägg › titel).
-  - **Kalender/Kommande** visar bara valt projekt.
+  - **Kalender/Kommande** visar bara valt projekt. **Projektets kalender (feedback #9, 2026-10-22):** medlemmar ser varandras inlagda lektioner (`supabase/calendar-shared.sql`, bara läsa – ändra/ta bort gäller egna). Kalendern har Mina / Alla i projektet, klassfilter (uppläggets klass), Prov/Inlämning-märkning och en varning när en klass har ≥ 3 prov + inlämningar samma vecka (`LOAD_WARNING_AT` i calendar.html, räknar alla lärare). Lektioner markeras som Prov/Inlämning i lektionens ⋯-meny (`data-assessment` på `.lesson-group`, `LESSON_ASSESSMENTS` i schedule.js). Kommande i sidopanelen/översikten är fortfarande bara egna.
   - **Designsystem:** typsnitt Open Sans. **Knappar (2026-10-22):** `.btn` + variant `.btn-solid` / `.btn-outline` / `.btn-subtle` / `.btn-text`, storlek `.btn-lg` 40px / standard (sm) 32px / `.btn-xs` 24px, ton `.btn-danger`, form `.btn-icon` (kvadratisk). Vikt 500, hörn `--radius-xs`, 1px ram på alla. Systemet bor i `buttons.css`, som alla sidor (även landning och inloggning) laddar direkt efter tokens.css och före sina egna stilar. Landningen använder `.btn-lg`, inloggningens Logga in/Skapa konto också (fälten är 48px). De gamla klasserna (btn-primary, btn-ghost, btn-danger-solid, icon-btn, lp-btn) finns inte längre. Sidopanelen: grupper Kalender / Upplägg / Team med rubrik som fäller ihop (chevron syns vid hovring) och pil till sidan; "+ Skapa" under Upplägg; sidorna Upplägg (roller-coaster), Kalender, Material (Snart), Marknadsplats (candy; `marknadsplats.html` är en teaser med påhittad förhandsvisning, knappen öppnar feedback) längst ner – flyttade från topbaren, som nu bara har Skapa.
 
 ## Snabbhet (steg 1–4 gjorda 2026-10-21)
@@ -51,7 +51,7 @@ Större, senare: spara aktiviteter som data i stället för HTML. Låtsas-Supaba
 ## Öppna trådar
 - **Snabbhet:** steg 1–4 gjorda (ovan); testa live att allt känns snabbare.
 - **Steg 5 projekt:** varning när någon annan redigerar samma upplägg + skydd mot att skriva över (sista sparning vinner i dag).
-- **Kalender per lärare:** man kan bara schemalägga egna upplägg; medskapare ser inte kalenderknappen (`lesson_events` har `unique (plan_id, lesson_id)` och kräver ägare).
+- **Kalender per lärare:** man ser kollegornas lektioner men kan bara schemalägga egna upplägg; medskapare ser inte kalenderknappen (`lesson_events` har `unique (plan_id, lesson_id)` och kräver ägare).
 - **Feedback #4 (Albin):** nya konton har demo-upplägg utan sparade lektioner. Tobias: "låt det vara".
 - **Frågor till Tobias:** "aktivitet" → "moment"? Ska `/` visa landningssidan? (Gymnasiet som årskurs: löst 2026-10-21, läraren skriver årskursen själv.)
 - **Steg 7:** testa export av databasen (`pg_dump`).

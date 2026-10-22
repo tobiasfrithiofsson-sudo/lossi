@@ -1274,6 +1274,28 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 }
 
 /* Knapparna i verktygsraden är .btn.btn-text.btn-icon.btn-xs (buttons.css) */
+
+/* Lektion markerad som prov eller inlämning (lektionens ⋯-meny) */
+.lesson-assessment-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  --tag: #7c3aed;
+  color: var(--tag);
+  background: color-mix(in srgb, var(--tag) 12%, transparent);
+}
+.lesson-assessment-tag[data-kind="inlamning"] { --tag: #d97706; }
+.lesson-assessment-tag svg { width: 14px; height: 14px; }
+/* Bock vid valt alternativ i en meny */
+.menu-popover-check { margin-left: auto; visibility: hidden; }
+[aria-checked="true"] > .menu-popover-check { visibility: visible; }
 .toolbar-sep { width: 1px; height: 16px; background: var(--color-border); margin: 0 2px; }
 
 .editor-body {
@@ -3753,6 +3775,21 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 }
 
 .lesson-group.is-collapsed .week-row { margin-bottom: 0; }
+
+/* Raden bryts inte: lektionsnamnet krymper med … när det blir trångt
+   (t.ex. med Prov-taggen och Detaljer-panelen öppen); hela namnet syns när man redigerar */
+.lesson-group .week-row { flex-wrap: nowrap; }
+.lesson-group .week-row > * { flex-shrink: 0; }
+.lesson-group .week-row > .week-pill {
+  flex-shrink: 1;
+  min-width: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  line-height: 24px;
+}
+.lesson-group .week-row > .week-pill:focus { text-overflow: clip; }
 
 /* Små, gråa kvadratiska knappar i lektionens rad */
 .lesson-group .lesson-collapse-btn,

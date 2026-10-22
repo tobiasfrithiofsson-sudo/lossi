@@ -48,6 +48,24 @@
       </div>
     </div>
 
+    <!-- Vems lektioner och vilken klass (feedback #9). Alla/Mina syns bara när fler är med i projektet. -->
+    <div class="filter-bar cal-filters">
+      <div class="filter-toggle" id="calOwnerFilter" role="group" aria-label="Visa lektioner" hidden>
+        <button type="button" data-owner="mine" aria-pressed="true" onclick="setOwnerFilter('mine')">Mina</button>
+        <button type="button" data-owner="all" aria-pressed="false" onclick="setOwnerFilter('all')">Alla i projektet</button>
+      </div>
+      <div class="btn btn-subtle filter-select">
+        <i data-lucide="users"></i>
+        <select id="calClassFilter" onchange="setClassFilter(this.value)" aria-label="Klass">
+          <option value="">Alla klasser</option>
+        </select>
+        <i data-lucide="chevron-down" class="filter-select-chevron"></i>
+      </div>
+    </div>
+
+    <!-- Hög belastning: en klass har många prov/inlämningar samma vecka (alla lärare räknas) -->
+    <div class="cal-load-warning" id="calLoadWarning" role="status" hidden></div>
+
     <div class="cal-notice" id="calNotice" hidden></div>
 
     <div class="cal-grid" id="calGrid">
@@ -70,10 +88,11 @@
     <button class="btn btn-text btn-icon modal-close" onclick="closePopover()" aria-label="Stäng"><i data-lucide="x"></i></button>
   </div>
   <div class="cal-popover-when" id="calPopWhen"></div>
+  <div class="cal-popover-owner" id="calPopOwner" hidden></div>
   <div class="cal-popover-actions">
     <a class="btn btn-outline" id="calPopOpen" href="#"><i data-lucide="external-link"></i>Öppna upplägg</a>
-    <button class="btn btn-outline" onclick="editSelected()"><i data-lucide="clock"></i>Ändra tid</button>
-    <button class="btn btn-outline cal-popover-remove" onclick="removeSelected()"><i data-lucide="calendar-x"></i>Ta bort</button>
+    <button class="btn btn-outline cal-own-only" onclick="editSelected()"><i data-lucide="clock"></i>Ändra tid</button>
+    <button class="btn btn-outline cal-popover-remove cal-own-only" onclick="removeSelected()"><i data-lucide="calendar-x"></i>Ta bort</button>
   </div>
 </div>
 
@@ -102,6 +121,17 @@
   let allEvents = [];   // alla lärarens händelser (för "redan inlagd" i dialogen)
   let shown = [];       // händelser i perioden, kopplade till upplägg/lektion
   let selected = null;
+  let me = null;        // den inloggade
+  let members = [];     // projektets medlemmar (namn på andras lektioner)
+  // Mina = bara egna lektioner; Alla = hela projektets. Klass = uppläggens klass.
+  let ownerFilter = 'mine';
+  let classFilter = '';
+  try {
+    ownerFilter = localStorage.getItem('lossi-cal-owner') === 'all' ? 'all' : 'mine';
+    classFilter = localStorage.getItem('lossi-cal-class') || '';
+  } catch (e) {}
+  // Så många prov + inlämningar för en klass samma vecka ger en varning
+  const LOAD_WARNING_AT = 3;
 
   // Idag – men på en helg med dold helg visas kommande vecka
   function todayAnchor() {
@@ -144,12 +174,15 @@
     try {
       const project = await LossiData.currentProject().catch(() => null);
       const inProject = project ? { projectId: project.id } : {};
+      me = await LossiAuth.getUser();
+      members = project?.members || [];
       [plans, myPlans, allEvents] = await Promise.all([
         LossiData.listPlans(inProject),
         LossiData.listPlans({ ...inProject, mine: true }),
         LossiData.listEvents(new Date(2000, 0, 1), new Date(2100, 0, 1)),
       ]);
       plans = await withEventStates(plans, allEvents);
+      syncFilters();
       document.getElementById('calNotice').hidden = true;
     } catch (e) {
       console.warn('Kunde inte hämta kalendern:', e);
@@ -164,7 +197,11 @@
     closePopover();
     const days = periodDays();
     const from = days[0], to = addDays(days[days.length - 1], 1);
-    shown = resolveEvents(allEvents.filter(e => e.start >= from && e.start < to), plans);
+    const inPeriod = resolveEvents(allEvents.filter(e => e.start >= from && e.start < to), plans);
+    shown = inPeriod.filter(e => (ownerFilter === 'all' || isMine(e)) && (!classFilter || sameChoice(e.klass, classFilter)));
+    // Varningen gäller hela veckan, även när bara en dag visas (mobil) eller helgen är dold
+    const weekStart = mondayOf(anchor), weekEnd = addDays(weekStart, 7);
+    renderLoadWarning(resolveEvents(allEvents.filter(e => e.start >= weekStart && e.start < weekEnd), plans));
 
     // Visa hela dagen 07–18, eller mer om något ligger utanför
     let firstHour = DEFAULT_FIRST_HOUR, lastHour = DEFAULT_LAST_HOUR;
@@ -239,13 +276,16 @@
       const top = ((e.start.getHours() - firstHour) * 60 + e.start.getMinutes()) * HOUR_PX / 60;
       const height = Math.max(e.durationMin * HOUR_PX / 60, 22);
       const compact = height < 34;
+      const mine = isMine(e);
+      const assessment = LESSON_ASSESSMENTS[e.assessment];
+      const meta = [`${formatTime(e.start)}–${formatTime(eventEnd(e))}`, e.klass, e.plan.title, mine ? '' : ownerName(e)].filter(Boolean).join(' · ');
       return `
-        <button type="button" class="cal-event${compact ? ' is-compact' : ''}" data-event-id="${e.id}"
+        <button type="button" class="cal-event${compact ? ' is-compact' : ''}${mine ? '' : ' is-other'}" data-event-id="${e.id}"${assessment ? ` data-assessment="${e.assessment}"` : ''}
           style="top:${top}px;height:${height}px;left:calc(${col} * 100% / ${cols});width:calc(100% / ${cols})"
-          title="${escapeHTML(e.lessonName)} · ${escapeHTML(e.plan.title)} · ${formatTime(e.start)}–${formatTime(eventEnd(e))}">
+          title="${escapeHTML([assessment?.label, e.lessonName, e.klass, e.plan.title, mine ? '' : 'Inlagd av ' + ownerName(e)].filter(Boolean).join(' · '))} · ${formatTime(e.start)}–${formatTime(eventEnd(e))}">
           <span class="cal-event-inner">
-            <span class="cal-event-title">${escapeHTML(e.lessonName)}</span>
-            <span class="cal-event-meta">${formatTime(e.start)}–${formatTime(eventEnd(e))} · ${escapeHTML(e.plan.title)}</span>
+            <span class="cal-event-title">${assessment ? `<span class="cal-event-badge">${assessment.label}</span>` : ''}${escapeHTML(e.lessonName)}</span>
+            <span class="cal-event-meta">${escapeHTML(meta)}</span>
           </span>
         </button>`;
     }).join('');
@@ -311,6 +351,11 @@
     document.getElementById('calPopPlan').textContent = selected.plan.title;
     document.getElementById('calPopWhen').textContent = formatEventWhen(selected, { long: true });
     document.getElementById('calPopOpen').href = 'upplag.html?id=' + selected.planId;
+    // Andras lektioner går bara att titta på
+    const mine = isMine(selected);
+    document.getElementById('calPopOwner').hidden = mine;
+    document.getElementById('calPopOwner').textContent = mine ? '' : 'Inlagd av ' + ownerName(selected);
+    pop.querySelectorAll('.cal-own-only').forEach(el => { el.hidden = !mine; });
     pop.hidden = false;
     // Bredvid lektionen, inom fönstret
     const r = btn.getBoundingClientRect();
@@ -355,6 +400,67 @@
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closePopover(); });
   document.getElementById('calScroll').addEventListener('scroll', closePopover);
+
+  // ── Vems lektioner och vilken klass ──
+  function isMine(e) {
+    return !e.ownerId || e.ownerId === me?.id;
+  }
+
+  function ownerName(e) {
+    const m = members.find(x => x.userId === e.ownerId);
+    return m?.displayName || m?.email?.split('@')[0] || 'en kollega';
+  }
+
+  // Alla/Mina bara när fler är med i projektet; klasserna = de som finns på projektets upplägg
+  function syncFilters() {
+    const shared = members.length > 1;
+    const toggle = document.getElementById('calOwnerFilter');
+    toggle.hidden = !shared;
+    if (!shared) ownerFilter = 'mine';
+    toggle.querySelectorAll('[data-owner]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.owner === ownerFilter)));
+    const classes = mergeChoices(plans.map(p => p.state?.klass).filter(Boolean));
+    if (classFilter && !classes.some(c => sameChoice(c, classFilter))) classFilter = '';
+    const select = document.getElementById('calClassFilter');
+    select.innerHTML = '<option value="">Alla klasser</option>' +
+      classes.map(c => `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');
+    select.value = classFilter;
+  }
+
+  function setOwnerFilter(value) {
+    ownerFilter = value;
+    try { localStorage.setItem('lossi-cal-owner', value); } catch (e) {}
+    syncFilters();
+    render();
+  }
+
+  function setClassFilter(value) {
+    classFilter = value;
+    try { localStorage.setItem('lossi-cal-class', value); } catch (e) {}
+    render();
+  }
+
+  // Hög belastning: räknar prov + inlämningar per klass och vecka i perioden,
+  // för alla lärare i projektet (oavsett Mina/Alla), och varnar från LOAD_WARNING_AT.
+  function renderLoadWarning(events) {
+    const box = document.getElementById('calLoadWarning');
+    const load = new Map(); // "klass|vecka" → { klass, week, prov, inlamning }
+    events.forEach(e => {
+      if (!e.assessment || !e.klass) return;
+      if (classFilter && !sameChoice(e.klass, classFilter)) return;
+      const key = e.klass.toLowerCase() + '|' + isoWeek(e.start);
+      const item = load.get(key) || { klass: e.klass, week: isoWeek(e.start), prov: 0, inlamning: 0 };
+      item[e.assessment]++;
+      load.set(key, item);
+    });
+    const heavy = [...load.values()].filter(x => x.prov + x.inlamning >= LOAD_WARNING_AT)
+      .sort((a, b) => a.week - b.week || a.klass.localeCompare(b.klass, 'sv'));
+    box.hidden = !heavy.length;
+    box.innerHTML = heavy.map(x => {
+      const parts = [x.prov && `${x.prov} prov`, x.inlamning && `${x.inlamning} ${x.inlamning === 1 ? 'inlämning' : 'inlämningar'}`].filter(Boolean).join(' och ');
+      return `<div class="cal-load-row"><i data-lucide="triangle-alert"></i><span><strong>${escapeHTML(x.klass)}</strong> har ${parts} vecka ${x.week}. Det kan bli mycket för klassen.</span></div>`;
+    }).join('');
+    lucide.createIcons({ nodes: [box] });
+  }
 
   // ── Navigering ──
   function shiftPeriod(step) {

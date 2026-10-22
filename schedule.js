@@ -26,13 +26,22 @@ function lessonDuration(group) {
 }
 
 // [{ id, name, durationMin }] i uppläggets ordning
+// assessment: 'prov' | 'inlamning' | null (lektionens ⋯-meny i upplag.html)
 function lessonsFromState(state) {
   return [...parseStructure(state).content.querySelectorAll('.lesson-group')].map((g, i) => ({
     id: g.dataset.lessonId || null,
     name: g.querySelector('.week-pill')?.textContent.trim() || `Lektion ${i + 1}`,
     durationMin: lessonDuration(g),
+    assessment: LESSON_ASSESSMENTS[g.dataset.assessment] ? g.dataset.assessment : null,
   }));
 }
+
+// Lektioner som kan markeras som prov eller inlämning (syns i kalendern,
+// och räknas när kalendern varnar för hög belastning på en klass)
+const LESSON_ASSESSMENTS = {
+  prov: { label: 'Prov', icon: 'file-pen-line' },
+  inlamning: { label: 'Inlämning', icon: 'inbox' },
+};
 
 // Ger alla lektioner ett id; returnerar { state, changed }
 function withLessonIds(state) {
@@ -111,7 +120,9 @@ function resolveEvents(events, plans) {
       ...e,
       durationMin: lesson?.durationMin || e.durationMin,
       plan: summary,
+      klass: plan.state?.klass || '',
       lessonName: lesson?.name || 'Lektion',
+      assessment: lesson?.assessment || null,
     }];
   });
 }

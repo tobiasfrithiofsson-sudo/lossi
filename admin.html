@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="sv" class="auth-pending" data-auth-required>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin | Lossi</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="buttons.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="feedbackboard.css" />
+  <script src="https://unpkg.com/lucide@1.61.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <script src="theme.js"></script>
+  <script src="data.js"></script>
+  <script src="schedule.js"></script>
+  <script src="plan-markup.js"></script>
+  <script src="ai-import.js"></script>
+  <script src="feedback.js"></script>
+</head>
+<body>
+
+<header class="app-topbar"></header>
+
+<div class="app-body">
+  <aside class="app-aside"></aside>
+
+  <main class="admin-main">
+   <!-- Admin: vänstermeny som projektinställningarna (adminSections). #koder öppnar Koder direkt. -->
+   <nav class="admin-nav" aria-label="Admin">
+     <div class="settings-nav-label">Admin</div>
+     <button type="button" class="settings-nav-item" data-admin-section="feedback" onclick="showAdminSection('feedback')"><i data-lucide="message-square-heart"></i><span>Feedback</span></button>
+     <button type="button" class="settings-nav-item" data-admin-section="codes" onclick="showAdminSection('codes')"><i data-lucide="ticket"></i><span>Koder</span></button>
+   </nav>
+
+   <div class="admin-content">
+   <section class="admin-section" id="adminFeedback" data-section="feedback">
+    <div class="fb-header">
+      <div>
+        <h1 class="fb-title">Feedback från testare</h1>
+        <p class="fb-lead">Allt som skickats via Feedback-knappen, nyast först. Status och anteckningar syns bara här.</p>
+      </div>
+      <button class="btn btn-outline" onclick="loadFeedback()" title="Hämta på nytt"><i data-lucide="refresh-cw"></i>Uppdatera</button>
+    </div>
+
+    <div class="fb-stats" id="fbStats"></div>
+
+    <div class="fb-filters">
+      <div class="fb-segment" role="tablist" aria-label="Typ">
+        <button type="button" class="fb-seg is-active" data-kind="">Alla</button>
+        <button type="button" class="fb-seg" data-kind="idea"><i data-lucide="lightbulb"></i>Idéer</button>
+        <button type="button" class="fb-seg" data-kind="bug"><i data-lucide="bug"></i>Buggar</button>
+        <button type="button" class="fb-seg" data-kind="other"><i data-lucide="message-circle"></i>Övrigt</button>
+      </div>
+      <select class="field-input fb-status-filter" id="fbStatusFilter" aria-label="Status">
+        <option value="">Alla statusar</option>
+        <option value="new">Nya</option>
+        <option value="seen">Lästa</option>
+        <option value="done">Åtgärdade</option>
+        <option value="wontfix">Avfärdade</option>
+      </select>
+    </div>
+
+    <div class="fb-list" id="fbList">
+      <div class="fb-empty">Hämtar feedback…</div>
+    </div>
+   </section>
+
+   <!-- Koder för att skapa konto (supabase/access-codes.sql) -->
+   <section class="admin-section" id="adminCodes" data-section="codes" hidden>
+    <div class="fb-header">
+      <div>
+        <h1 class="fb-title">Koder</h1>
+        <p class="fb-lead">Koder för att skapa konto under testperioden. En kod kan användas av flera och gäller till det datum du väljer, eller tills du avslutar den.</p>
+      </div>
+      <button class="btn btn-outline" onclick="loadCodes()" title="Hämta på nytt"><i data-lucide="refresh-cw"></i>Uppdatera</button>
+    </div>
+
+    <form class="code-create" onsubmit="event.preventDefault(); createCode()">
+      <label class="code-create-label" for="codeUntil">Gäller till</label>
+      <input class="field-input code-date" type="date" id="codeUntil" />
+      <label class="code-forever"><input type="checkbox" id="codeForever" onchange="document.getElementById('codeUntil').disabled = this.checked" /> Tills vidare</label>
+      <button type="submit" class="btn btn-solid" id="codeCreateBtn"><i data-lucide="plus"></i>Skapa kod</button>
+    </form>
+    <p class="code-message" id="codeMessage" role="status" hidden></p>
+
+    <div class="code-list" id="codeList">
+      <div class="fb-empty">Hämtar koder…</div>
+    </div>
+   </section>
+   </div>
+  </main>
+</div>
+
+<script>
+  // ── Feedback från testare (bara administratörer) ──
+  // Läser all feedback via LossiData.listAllFeedback (supabase/feedback-admin.sql).
+  // Status och anteckning ändras direkt här och är samma som Claude ser och sätter.
+  LossiAuth.requireUser().then(applyUserProfile);
+  renderAppShell({ active: '' });
+  lucide.createIcons();
+  syncThemeIcons();
+
+  const KINDS = {
+    idea:  { label: 'Idé', icon: 'lightbulb' },
+    bug:   { label: 'Bugg', icon: 'bug' },
+    other: { label: 'Övrigt', icon: 'message-circle' },
+  };
+  const STATUSES = {
+    new:     'Ny',
+    seen:    'Läst',
+    done:    'Åtgärdad',
+    wontfix: 'Avfärdad',
+  };
+
+  let items = [];
+  let kindFilter = '';
+  let statusFilter = '';
+
+  function relativeTime(date) {
+    const diff = (date - Date.now()) / 1000;
+    const rtf = new Intl.RelativeTimeFormat('sv', { numeric: 'auto' });
+    const steps = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]];
+    for (const [unit, sec] of steps) {
+      if (Math.abs(diff) >= sec) return rtf.format(Math.round(diff / sec), unit);
+    }
+    return 'nyss';
+  }
+
+  function browserName(ua = '') {
+    const m = /Edg\/(\d+)/.exec(ua) || null;
+    if (m) return 'Edge ' + m[1];
+    if (/Firefox\/(\d+)/.test(ua)) return 'Firefox ' + /Firefox\/(\d+)/.exec(ua)[1];
+    if (/Chrome\/(\d+)/.test(ua)) return 'Chrome ' + /Chrome\/(\d+)/.exec(ua)[1];
+    if (/Version\/(\d+).*Safari/.test(ua)) return 'Safari ' + /Version\/(\d+)/.exec(ua)[1];
+    return 'Okänd webbläsare';
+  }
+
+  function systemName(ua = '') {
+    if (/iPhone|iPad/.test(ua)) return 'iOS';
+    if (/Android/.test(ua)) return 'Android';
+    if (/Mac OS X/.test(ua)) return 'Mac';
+    if (/Windows/.test(ua)) return 'Windows';
+    return '';
+  }
+
+  function initials(name = '') {
+    const parts = name.split(/[\s._@-]+/).filter(Boolean);
+    return ((parts[0]?.[0] || '?') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+  }
+
+  // Samma person får alltid samma färg
+  function personColor(name = '') {
+    const colors = ['#7C4FE0', '#2F6FED', '#E2508F', '#0E8F86', '#E8650C', '#15803D', '#4F46E5', '#DB2777'];
+    let h = 0;
+    for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return colors[h % colors.length];
+  }
+
+  function pageLabel(page = '') {
+    if (page.startsWith('/upplag')) return 'Upplägg';
+    if (page.startsWith('/calendar')) return 'Kalender';
+    if (page === '/' || page.startsWith('/index')) return 'Översikt';
+    if (page.startsWith('/feedbackboard') || page.startsWith('/admin')) return 'Admin';
+    return page || 'Okänd sida';
+  }
+
+  function renderStats() {
+    const count = s => items.filter(i => i.status === s).length;
+    document.getElementById('fbStats').innerHTML = `
+      <div class="fb-stat"><span class="fb-stat-num">${items.length}</span><span>totalt</span></div>
+      <div class="fb-stat is-new"><span class="fb-stat-num">${count('new')}</span><span>nya</span></div>
+      <div class="fb-stat"><span class="fb-stat-num">${count('seen')}</span><span>lästa</span></div>
+      <div class="fb-stat is-done"><span class="fb-stat-num">${count('done')}</span><span>åtgärdade</span></div>`;
+  }
+
+  function renderList() {
+    const list = document.getElementById('fbList');
+    const shown = items.filter(i => (!kindFilter || i.kind === kindFilter) && (!statusFilter || i.status === statusFilter));
+    if (!items.length) {
+      list.innerHTML = '<div class="fb-empty"><i data-lucide="inbox"></i>Ingen feedback ännu. Den dyker upp här när testarna använder Feedback-knappen.</div>';
+    } else if (!shown.length) {
+      list.innerHTML = '<div class="fb-empty">Ingen feedback matchar filtret.</div>';
+    } else {
+      list.innerHTML = shown.map(i => {
+        const kind = KINDS[i.kind] || KINDS.other;
+        const ctx = i.context || {};
+        const when = new Date(i.created_at);
+        const sys = systemName(ctx.userAgent);
+        return `
+        <article class="fb-card status-${i.status}" data-id="${i.id}">
+          <div class="fb-card-head">
+            <div class="fb-avatar" style="background:${personColor(i.author)}">${escapeHTML(initials(i.author))}</div>
+            <div class="fb-who">
+              <span class="fb-author">${escapeHTML(i.author || 'Okänd')}</span>
+              <span class="fb-when" title="${when.toLocaleString('sv-SE')}">${relativeTime(when)}</span>
+            </div>
+            <span class="fb-kind kind-${i.kind}"><i data-lucide="${kind.icon}"></i>${kind.label}</span>
+            <select class="field-input fb-status" aria-label="Status" data-id="${i.id}">
+              ${Object.entries(STATUSES).map(([k, v]) => `<option value="${k}"${k === i.status ? ' selected' : ''}>${v}</option>`).join('')}
+            </select>
+          </div>
+          <p class="fb-message">${escapeHTML(i.message)}</p>
+          <div class="fb-meta">
+            <a href="${escapeHTML(i.page || '#')}" class="fb-meta-item fb-page"><i data-lucide="file-text"></i>${escapeHTML(ctx.planTitle ? pageLabel(i.page) + ': ' + ctx.planTitle : pageLabel(i.page))}</a>
+            <span class="fb-meta-item"><i data-lucide="monitor"></i>${escapeHTML([browserName(ctx.userAgent), sys].filter(Boolean).join(' på '))}</span>
+            ${ctx.viewport ? `<span class="fb-meta-item"><i data-lucide="maximize-2"></i>${escapeHTML(ctx.viewport)}</span>` : ''}
+            ${ctx.theme ? `<span class="fb-meta-item"><i data-lucide="${ctx.theme === 'dark' ? 'moon' : 'sun'}"></i>${ctx.theme === 'dark' ? 'Mörkt läge' : 'Ljust läge'}</span>` : ''}
+          </div>
+          <div class="fb-note">
+            <textarea class="field-input fb-note-input" rows="1" data-id="${i.id}" placeholder="Anteckning, t.ex. vad som gjorts…">${escapeHTML(i.note || '')}</textarea>
+            <span class="fb-note-saved" aria-live="polite"></span>
+          </div>
+        </article>`;
+      }).join('');
+    }
+    lucide.createIcons({ nodes: [list] });
+    list.querySelectorAll('.fb-note-input').forEach(autoGrow);
+  }
+
+  function autoGrow(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 2 + 'px';
+  }
+
+  async function save(id, saveEl) {
+    const item = items.find(i => String(i.id) === String(id));
+    if (!item) return;
+    try {
+      await LossiData.updateFeedback(item.id, item.status, item.note);
+      if (saveEl) {
+        saveEl.textContent = 'Sparat';
+        setTimeout(() => { saveEl.textContent = ''; }, 1800);
+      }
+      renderStats();
+    } catch (e) {
+      console.warn('Kunde inte spara feedback:', e);
+      alert('Kunde inte spara ändringen. Försök igen om en stund.');
+    }
+  }
+
+  async function loadFeedback() {
+    const list = document.getElementById('fbList');
+    try {
+      items = await LossiData.listAllFeedback();
+    } catch (e) {
+      console.warn('Kunde inte hämta feedback:', e);
+      items = [];
+      list.innerHTML = `<div class="fb-empty"><i data-lucide="lock"></i>${
+        e?.code === 'PGRST202'
+          ? 'Feedbacksidan är inte aktiverad i databasen än. Kör supabase/feedback-admin.sql i Supabase.'
+          : e?.code === '42501' || /not allowed/i.test(e?.message || '')
+            ? 'Den här sidan är bara för administratörer. Har du precis fått rollen? Logga ut och in igen.'
+            : 'Kunde inte hämta feedback. Ladda om sidan för att försöka igen.'
+      }</div>`;
+      lucide.createIcons({ nodes: [list] });
+      document.getElementById('fbStats').innerHTML = '';
+      return;
+    }
+    renderStats();
+    renderList();
+  }
+
+  document.querySelector('.fb-segment').addEventListener('click', e => {
+    const btn = e.target.closest('.fb-seg');
+    if (!btn) return;
+    kindFilter = btn.dataset.kind;
+    document.querySelectorAll('.fb-seg').forEach(b => b.classList.toggle('is-active', b === btn));
+    renderList();
+  });
+
+  document.getElementById('fbStatusFilter').addEventListener('change', e => {
+    statusFilter = e.target.value;
+    renderList();
+  });
+
+  document.getElementById('fbList').addEventListener('change', e => {
+    if (!e.target.classList.contains('fb-status')) return;
+    const item = items.find(i => String(i.id) === e.target.dataset.id);
+    item.status = e.target.value;
+    e.target.closest('.fb-card').className = 'fb-card status-' + item.status;
+    save(item.id, e.target.closest('.fb-card').querySelector('.fb-note-saved'));
+  });
+
+  document.getElementById('fbList').addEventListener('input', e => {
+    if (e.target.classList.contains('fb-note-input')) autoGrow(e.target);
+  });
+
+  document.getElementById('fbList').addEventListener('focusout', e => {
+    if (!e.target.classList.contains('fb-note-input')) return;
+    const item = items.find(i => String(i.id) === e.target.dataset.id);
+    const note = e.target.value.trim();
+    if (!item || (item.note || '') === note) return;
+    item.note = note;
+    save(item.id, e.target.parentElement.querySelector('.fb-note-saved'));
+  });
+
+  // ── Vänstermenyn ──
+  function showAdminSection(id) {
+    document.querySelectorAll('.admin-section').forEach(sec => { sec.hidden = sec.dataset.section !== id; });
+    document.querySelectorAll('[data-admin-section]').forEach(b => {
+      const on = b.dataset.adminSection === id;
+      b.classList.toggle('is-active', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    history.replaceState(null, '', id === 'codes' ? '#koder' : '#feedback');
+    document.title = (id === 'codes' ? 'Koder' : 'Feedback') + ' | Admin | Lossi';
+    if (id === 'codes' && !codesLoaded) loadCodes();
+  }
+
+  // ── Koder ──
+  // Skapa (gäller till ett datum eller tills vidare), ändra datum, avsluta/öppna,
+  // och se vilka som skapat konto med koden. Länken öppnar onboardingen med koden ifylld.
+  let codes = [];
+  let codesLoaded = false;
+  const openCodeUsers = new Set();
+
+  function toDateValue(date) {
+    if (!date) return '';
+    const d = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // "Gäller till" ett datum = till och med den dagen
+  function endOfDay(value) {
+    if (!value) return null;
+    const [y, m, d] = value.split('-').map(Number);
+    return new Date(y, m - 1, d, 23, 59, 59);
+  }
+
+  function codeLink(code) {
+    return new URL('login.html?kod=' + code, window.location.href).href;
+  }
+
+  function codeStatus(c) {
+    if (c.closedAt) return { label: 'Avslutad', cls: 'is-closed' };
+    if (!c.active) return { label: 'Utgången', cls: 'is-expired' };
+    return { label: 'Aktiv', cls: 'is-active' };
+  }
+
+  function showCodeMessage(text, isError) {
+    const el = document.getElementById('codeMessage');
+    el.textContent = text;
+    el.classList.toggle('is-error', !!isError);
+    el.hidden = !text;
+  }
+
+  function renderCodes() {
+    const list = document.getElementById('codeList');
+    if (!codes.length) {
+      list.innerHTML = '<div class="fb-empty"><i data-lucide="ticket"></i>Inga koder än. Skapa en ovan.</div>';
+      lucide.createIcons({ nodes: [list] });
+      return;
+    }
+    list.innerHTML = codes.map(c => {
+      const st = codeStatus(c);
+      const n = c.users.length;
+      const open = openCodeUsers.has(c.id);
+      return `
+      <article class="code-card ${st.cls}" data-code-id="${c.id}">
+        <div class="code-card-head">
+          <span class="code-value">${escapeHTML(c.code)}</span>
+          <span class="code-status ${st.cls}">${st.label}</span>
+          <div class="code-actions">
+            <button type="button" class="btn btn-outline btn-xs" onclick="copyCode('${c.id}', 'code', this)"><i data-lucide="copy"></i><span>Kopiera kod</span></button>
+            <button type="button" class="btn btn-outline btn-xs" onclick="copyCode('${c.id}', 'link', this)"><i data-lucide="link"></i><span>Kopiera länk</span></button>
+            ${c.closedAt
+              ? `<button type="button" class="btn btn-text btn-xs" onclick="closeCode('${c.id}', false)">Öppna igen</button>`
+              : `<button type="button" class="btn btn-text btn-danger btn-xs" onclick="closeCode('${c.id}', true)">Avsluta</button>`}
+          </div>
+        </div>
+        <div class="code-card-meta">
+          <label class="code-meta-item">Gäller till
+            <input class="field-input code-date code-date-sm" type="date" value="${toDateValue(c.validUntil)}" onchange="changeCodeUntil('${c.id}', this.value)" ${c.closedAt ? 'disabled' : ''} />
+            ${c.validUntil ? '' : '<span class="code-forever-note">tills vidare</span>'}
+          </label>
+          <span class="code-meta-item">Skapad ${c.createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+          <button type="button" class="code-users-toggle" onclick="toggleCodeUsers('${c.id}')" ${n ? '' : 'disabled'} aria-expanded="${open}">
+            <i data-lucide="users"></i>${n === 1 ? '1 konto' : n + ' konton'}${n ? `<i data-lucide="chevron-down" class="code-users-chevron"></i>` : ''}
+          </button>
+        </div>
+        ${open && n ? `<ul class="code-users">${c.users.map(u => `
+          <li><span class="code-user-name">${escapeHTML(u.name)}</span><span class="code-user-email">${escapeHTML(u.email || '')}</span><span class="code-user-when">${u.createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}</span></li>`).join('')}</ul>` : ''}
+      </article>`;
+    }).join('');
+    lucide.createIcons({ nodes: [list] });
+  }
+
+  async function loadCodes() {
+    const list = document.getElementById('codeList');
+    try {
+      codes = await LossiData.listAccessCodes();
+      codesLoaded = true;
+    } catch (e) {
+      console.warn('Kunde inte hämta koder:', e);
+      list.innerHTML = `<div class="fb-empty"><i data-lucide="lock"></i>${
+        e?.code === 'PGRST202'
+          ? 'Koderna är inte aktiverade i databasen än. Kör supabase/access-codes.sql i Supabase.'
+          : 'Kunde inte hämta koderna. Ladda om sidan för att försöka igen.'}</div>`;
+      lucide.createIcons({ nodes: [list] });
+      return;
+    }
+    renderCodes();
+  }
+
+  async function createCode() {
+    const forever = document.getElementById('codeForever').checked;
+    const value = document.getElementById('codeUntil').value;
+    if (!forever && !value) return showCodeMessage('Välj ett datum, eller kryssa i Tills vidare.', true);
+    const until = forever ? null : endOfDay(value);
+    if (until && until < new Date()) return showCodeMessage('Datumet har redan passerat.', true);
+    const btn = document.getElementById('codeCreateBtn');
+    btn.disabled = true;
+    try {
+      const code = await LossiData.createAccessCode(until);
+      showCodeMessage(`Koden ${code} är skapad.`);
+      await loadCodes();
+    } catch (e) {
+      console.warn('Kunde inte skapa koden:', e);
+      showCodeMessage('Kunde inte skapa koden. Försök igen om en stund.', true);
+    }
+    btn.disabled = false;
+  }
+
+  async function changeCodeUntil(id, value) {
+    try {
+      await LossiData.setAccessCodeUntil(id, endOfDay(value));
+      await loadCodes();
+    } catch (e) {
+      console.warn('Kunde inte ändra datumet:', e);
+      alert('Kunde inte ändra datumet. Försök igen om en stund.');
+    }
+  }
+
+  async function closeCode(id, closed) {
+    const c = codes.find(x => x.id === id);
+    if (closed && !confirm(`Avsluta koden ${c.code}? Den går inte längre att använda för att skapa konto. Konton som redan skapats påverkas inte.`)) return;
+    try {
+      await LossiData.closeAccessCode(id, closed);
+      await loadCodes();
+    } catch (e) {
+      console.warn('Kunde inte ändra koden:', e);
+      alert('Kunde inte ändra koden. Försök igen om en stund.');
+    }
+  }
+
+  function toggleCodeUsers(id) {
+    if (openCodeUsers.has(id)) openCodeUsers.delete(id); else openCodeUsers.add(id);
+    renderCodes();
+  }
+
+  async function copyCode(id, what, btn) {
+    const c = codes.find(x => x.id === id);
+    try {
+      await navigator.clipboard.writeText(what === 'link' ? codeLink(c.code) : c.code);
+      const label = btn.querySelector('span');
+      const before = label.textContent;
+      label.textContent = 'Kopierad';
+      setTimeout(() => { label.textContent = before; }, 1600);
+    } catch (e) {
+      prompt('Kopiera:', what === 'link' ? codeLink(c.code) : c.code);
+    }
+  }
+
+  // Standard för nya koder: gäller 30 dagar
+  document.getElementById('codeUntil').value = toDateValue(new Date(Date.now() + 30 * 86400000));
+
+  loadFeedback();
+  showAdminSection(location.hash === '#koder' ? 'codes' : 'feedback');
+</script>
+</body>
+</html>

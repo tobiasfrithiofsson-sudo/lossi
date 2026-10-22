@@ -482,7 +482,7 @@ function renderAppShell(options = {}) {
 
   if (!document.getElementById('inviteModal')) {
     document.body.insertAdjacentHTML('beforeend', buildInviteModalsHTML());
-    ['inviteModal', 'joinModal', 'createProjectModal', 'deleteProjectModal', 'projectSettingsModal'].forEach(id => document.getElementById(id).addEventListener('click', e => {
+    ['inviteModal', 'createProjectModal', 'deleteProjectModal', 'projectSettingsModal'].forEach(id => document.getElementById(id).addEventListener('click', e => {
       if (e.target.id === id) document.getElementById(id).classList.remove('open');
     }));
   }
@@ -575,9 +575,9 @@ function buildTopbarHTML(active) {
           Profil
         </button>
         <button class="user-menu-item" id="themeMenuItem" onclick="toggleTheme()"></button>
-        <a class="user-menu-item" href="feedbackboard.html" id="adminFeedbackLink" hidden>
-          <i data-lucide="message-square-heart"></i>
-          Feedback från testare
+        <a class="user-menu-item" href="admin.html" id="adminFeedbackLink" hidden>
+          <i data-lucide="shield"></i>
+          Admin
         </a>
         <button class="user-menu-item" onclick="openPasswordModal()">
           <i data-lucide="key-round"></i>
@@ -772,9 +772,6 @@ async function renderProjectSwitcher(onProjectChange) {
       <button type="button" class="project-menu-item is-accent" onclick="toggleProjectMenu(false); openCreateProjectModal()">
         <i data-lucide="plus" class="project-menu-glyph"></i><span class="project-menu-name">Nytt projekt</span>
       </button>
-      <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openJoinModal()">
-        <i data-lucide="ticket" class="project-menu-glyph"></i><span class="project-menu-name">Gå med med kod</span>
-      </button>
     </div>`;
   updateInviteCard(current);
   // Nyss skapat projekt: visa koden direkt så att man kan bjuda in
@@ -941,17 +938,9 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') toggleNotifications(false);
 });
 
-// ── Bjud in och gå med (inbjudningskod, supabase/projects.sql steg 3) ──
-// Alla medlemmar i ett delat projekt ser dess kod och en länk som öppnar
-// Skapa konto med koden ifylld. Egna projekt kan man inte bjuda in till.
-function inviteLink(code) {
-  return new URL('login.html?kod=' + encodeURIComponent(code), window.location.href).href;
-}
-
-function formatInviteCode(code) {
-  const raw = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
-  return raw.length > 4 ? raw.slice(0, 4) + '-' + raw.slice(4) : raw;
-}
+// ── Bjud in (med e-post; supabase/notifications.sql) ──
+// Projektens koder är borttagna (supabase/access-codes.sql): kollegor bjuds
+// in med sin e-postadress, och den som saknar konto skapar ett med samma adress.
 
 // Kortet längst ner i sidopanelen: bjud in till valt projekt, eller gå med i ett
 function updateInviteCard(project) {
@@ -959,7 +948,7 @@ function updateInviteCard(project) {
   const sub = document.getElementById('asideInviteSub');
   if (!title || !sub) return;
   title.textContent = 'Bjud in kollegor';
-  sub.textContent = project ? `Dela koden till ${project.name}` : 'Samarbeta med ditt team';
+  sub.textContent = project ? `Bjud in till ${project.name}` : 'Samarbeta med ditt team';
 }
 
 async function openInviteOrJoin(e) {
@@ -986,21 +975,7 @@ function buildInviteModalsHTML() {
         </div>
         <p class="invite-email-message" id="inviteEmailMessage" role="status" hidden></p>
       </form>
-      <p class="invite-lead">Har kollegan redan ett konto får hen inbjudan i Lossi under klockan. Annars sparas den tills hen skapar ett konto med adressen. Du kan också dela koden eller länken.</p>
-      <div class="invite-field">
-        <span class="invite-label">Inbjudningskod</span>
-        <div class="invite-copy-row">
-          <span class="invite-code" id="inviteCode"></span>
-          <button class="btn btn-outline invite-copy-btn" onclick="copyInvite('code', this)"><i data-lucide="copy"></i><span>Kopiera</span></button>
-        </div>
-      </div>
-      <div class="invite-field">
-        <span class="invite-label">Eller skicka länken</span>
-        <div class="invite-copy-row">
-          <span class="invite-link" id="inviteLink"></span>
-          <button class="btn btn-outline invite-copy-btn" onclick="copyInvite('link', this)"><i data-lucide="copy"></i><span>Kopiera</span></button>
-        </div>
-      </div>
+      <p class="invite-lead">Har kollegan redan ett konto får hen inbjudan i Lossi under klockan. Annars väntar den tills hen skapar ett konto med adressen.</p>
       <div class="invite-field" id="inviteMembersField">
         <span class="invite-label" id="inviteMembersLabel">Medlemmar</span>
         <div class="invite-members" id="inviteMembers"></div>
@@ -1066,29 +1041,6 @@ function buildInviteModalsHTML() {
       <div class="project-settings" id="projectSettingsBody"></div>
     </div>
   </div>
-</div>
-
-<div class="modal-overlay" id="joinModal">
-  <div class="modal modal-sm">
-    <div class="modal-header">
-      <h3>Gå med i ett projekt</h3>
-      <button class="btn btn-text btn-icon modal-close" onclick="closeJoinModal()"><i data-lucide="x"></i></button>
-    </div>
-    <form class="modal-body" id="joinForm" onsubmit="event.preventDefault(); joinWithCode()">
-      <div class="field-group">
-        <label class="field-label" for="joinCode">Inbjudningskod</label>
-        <div class="field-group-content">
-          <input class="field-input invite-code-input" type="text" id="joinCode" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-1234" />
-        </div>
-      </div>
-      <p class="password-message" id="joinMessage" role="status" hidden></p>
-      <button type="submit" hidden></button>
-    </form>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeJoinModal()">Avbryt</button>
-      <button class="btn btn-solid" id="joinBtn" onclick="joinWithCode()">Gå med</button>
-    </div>
-  </div>
 </div>`;
 }
 
@@ -1102,15 +1054,9 @@ async function openInviteModal() {
     alert('Kunde inte hämta projektet. Ladda om sidan och försök igen.');
     return;
   }
-  if (!project) return openJoinModal();
-  if (!project.inviteCode) {
-    alert('Projektet har ingen inbjudningskod än.');
-    return;
-  }
+  if (!project) return;
   inviteProject = project;
   document.getElementById('inviteModalTitle').textContent = `Bjud in till ${project.name}`;
-  document.getElementById('inviteCode').textContent = formatInviteCode(project.inviteCode);
-  document.getElementById('inviteLink').textContent = inviteLink(project.inviteCode);
   const members = project.members;
   document.getElementById('inviteMembersField').hidden = !members.length;
   document.getElementById('inviteMembersLabel').textContent = `Medlemmar (${members.length})`;
@@ -1119,7 +1065,6 @@ async function openInviteModal() {
     const profile = { displayName: m.displayName, avatar: m.avatar, email: m.email };
     return `<div class="invite-member"><span class="invite-member-avatar">${userAvatarHTML(profile)}</span><span>${escapeHTML(profileName(profile) || 'Okänd')}</span></div>`;
   }).join('');
-  document.querySelectorAll('#inviteModal .invite-copy-btn span').forEach(el => { el.textContent = 'Kopiera'; });
   document.getElementById('inviteEmail').value = '';
   document.getElementById('inviteEmailMessage').hidden = true;
   document.getElementById('inviteModal').classList.add('open');
@@ -1146,9 +1091,9 @@ async function sendEmailInvite(inputId, messageId, onDone) {
   if (btn) btn.disabled = true;
   try {
     const result = await LossiData.inviteByEmail(inviteProject.id, email);
+    // Lossi skickar inga mejl än: för den som saknar konto väntar inbjudan på adressen
     if (result === 'member') show(`${email} är redan med i ${inviteProject.name}.`, 'error');
-    else if (result === 'sent') show(`Inbjudan skickad. ${email} ser den under klockan i Lossi.`, 'ok');
-    else show(`${email} har inget konto än. Inbjudan sparas och dyker upp när hen skapar ett konto med adressen. Skicka gärna länken nedan.`, 'ok');
+    else show(`Inbjudan skickad till ${email}.`, 'ok');
     if (result !== 'member') input.value = '';
     onDone?.();
   } catch (e) {
@@ -1156,20 +1101,6 @@ async function sendEmailInvite(inputId, messageId, onDone) {
     show('Kunde inte skicka inbjudan. Försök igen om en stund.', 'error');
   }
   if (btn) btn.disabled = false;
-}
-
-async function copyInvite(what, btn) {
-  if (!inviteProject) return;
-  const text = what === 'link' ? inviteLink(inviteProject.inviteCode) : formatInviteCode(inviteProject.inviteCode);
-  const label = btn.querySelector('span');
-  label.dataset.label = label.dataset.label || label.textContent;
-  try {
-    await navigator.clipboard.writeText(text);
-    label.textContent = 'Kopierad!';
-  } catch (e) {
-    label.textContent = 'Markera och kopiera';
-  }
-  setTimeout(() => { label.textContent = label.dataset.label; }, 2000);
 }
 
 // ── Projektinställningar ──
@@ -1333,16 +1264,7 @@ function renderProjectSettings() {
         <p class="invite-email-message" id="settingsInviteMessage" role="status" hidden></p>
       </form>
       <div class="pending-invites" id="settingsPendingInvites"></div>
-      <p class="settings-note">Eller dela koden eller länken. Den som får dem kan skapa ett konto eller välja <strong>Gå med med kod</strong>.</p>
-      ${p.inviteCode ? `
-      <div class="invite-copy-row">
-        <span class="invite-code">${escapeHTML(formatInviteCode(p.inviteCode))}</span>
-        <button class="btn btn-outline invite-copy-btn" onclick="copyInvite('code', this)"><i data-lucide="copy"></i><span>Kopiera kod</span></button>
-      </div>
-      <div class="invite-copy-row">
-        <span class="invite-link">${escapeHTML(inviteLink(p.inviteCode))}</span>
-        <button class="btn btn-outline invite-copy-btn" onclick="copyInvite('link', this)"><i data-lucide="copy"></i><span>Kopiera länk</span></button>
-      </div>` : '<p class="settings-note">Projektet har ingen inbjudningskod än.</p>'}
+      <p class="settings-note">Har kollegan inget konto än väntar inbjudan tills hen skapar ett konto med adressen.</p>
     </section>
 
 `,
@@ -1605,55 +1527,9 @@ async function createProjectFromModal() {
   }
 }
 
-function openJoinModal() {
-  document.getElementById('joinForm').reset();
-  showJoinMessage('');
-  document.getElementById('joinBtn').disabled = false;
-  document.getElementById('joinModal').classList.add('open');
-  document.getElementById('joinCode').focus();
-}
-
-function closeJoinModal() {
-  document.getElementById('joinModal').classList.remove('open');
-}
-
-function showJoinMessage(text, isError) {
-  const el = document.getElementById('joinMessage');
-  el.textContent = text;
-  el.classList.toggle('is-error', !!isError);
-  el.hidden = !text;
-}
-
-async function joinWithCode() {
-  const input = document.getElementById('joinCode');
-  const code = input.value;
-  if (code.replace(/[^A-Za-z0-9]/g, '').length < 8) {
-    showJoinMessage('Skriv inbjudningskoden (8 tecken).', true);
-    input.focus();
-    return;
-  }
-  const btn = document.getElementById('joinBtn');
-  btn.disabled = true;
-  try {
-    await LossiData.joinProject(code);
-    window.location.href = 'index.html';
-  } catch (e) {
-    console.warn('Kunde inte gå med i projektet:', e);
-    showJoinMessage(/inbjudningskod/i.test(e?.message || '') ? 'Koden finns inte. Kontrollera att du skrivit rätt.' : 'Något gick fel. Försök igen om en stund.', true);
-    btn.disabled = false;
-  }
-}
-
-document.addEventListener('input', e => {
-  if (e.target.id !== 'joinCode') return;
-  const formatted = formatInviteCode(e.target.value);
-  if (formatted !== e.target.value) e.target.value = formatted;
-  showJoinMessage('');
-});
-
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  ['inviteModal', 'joinModal', 'createProjectModal', 'deleteProjectModal', 'projectSettingsModal'].forEach(id => document.getElementById(id)?.classList.remove('open'));
+  ['inviteModal', 'createProjectModal', 'deleteProjectModal', 'projectSettingsModal'].forEach(id => document.getElementById(id)?.classList.remove('open'));
 });
 
 function toggleProjectMenu(open) {

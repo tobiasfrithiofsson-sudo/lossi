@@ -367,3 +367,183 @@ body {
 
 .login-optional { font-weight: 400; color: var(--color-text-tertiary); }
 .login-help { font-size: var(--font-size-sm); color: var(--color-text-tertiary); margin-top: 6px; line-height: 1.45; }
+
+
+/* ============================================================
+   SKAPA KONTO – onboarding i tre steg (onboarding.js)
+   Mått enligt Tobias skisser: kort ~1140 × 650, formulär till vänster,
+   bild till höger, Tillbaka / prickar / Nästa längst ner.
+   ============================================================ */
+
+.ob-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1142px;
+  min-height: 650px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 491px);
+  gap: 32px;
+  padding: 46px;
+  box-sizing: border-box;
+  background: var(--color-bg-primary);
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(22, 20, 18, 0.10), 0 2px 6px rgba(22, 20, 18, 0.04);
+}
+.ob-card[hidden] { display: none; }
+[data-theme="dark"] .ob-card { box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); border: 1px solid var(--color-border); }
+
+.ob-form { display: flex; flex-direction: column; min-width: 0; }
+.ob-step { display: flex; flex-direction: column; }
+.ob-step[hidden] { display: none; }
+
+.ob-title { font-size: 34px; font-weight: 700; letter-spacing: -0.6px; line-height: 1.2; color: var(--color-text-primary); margin: 0 0 28px; }
+.ob-lead { font-size: 18px; line-height: 1.35; color: var(--color-text-primary); margin: -4px 0 32px; max-width: 480px; }
+.ob-label { display: block; font-size: var(--font-size-base); font-weight: 600; color: var(--color-text-primary); margin: 0 0 8px; }
+.ob-input + .ob-label, .ob-info + .ob-label { margin-top: 18px; }
+
+.ob-input {
+  width: 100%;
+  height: 46px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  font: inherit;
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-text-tertiary);
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ob-input::placeholder { color: var(--color-text-tertiary); opacity: 0.8; }
+.ob-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-light); }
+.ob-input.is-invalid { border-color: var(--login-danger); }
+
+.ob-info {
+  margin: 8px 0 0;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-primary));
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+
+/* Kodrutorna: större text än i resten av systemet */
+.ob-code { display: flex; gap: 6px; }
+.ob-code-box {
+  width: 50px;
+  height: 50px;
+  box-sizing: border-box;
+  padding: 0;
+  text-align: center;
+  font: inherit;
+  font-size: 24px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-text-tertiary);
+  border-radius: 4px;
+  outline: none;
+  caret-color: var(--color-primary);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ob-code-box:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-light); }
+.ob-code-box.is-invalid { border-color: var(--login-danger); }
+
+.ob-help { font-size: var(--font-size-base); line-height: 1.6; color: var(--color-text-secondary); margin: 22px 0 0; max-width: 380px; }
+.ob-error { font-size: var(--font-size-base); color: var(--login-danger); margin: 10px 0 0; }
+.ob-error[hidden] { display: none; }
+
+/* Steg 3: ens yta och inbjudningarna */
+.ob-project, .ob-invite { display: flex; align-items: center; gap: 12px; min-height: 52px; }
+.ob-project-avatar.project-avatar { width: 32px; height: 32px; border-radius: 6px; font-size: 15px; }
+.ob-project-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ob-project-name { font-size: var(--font-size-lg); font-weight: 500; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ob-project-meta { font-size: var(--font-size-md); color: var(--color-text-tertiary); }
+.ob-invites { margin-top: 28px; }
+.ob-invites[hidden] { display: none; }
+.ob-invite-list { display: flex; flex-direction: column; gap: 6px; }
+.ob-invite-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.ob-invite-done { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; font-size: var(--font-size-lg); font-weight: 500; color: var(--color-text-tertiary); }
+.ob-invite-done.is-joined { color: var(--login-success); }
+.ob-invite-done svg { width: 18px; height: 18px; }
+
+/* Tillbaka – prickar – Nästa */
+.ob-footer { display: flex; align-items: center; gap: 16px; margin-top: auto; padding-top: 32px; }
+.ob-footer .btn[hidden] { display: none; }
+.ob-next { position: relative; margin-left: auto; }
+.ob-next .login-spinner { position: absolute; }
+.ob-next.is-loading { cursor: progress; }
+.ob-next.is-loading .login-btn-label { opacity: 0; }
+.ob-next.is-loading .login-spinner { opacity: 1; }
+.ob-dots { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+.ob-form { position: relative; }
+.ob-dots span { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--color-text-tertiary) 45%, transparent); transition: background 0.2s, width 0.2s; }
+.ob-dots span.is-on { width: 18px; border-radius: 3px; background: var(--color-primary); }
+
+/* ── Högerytan ── */
+.ob-media { position: relative; min-height: 0; }
+.ob-mascot {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(225deg, #FF2E33 0%, #FF4A2E 45%, #FF6B2B 100%);
+  overflow: hidden;
+}
+.ob-mascot[hidden] { display: none; }
+.ob-face { width: 190px; overflow: visible; transition: transform 0.3s; }
+.ob-pupil { transition: transform 0.12s ease-out; transform-box: fill-box; }
+.ob-eye { transform-box: fill-box; transform-origin: center; transition: transform 0.12s; }
+.ob-mascot.is-closed .ob-eye, .ob-mascot.is-blinking .ob-eye { transform: scaleY(0.08); }
+.ob-mouth { transition: d 0.25s; }
+.ob-mascot.is-happy .ob-face { animation: ob-hop 0.45s ease; }
+@keyframes ob-hop { 40% { transform: translateY(-10px); } }
+@media (prefers-reduced-motion: reduce) {
+  .ob-pupil, .ob-eye, .ob-face { transition: none; }
+  .ob-mascot.is-happy .ob-face { animation: none; }
+}
+
+/* Steg 3: en liten Lossi med projektväljaren utfälld (obRenderApp) */
+.ob-app { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: flex-start; overflow: hidden; border-radius: 12px; background: linear-gradient(160deg, var(--color-bg-hover), color-mix(in srgb, var(--color-primary) 8%, var(--color-bg-primary))); }
+.ob-app[hidden] { display: none; }
+.ob-app-window { width: 88%; height: 82%; margin-left: 12%; border: 1px solid var(--color-border); border-right: none; border-bottom: none; border-radius: 12px 0 0 0; background: var(--color-bg-primary); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12); overflow: hidden; }
+.ob-app-bar { display: flex; gap: 6px; padding: 12px 14px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-aside, var(--color-bg-hover)); }
+.ob-app-bar span { width: 10px; height: 10px; border-radius: 50%; background: #FF5F57; }
+.ob-app-bar span:nth-child(2) { background: #FEBC2E; }
+.ob-app-bar span:nth-child(3) { background: #28C840; }
+.ob-app-body { padding: 18px; }
+.ob-app-switcher { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 8px; border-radius: 6px; background: var(--color-bg-hover); }
+.ob-app-switcher svg { width: 16px; height: 16px; color: var(--color-text-tertiary); flex-shrink: 0; }
+.ob-app-avatar.project-avatar { width: 26px; height: 26px; border-radius: 6px; font-size: 13px; }
+.ob-app-name { flex: 1; min-width: 0; font-size: var(--font-size-lg); font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ob-app-menu { margin-top: 8px; padding: 6px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-bg-primary); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12); width: 82%; }
+.ob-app-menu-label { padding: 6px 8px 4px; font-size: var(--font-size-xs); font-weight: 600; color: var(--color-text-tertiary); }
+.ob-app-item { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px; border-radius: 4px; font-size: var(--font-size-base); color: var(--color-text-primary); }
+.ob-app-item.is-new { animation: ob-in 0.35s ease; }
+.ob-app-item.is-current { background: var(--color-bg-hover); }
+.ob-app-item.is-muted { color: var(--color-primary); }
+.ob-app-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+.ob-app-item-avatar.project-avatar { width: 20px; height: 20px; border-radius: 4px; font-size: 10px; }
+.ob-app-item-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ob-app-sep { height: 1px; margin: 6px 4px; background: var(--color-border); }
+@keyframes ob-in { from { opacity: 0; transform: translateY(-4px); } }
+
+/* Projektavatarer (samma som i appen, styles.css laddas inte här) */
+.project-avatar { display: grid; place-items: center; flex-shrink: 0; background: linear-gradient(135deg, var(--face-a), var(--face-b)); color: #fff; font-weight: 700; line-height: 1; }
+.project-avatar svg { width: 55%; height: 55%; color: #fff; stroke: #fff; }
+
+/* Kortet tar hela sidan på bredden; bilden döljs på smala skärmar */
+body.is-onboarding .login-main { justify-content: center; }
+@media (max-width: 900px) {
+  .ob-card { grid-template-columns: minmax(0, 1fr); min-height: 0; padding: 32px 24px; }
+  .ob-media { display: none; }
+  .ob-title { font-size: 28px; }
+  .ob-lead { font-size: var(--font-size-lg); }
+}
+@media (max-width: 480px) {
+  .ob-code-box { width: calc((100% - 30px) / 6); height: 48px; }
+}

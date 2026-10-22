@@ -41,6 +41,15 @@
     { id: 3, user_id: 'u1', kind: 'member_joined', project_id: 2, actor_name: 'Mange W', project_name: 'Engelska skolan', plan_title: '', created_at: ago(60 * 30), read_at: ago(60 * 20) },
   ];
   const persist = () => sessionStorage.setItem('mockDb', JSON.stringify(tables));
+  // Koder: ABC123 gäller tills vidare, OLD999 har gått ut
+  tables.access_codes = tables.access_codes || [
+    { id: 1, code: 'ABC123', valid_until: null, closed_at: null, created_at: ago(60 * 24 * 3) },
+    { id: 2, code: 'OLD999', valid_until: ago(60 * 24), closed_at: null, created_at: ago(60 * 24 * 40) },
+  ];
+  const validAccessCode = code => {
+    const c = (tables.access_codes || []).find(x => x.code === String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''));
+    return !!c && !c.closed_at && (!c.valid_until || new Date(c.valid_until) > new Date());
+  };
   window.__mockDb = tables;
   // Räknar anropen per tabell, så att man kan se hur mycket en sida hämtar (window.__mockCalls)
   const calls = window.__mockCalls = [];
@@ -137,6 +146,26 @@
     rpc: async (name, params) => {
       const fb = window.__mockFeedback = window.__mockFeedback || [];
       if (name === 'project_member_profiles') return { data: memberProfiles, error: null };
+      // Koder för att skapa konto (supabase/access-codes.sql)
+      if (name === 'check_access_code') return { data: validAccessCode(params.input_code), error: null };
+      if (name === 'admin_list_access_codes') return { data: (tables.access_codes || []).slice().reverse().map(c => ({
+        ...c, active: !c.closed_at && (!c.valid_until || new Date(c.valid_until) > new Date()),
+        users: (tables.access_code_signups || []).filter(u => u.code === c.code).map(u => ({ name: u.name, email: u.email, created_at: u.created_at })),
+      })), error: null };
+      if (name === 'admin_create_access_code') {
+        const abc = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+        const code = Array.from({ length: 6 }, () => abc[Math.floor(Math.random() * abc.length)]).join('');
+        (tables.access_codes = tables.access_codes || []).push({ id: Date.now(), code, valid_until: params.p_valid_until, closed_at: null, created_at: new Date().toISOString() });
+        persist();
+        return { data: code, error: null };
+      }
+      if (name === 'admin_set_access_code_until' || name === 'admin_close_access_code') {
+        const c = (tables.access_codes || []).find(x => x.id === params.p_id);
+        if (name === 'admin_set_access_code_until') c.valid_until = params.p_valid_until;
+        else c.closed_at = params.p_closed ? new Date().toISOString() : null;
+        persist();
+        return { data: null, error: null };
+      }
       const byCode = code => tables.projects.find(p => p.invite_code && p.invite_code === String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''));
       if (name === 'invite_project_name') return { data: byCode(params.code)?.name || null, error: null };
       const editors = tables.plan_editors;
@@ -253,9 +282,17 @@
       signOut: async () => ({ error: null }),
       signInWithPassword: async () => ({ error: null }),
       signUp: async ({ email, options }) => {
-        const code = String(options?.data?.invite_code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        // Som supabase/access-codes.sql: giltig kod eller väntande inbjudan till adressen
+        const code = String(options?.data?.access_code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
         const invited = (tables.project_invites || []).some(i => i.status === 'pending' && i.email === email.toLowerCase());
-        if (!tables.projects.some(p => p.invite_code === code) && !invited) return { data: {}, error: { message: 'Database error saving new user', status: 500 } };
+        if (!validAccessCode(code) && !invited) return { data: {}, error: { message: 'Database error saving new user', status: 500 } };
+        const first = options?.data?.first_name;
+        if (first) tables.projects.find(p => p.personal_owner === user.id).name = /[sxz]$/i.test(first) ? first + ' yta' : first + 's yta';
+        if (validAccessCode(code)) (tables.access_code_signups = tables.access_code_signups || []).push({ code, email, name: options?.data?.display_name || email, created_at: new Date().toISOString() });
+        Object.assign(user.user_metadata, { display_name: options?.data?.display_name || '' });
+        // Inbjudningar till den nya adressen blir den inloggades (låtsas-användaren är alltid u1)
+        (tables.project_invites || []).forEach(i => { if (i.email === email.toLowerCase()) i.email = user.email; });
+        persist();
         if (email === 'finns@skola.se') return { data: {}, error: { message: 'User already registered', status: 422 } };
         sessionStorage.setItem('mockSignUp', JSON.stringify({ email, options }));
         sessionStorage.removeItem('mockLoggedOut');

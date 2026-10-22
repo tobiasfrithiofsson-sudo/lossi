@@ -19,6 +19,8 @@
   <script src="config.js"></script>
   <script src="auth.js"></script>
   <script src="theme.js"></script>
+  <script src="data.js"></script>
+  <script src="onboarding.js" defer></script>
 </head>
 <body>
 
@@ -78,45 +80,70 @@
     <p class="login-fine"><i data-lucide="key-round"></i>Glömt lösenordet? Hör av dig till den som bjöd in dig.</p>
   </div>
 
-  <div class="login-card" id="signupCard" hidden>
-    <h1 class="login-title">Skapa konto</h1>
-    <p class="login-lead">Lossi är i en sluten testperiod. Du behöver en inbjudningskod från en kollega, eller en inbjudan till din e-postadress.</p>
+  <!-- Skapa konto i tre steg (onboarding.js): 1 kod, 2 uppgifter, 3 projekt.
+       Knappen "Skapa konto" på inloggningen öppnar steg 1; login.html?kod=ABC123 fyller i koden. -->
+  <div class="ob-card" id="signupCard" hidden>
+    <form class="ob-form" id="obForm" novalidate>
+      <!-- Steg 1: kod (eller tomt om man bjudits in via e-post) -->
+      <section class="ob-step" data-step="1">
+        <h1 class="ob-title">Ange kod</h1>
+        <p class="ob-lead">Lossi är i en sluten testperiod. Du behöver ange din inbjudningskod för att kunna skapa ett konto.</p>
+        <label class="ob-label" id="obCodeLabel" for="obCode0">Inbjudningskod</label>
+        <div class="ob-code" id="obCode" role="group" aria-labelledby="obCodeLabel">
+          <input class="ob-code-box" id="obCode0" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Tecken 1 av 6" />
+          <input class="ob-code-box" id="obCode1" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Tecken 2 av 6" />
+          <input class="ob-code-box" id="obCode2" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Tecken 3 av 6" />
+          <input class="ob-code-box" id="obCode3" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Tecken 4 av 6" />
+          <input class="ob-code-box" id="obCode4" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Tecken 5 av 6" />
+          <input class="ob-code-box" id="obCode5" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Tecken 6 av 6" />
+        </div>
+        <p class="ob-error" id="obCodeError" role="alert" hidden></p>
+        <p class="ob-help">Har en kollega bjudit in din e-postadress kan du lämna fältet tomt. Inbjudan väntar då i Lossi när du har loggat in.</p>
+      </section>
 
-    <form id="signupForm" novalidate>
-      <label class="login-label" for="signupCode">Inbjudningskod <span class="login-optional">(om du har fått en)</span></label>
-      <div class="login-input-wrap">
-        <i data-lucide="ticket"></i>
-        <input class="login-input login-input-code" id="signupCode" type="text" name="code" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-1234" required />
-      </div>
-      <p class="login-hint" id="signupCodeHint" hidden></p>
-      <p class="login-help">Har en kollega bjudit in din e-postadress kan du lämna fältet tomt. Inbjudan väntar då i Lossi när du har loggat in.</p>
+      <!-- Steg 2: uppgifter om sig själv; kontot skapas när man går vidare -->
+      <section class="ob-step" data-step="2" hidden>
+        <h1 class="ob-title">Skapa konto</h1>
+        <label class="ob-label" for="obFirstName">Förnamn</label>
+        <input class="ob-input" id="obFirstName" type="text" autocomplete="given-name" placeholder="John" />
+        <label class="ob-label" for="obLastName">Efternamn</label>
+        <input class="ob-input" id="obLastName" type="text" autocomplete="family-name" placeholder="Doe" />
+        <label class="ob-label" for="obEmail">Epostadress</label>
+        <input class="ob-input" id="obEmail" type="email" autocomplete="username" inputmode="email" placeholder="john.doe@mail.se" />
+        <p class="ob-info">Under testperioden av Lossi rekommenderas du att använda din privata epost.</p>
+        <label class="ob-label" for="obPassword">Välj ett lösenord</label>
+        <input class="ob-input" id="obPassword" type="password" autocomplete="new-password" placeholder="Minst 8 tecken" />
+        <p class="ob-error" id="obAccountError" role="alert" hidden></p>
+      </section>
 
-      <label class="login-label login-label-spaced" for="signupName">Ditt namn</label>
-      <div class="login-input-wrap">
-        <i data-lucide="user"></i>
-        <input class="login-input" id="signupName" type="text" name="name" autocomplete="name" placeholder="Förnamn Efternamn" required />
-      </div>
+      <!-- Steg 3: ens egen yta + inbjudningar till kollegors projekt -->
+      <section class="ob-step" data-step="3" hidden>
+        <h1 class="ob-title">Ditt projekt</h1>
+        <p class="ob-lead">Projekt hjälper dig att ha ordning om du flänger runt på olika skolor. Se dina kollegors lektioner, samarbeta och ha koll på kalenderhändelser. Din egen yta är bara din, tills du bjuder in någon.</p>
+        <div class="ob-label">Din yta</div>
+        <div class="ob-project" id="obOwnProject"></div>
+        <div class="ob-invites" id="obInvites" hidden>
+          <div class="ob-label">Inbjudningar</div>
+          <div class="ob-invite-list" id="obInviteList"></div>
+        </div>
+        <p class="ob-error" id="obProjectError" role="alert" hidden></p>
+      </section>
 
-      <label class="login-label login-label-spaced" for="signupEmail">E-postadress</label>
-      <div class="login-input-wrap">
-        <i data-lucide="mail"></i>
-        <input class="login-input" id="signupEmail" type="email" name="email" autocomplete="username" inputmode="email" placeholder="namn@skola.se" required />
-      </div>
-
-      <label class="login-label login-label-spaced" for="signupPassword">Välj ett lösenord</label>
-      <div class="login-input-wrap">
-        <i data-lucide="lock"></i>
-        <input class="login-input" id="signupPassword" type="password" name="new-password" autocomplete="new-password" placeholder="Minst 8 tecken" required />
-      </div>
-      <p class="login-error" id="signupError" role="alert" hidden></p>
-
-      <button class="btn btn-solid btn-lg login-btn" id="signupSubmit" type="submit">
-        <span class="login-btn-label">Skapa konto</span>
-        <span class="login-spinner" aria-hidden="true"></span>
-      </button>
+      <footer class="ob-footer">
+        <button type="button" class="btn btn-outline btn-lg" id="obBack">Tillbaka</button>
+        <div class="ob-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+        <button type="submit" class="btn btn-solid btn-lg ob-next" id="obNext">
+          <span class="login-btn-label">Nästa</span>
+          <span class="login-spinner" aria-hidden="true"></span>
+        </button>
+      </footer>
     </form>
 
-    <p class="login-switch">Har du redan ett konto? <button type="button" class="login-link" onclick="showLogin()">Logga in</button></p>
+    <!-- Högerytan: maskoten (steg 1–2) och Lossis projektväljare (steg 3) -->
+    <div class="ob-media" aria-hidden="true">
+      <div class="ob-mascot" id="obMascot"></div>
+      <div class="ob-app" id="obApp" hidden></div>
+    </div>
   </div>
 </main>
 
@@ -212,144 +239,8 @@
     showError('');
   }));
 
-  // ── Skapa konto med inbjudningskod ──
-  // Koden visar vilket projekt man går med i. Databasen kontrollerar koden
-  // igen när kontot skapas (supabase/projects.sql, steg 3).
-  const signupForm = document.getElementById('signupForm');
-  const codeInput = document.getElementById('signupCode');
-  const codeHint = document.getElementById('signupCodeHint');
-  const nameInput = document.getElementById('signupName');
-  const signupEmail = document.getElementById('signupEmail');
-  const signupPassword = document.getElementById('signupPassword');
-  const signupSubmit = document.getElementById('signupSubmit');
-  const signupError = document.getElementById('signupError');
+  // ── Skapa konto: se onboarding.js ──
   const MIN_PASSWORD = 8;
-
-  function showSignup() {
-    document.getElementById('loginCard').hidden = true;
-    document.getElementById('signupCard').hidden = false;
-    document.title = 'Skapa konto | Lossi';
-    (codeInput.value ? nameInput : codeInput).focus();
-  }
-
-  function showLogin() {
-    document.getElementById('signupCard').hidden = true;
-    document.getElementById('loginCard').hidden = false;
-    document.title = 'Logga in | Lossi';
-    emailInput.focus();
-  }
-
-  function showSignupError(text) {
-    signupError.textContent = text;
-    signupError.hidden = !text;
-  }
-
-  // Visas som ABCD-1234 oavsett hur den skrivs
-  function formatCode(value) {
-    const raw = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
-    return raw.length > 4 ? raw.slice(0, 4) + '-' + raw.slice(4) : raw;
-  }
-
-  let codeCheck = 0;
-  async function checkCode() {
-    const code = codeInput.value;
-    const check = ++codeCheck;
-    if (code.replace(/-/g, '').length < 8) {
-      codeHint.hidden = true;
-      return null;
-    }
-    try {
-      const name = await LossiAuth.inviteProjectName(code);
-      if (check !== codeCheck) return null;
-      codeHint.className = 'login-hint' + (name ? ' is-ok' : ' is-bad');
-      codeHint.textContent = name ? `Du går med i projektet ${name}.` : 'Koden finns inte. Kontrollera att du skrivit rätt.';
-      codeHint.hidden = false;
-      codeInput.classList.toggle('is-invalid', !name);
-      return name;
-    } catch (e) {
-      console.warn('Kunde inte kontrollera koden:', e);
-      return null;
-    }
-  }
-
-  codeInput.addEventListener('input', () => {
-    const formatted = formatCode(codeInput.value);
-    if (formatted !== codeInput.value) codeInput.value = formatted;
-    codeInput.classList.remove('is-invalid');
-    showSignupError('');
-    checkCode();
-  });
-
-  [nameInput, signupEmail, signupPassword].forEach(input => input.addEventListener('input', () => {
-    input.classList.remove('is-invalid');
-    showSignupError('');
-  }));
-
-  function signupFail(input, text) {
-    showSignupError(text);
-    input.classList.add('is-invalid');
-    input.focus();
-  }
-
-  function friendlySignupError(err) {
-    const msg = (err && err.message) || '';
-    if (/inbjudningskod|database error saving new user/i.test(msg)) return 'Koden finns inte. Kontrollera att du skrivit rätt.';
-    if (/already registered|already exists/i.test(msg)) return 'Det finns redan ett konto med den e-postadressen. Logga in i stället, och gå med i projektet med "Gå med med kod" i projektväljaren.';
-    if (/password/i.test(msg)) return `Lösenordet måste vara minst ${MIN_PASSWORD} tecken.`;
-    if (/email not confirmed/i.test(msg)) return 'Kontot skapades men måste aktiveras. Hör av dig till den som bjöd in dig.';
-    if (err && (err.status === 429 || /rate limit|too many/i.test(msg))) return 'Många försök på kort tid. Vänta en stund och försök igen.';
-    if (/fetch|network/i.test(msg)) return 'Kunde inte nå servern. Kontrollera din uppkoppling.';
-    return 'Något gick fel när kontot skulle skapas. Försök igen om en stund.';
-  }
-
-  signupForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    const code = codeInput.value;
-    const displayName = nameInput.value.trim();
-    const email = signupEmail.value.trim();
-    const password = signupPassword.value;
-    const hasCode = !!code.replace(/-/g, '');
-    if (hasCode && code.replace(/-/g, '').length < 8) return signupFail(codeInput, 'Inbjudningskoden har 8 tecken. Lämna fältet tomt om du har bjudits in till din e-postadress.');
-    if (!displayName) return signupFail(nameInput, 'Skriv ditt namn, så att kollegorna ser vem du är.');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return signupFail(signupEmail, 'Skriv en giltig e-postadress, t.ex. namn@skola.se.');
-    if (password.length < MIN_PASSWORD) return signupFail(signupPassword, `Lösenordet måste vara minst ${MIN_PASSWORD} tecken.`);
-
-    showSignupError('');
-    signupSubmit.classList.add('is-loading');
-    signupSubmit.disabled = true;
-    try {
-      if (hasCode && !(await checkCode())) {
-        signupSubmit.classList.remove('is-loading');
-        signupSubmit.disabled = false;
-        return signupFail(codeInput, 'Koden finns inte. Kontrollera att du skrivit rätt.');
-      }
-      await LossiAuth.signUpWithCode({ code, displayName, email, password });
-      // Börja i projektet man bjöds in till (inbjudan via e-post väntar under klockan)
-      try {
-        localStorage.setItem('lossi-profile-prompted', 'true');
-        if (hasCode) {
-          const { data } = await LossiAuth.client.rpc('join_project', { code });
-          if (data) localStorage.setItem('lossi-project', String(data));
-        }
-      } catch (err) {}
-      window.location.replace('index.html');
-    } catch (err) {
-      console.warn('Kontot kunde inte skapas:', err);
-      showSignupError(!hasCode && /inbjudningskod|database error saving new user/i.test(err?.message || '')
-        ? 'Vi hittade ingen inbjudan till den e-postadressen. Skriv koden du har fått, eller be kollegan bjuda in just den adressen.'
-        : friendlySignupError(err));
-      signupSubmit.classList.remove('is-loading');
-      signupSubmit.disabled = false;
-    }
-  });
-
-  // Inbjudningslänk: login.html?kod=ABCD1234 öppnar Skapa konto med koden ifylld
-  const inviteParam = params.get('kod');
-  if (inviteParam) {
-    codeInput.value = formatCode(inviteParam);
-    showSignup();
-    checkCode();
-  }
 </script>
 </body>
 </html>

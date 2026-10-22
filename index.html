@@ -38,6 +38,20 @@
 <!-- ── Main ── -->
 <main>
 
+  <!-- Välkommen: visas efter att man skapat konto (onboarding.js sätter lossi-welcome) tills man stänger den -->
+  <div class="welcome-card" id="welcomeCard" hidden>
+    <div class="welcome-text">
+      <h2 class="welcome-title" id="welcomeTitle">Välkommen till Lossi!</h2>
+      <p class="welcome-lead">Det här är din egen yta. Vi har lagt in några exempelupplägg som du kan öppna, ändra i och ta bort – utforska fritt.</p>
+      <p class="welcome-note"><i data-lucide="shield-alert"></i><span><strong>Skriv inte in elevers namn eller andra personuppgifter</strong> i Lossi under testperioden.</span></p>
+      <div class="welcome-actions">
+        <button type="button" class="btn btn-solid" onclick="closeWelcome(); openCreatePlanModal()"><i data-lucide="plus"></i>Skapa ditt första upplägg</button>
+        <button type="button" class="btn btn-text" onclick="closeWelcome()">Jag förstår</button>
+      </div>
+    </div>
+    <button type="button" class="btn btn-text btn-icon welcome-close" onclick="closeWelcome()" aria-label="Stäng"><i data-lucide="x"></i></button>
+  </div>
+
   <!-- Kommande: de närmaste inlagda lektionerna i valt projekt (renderUpcoming) -->
   <div class="upcoming-panel" id="upcomingPanel" hidden>
     <div class="upcoming-panel-label">Kommande</div>
@@ -210,6 +224,22 @@
       grades.map(g => `<option value="${g}">${g}</option>`).join('');
     gradeSelect.value = grades.includes(currentGrade) ? currentGrade : '';
   }
+
+  // ── Välkommen (efter Skapa konto) ──
+  function closeWelcome() {
+    try { localStorage.removeItem('lossi-welcome'); } catch (e) {}
+    document.getElementById('welcomeCard').hidden = true;
+  }
+  (function showWelcome() {
+    let show = false;
+    try { show = localStorage.getItem('lossi-welcome') === '1'; } catch (e) {}
+    if (!show) return;
+    document.getElementById('welcomeCard').hidden = false;
+    LossiAuth.getUser().then(user => {
+      const first = (user?.user_metadata?.first_name || '').trim();
+      if (first) document.getElementById('welcomeTitle').textContent = `Välkommen till Lossi, ${first}!`;
+    });
+  })();
 
   loadPlanList();
   // Kommande gäller lärarens egen kalender, i alla projekt

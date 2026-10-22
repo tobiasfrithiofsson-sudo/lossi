@@ -47,19 +47,26 @@ const LossiAuth = (() => {
   }
 
   // Projektnamnet som en inbjudningskod leder till, eller null om koden inte finns
-  async function inviteProjectName(code) {
-    const { data, error } = await client.rpc('invite_project_name', { code });
+  // Steg 1 i onboardingen: gäller koden? (supabase/access-codes.sql)
+  async function checkAccessCode(code) {
+    const { data, error } = await client.rpc('check_access_code', { input_code: code });
     if (error) throw error;
-    return data || null;
+    return !!data;
   }
 
-  // Nytt konto med inbjudningskod: databasen kontrollerar koden, skapar lärarens
-  // egna projekt och gör hen till medlem i kodens projekt. Loggar in direkt.
-  async function signUpWithCode({ code, displayName, email, password }) {
+  // Nytt konto (steg 2). Databasen kräver en giltig kod eller en väntande
+  // inbjudan till e-postadressen, och döper det första projektet efter
+  // förnamnet ("Annas yta"). Loggar in direkt.
+  async function signUp({ accessCode, firstName, lastName, email, password }) {
     const { data, error } = await client.auth.signUp({
       email,
       password,
-      options: { data: { invite_code: code, display_name: displayName } },
+      options: { data: {
+        access_code: accessCode || '',
+        first_name: firstName,
+        last_name: lastName,
+        display_name: [firstName, lastName].filter(Boolean).join(' '),
+      } },
     });
     if (error) throw error;
     if (!data.session) throw new Error('Email not confirmed');
@@ -134,5 +141,5 @@ const LossiAuth = (() => {
     }
   });
 
-  return { client, getUser, signIn, inviteProjectName, signUpWithCode, profileOf, updateProfile, saveUserList, changePassword, signOut, requireUser, safeNext, accessToken, storedUserId };
+  return { client, getUser, signIn, checkAccessCode, signUp, profileOf, updateProfile, saveUserList, changePassword, signOut, requireUser, safeNext, accessToken, storedUserId };
 })();

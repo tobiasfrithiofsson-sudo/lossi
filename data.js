@@ -374,15 +374,6 @@ const LossiData = (() => {
     check(await db().from('notifications').update({ read_at: new Date().toISOString() }).in('id', ids.map(Number)));
   }
 
-  // Gå med i ett projekt med dess inbjudningskod; blir valt projekt. Returnerar projektets id.
-  async function joinProject(code) {
-    const id = String(check(await db().rpc('join_project', { code })));
-    projectsPromise = null;
-    forgetSummaries();
-    setCurrentProject(id);
-    return id;
-  }
-
   // Namn och avatar för en användare i något av ens projekt
   async function findMember(userId) {
     const projects = await listProjects().catch(() => []);
@@ -661,6 +652,30 @@ const LossiData = (() => {
     check(await db().rpc('feedback_admin_update', { p_id: id, p_status: status, p_note: note || '' }));
   }
 
+  // ── Koder för att skapa konto (supabase/access-codes.sql, bara administratörer) ──
+  // En kod = { id, code, validUntil (Date|null), closedAt, createdAt, active, users: [{ name, email, createdAt }] }
+  async function listAccessCodes() {
+    return check(await db().rpc('admin_list_access_codes')).map(r => ({
+      id: String(r.id), code: r.code,
+      validUntil: r.valid_until ? new Date(r.valid_until) : null,
+      closedAt: r.closed_at ? new Date(r.closed_at) : null,
+      createdAt: new Date(r.created_at), active: !!r.active,
+      users: (r.users || []).map(u => ({ name: u.name || u.email, email: u.email, createdAt: new Date(u.created_at) })),
+    }));
+  }
+
+  async function createAccessCode(validUntil) {
+    return check(await db().rpc('admin_create_access_code', { p_valid_until: validUntil ? validUntil.toISOString() : null }));
+  }
+
+  async function setAccessCodeUntil(id, validUntil) {
+    check(await db().rpc('admin_set_access_code_until', { p_id: Number(id), p_valid_until: validUntil ? validUntil.toISOString() : null }));
+  }
+
+  async function closeAccessCode(id, closed) {
+    check(await db().rpc('admin_close_access_code', { p_id: Number(id), p_closed: !!closed }));
+  }
+
   // Sidan kan visa "Sparar…/Kunde inte spara" (status: 'saving' | 'saved' | 'error')
   function onSaveStatus(fn) {
     statusListener = fn;
@@ -669,10 +684,11 @@ const LossiData = (() => {
   return {
     listPlans, listMyPlans, loadPlanStates, withFullStates, loadPlan, loadPlanInfo, savePlan,
     listProjects, currentProject, setCurrentProject, inviteByEmail, listProjectInvites, cancelInvite, answerInvite, listNotifications, markNotificationsRead,
-    createProject, renameProject, setProjectAvatar, addProjectClass, removeProjectClass, removeProjectMember, leaveProject, deleteProject, joinProject, findMember,
+    createProject, renameProject, setProjectAvatar, addProjectClass, removeProjectClass, removeProjectMember, leaveProject, deleteProject, findMember,
     listPlanEditors, listMyEditRequests, requestPlanEdit, addPlanEditor, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,
+    listAccessCodes, createAccessCode, setAccessCodeUntil, closeAccessCode,
     listPlanFiles, uploadPlanFile, deletePlanFiles, fileDownloadUrl, fileViewUrl, fileProblem, FILE_MAX_BYTES,
   };
 })();

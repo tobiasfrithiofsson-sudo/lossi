@@ -8,9 +8,17 @@
 //   m.center()       – tittar rakt fram
 //   m.setMood('normal' | 'curious' | 'happy' | 'sad')
 //   m.setClosed(true/false) – armarna kommer in och håller för ögonen
+//   m.setLove(true/false) – pupillerna blir röda hjärtan
 //   m.blink()
 
 let mascotCount = 0;
+
+// Ett hjärta med mitten i (cx, cy), ungefär lika stort som pupillen
+function heartPath(cx, cy, s = 1.2) {
+  const p = (x, y) => `${(cx + x * s).toFixed(1)} ${(cy + 2 * s + y * s).toFixed(1)}`;
+  return `M ${p(0, 20)} C ${p(-30, 0)} ${p(-26, -24)} ${p(-12, -24)} C ${p(-5, -24)} ${p(0, -18)} ${p(0, -14)} `
+    + `C ${p(0, -18)} ${p(5, -24)} ${p(12, -24)} C ${p(26, -24)} ${p(30, 0)} ${p(0, 20)} Z`;
+}
 
 function createMascot(host) {
   const id = 'mascot' + (++mascotCount);
@@ -23,11 +31,11 @@ function createMascot(host) {
       </defs>
       <g class="mascot-eye" data-cx="45" data-cy="52">
         <circle cx="45" cy="52" r="40" fill="#fff" />
-        <g clip-path="url(#${id}L)"><circle class="mascot-pupil" cx="45" cy="52" r="26.25" fill="#2b2b2b" /></g>
+        <g clip-path="url(#${id}L)"><g class="mascot-pupil"><circle class="mascot-pupil-dot" cx="45" cy="52" r="26.25" fill="#2b2b2b" /><path class="mascot-heart" d="${heartPath(45, 52)}" fill="#E8183A" /></g></g>
       </g>
       <g class="mascot-eye" data-cx="155" data-cy="52">
         <circle cx="155" cy="52" r="40" fill="#fff" />
-        <g clip-path="url(#${id}R)"><circle class="mascot-pupil" cx="155" cy="52" r="26.25" fill="#2b2b2b" /></g>
+        <g clip-path="url(#${id}R)"><g class="mascot-pupil"><circle class="mascot-pupil-dot" cx="155" cy="52" r="26.25" fill="#2b2b2b" /><path class="mascot-heart" d="${heartPath(155, 52)}" fill="#E8183A" /></g></g>
       </g>
       <path class="mascot-mouth" d="M 92 108 Q 100 117 108 108" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" />
     </svg>
@@ -74,13 +82,17 @@ function createMascot(host) {
     host.classList.toggle('is-happy', mood === 'happy');
   }
 
+  function setLove(on) {
+    host.classList.toggle('is-love', !!on);
+  }
+
   function blink() {
     if (closed) return;
     host.classList.add('is-blinking');
     setTimeout(() => host.classList.remove('is-blinking'), 140);
   }
 
-  return { host, lookAt, center, setMood, setClosed, blink, get closed() { return closed; } };
+  return { host, lookAt, center, setMood, setClosed, setLove, blink, get closed() { return closed; } };
 }
 
 // Blinkar ibland så länge isAwake() svarar ja (inte med reducerade animationer)

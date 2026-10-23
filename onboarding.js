@@ -325,8 +325,8 @@ function obRenderApp() {
 
 
 // ── Maskoten (mascot.js) ──
-// Tittar på pekaren och på fältet man skriver i, håller för ögonen när man skriver
-// lösenordet och blinkar då och då.
+// Tittar på pekaren och på fältet man skriver i, får hjärtögon vid förnamnet,
+// håller för ögonen när man skriver lösenordet och blinkar då och då.
 const obMascot = (() => {
   const mascot = createMascot(obEl('obMascot'));
   let lastPointer = 0;
@@ -348,15 +348,22 @@ const obMascot = (() => {
   document.documentElement.addEventListener('mouseleave', mascot.center);
 
   const form = obEl('obForm');
+  // Hjärtögon medan man skriver sitt förnamn
+  const firstName = obEl('obFirstName');
+  const updateLove = () => mascot.setLove(document.activeElement === firstName && firstName.value.trim() !== '');
+
   form.addEventListener('focusin', e => {
     if (!e.target.matches('input')) return;
     mascot.setClosed(e.target.type === 'password');
+    updateLove();
     lookAtField(e.target);
   });
   form.addEventListener('focusout', e => {
     if (e.target.type === 'password') mascot.setClosed(false);
+    if (e.target === firstName) mascot.setLove(false);
   });
   form.addEventListener('input', e => {
+    if (e.target === firstName) updateLove();
     // När man skriver följer blicken texten, även om musen nyss rört sig
     if (e.target.matches('input') && Date.now() - lastPointer > 300) lookAtField(e.target);
   });

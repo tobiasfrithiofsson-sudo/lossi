@@ -6,7 +6,7 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  --face: 180px;
+  --face: 160px; /* ger ögon på 64 px */
   background: linear-gradient(225deg, #FF2E33 0%, #FF4A2E 45%, #FF6B2B 100%);
 }
 .mascot-face { width: var(--face); overflow: visible; transition: transform 0.3s; }

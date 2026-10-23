@@ -18,20 +18,22 @@ function createMascot(host) {
   host.insertAdjacentHTML('beforeend', `
     <svg class="mascot-face" viewBox="0 0 200 130" role="img" aria-label="Lossis maskot">
       <defs>
-        <clipPath id="${id}L"><circle cx="58" cy="52" r="40" /></clipPath>
-        <clipPath id="${id}R"><circle cx="142" cy="52" r="40" /></clipPath>
+        <clipPath id="${id}L"><circle cx="45" cy="52" r="40" /></clipPath>
+        <clipPath id="${id}R"><circle cx="155" cy="52" r="40" /></clipPath>
       </defs>
-      <g class="mascot-eye" data-cx="58" data-cy="52">
-        <circle cx="58" cy="52" r="40" fill="#fff" />
-        <g clip-path="url(#${id}L)"><circle class="mascot-pupil" cx="58" cy="52" r="24" fill="#2b2b2b" /></g>
+      <g class="mascot-eye" data-cx="45" data-cy="52">
+        <circle cx="45" cy="52" r="40" fill="#fff" />
+        <g clip-path="url(#${id}L)"><circle class="mascot-pupil" cx="45" cy="52" r="26.25" fill="#2b2b2b" /></g>
       </g>
-      <g class="mascot-eye" data-cx="142" data-cy="52">
-        <circle cx="142" cy="52" r="40" fill="#fff" />
-        <g clip-path="url(#${id}R)"><circle class="mascot-pupil" cx="142" cy="52" r="24" fill="#2b2b2b" /></g>
+      <g class="mascot-eye" data-cx="155" data-cy="52">
+        <circle cx="155" cy="52" r="40" fill="#fff" />
+        <g clip-path="url(#${id}R)"><circle class="mascot-pupil" cx="155" cy="52" r="26.25" fill="#2b2b2b" /></g>
       </g>
       <path class="mascot-mouth" d="M 92 108 Q 100 117 108 108" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" />
     </svg>
     <span class="mascot-arm is-left"></span><span class="mascot-arm is-right"></span>`);
+  // Mått efter Tobias skiss: vita 64 px, pupiller 42 px, 24 px mellan ögonen
+  // (vid --face: 160px är 1 enhet 0,8 px: vita r 40, pupiller r 26,25, glipa 30)
   const svg = host.querySelector('.mascot-face');
   const eyes = [...svg.querySelectorAll('.mascot-eye')];
   const MAX_OFFSET = 24; // i SVG-enheter: pupillen får gå ut över kanten (klipps), som i Tobias skiss

@@ -5,6 +5,8 @@
 // viktigaste delarna av översikten; resten av sidan tonas ner. Rundturen går
 // att starta igen från användarmenyn (Visa rundturen → index.html?rundtur).
 // Maskoten (mascot.js) finns i bilden och tittar mot det som visas.
+// På uppläggssidan visar samma bubblor tips första gången man öppnar ett
+// upplägg man får redigera (PLAN_TIPS, maybeShowPlanTips i upplag.html).
 // Utseendet finns i styles.css (VÄLKOMST OCH RUNDTUR).
 
 const WELCOME_STEPS = [
@@ -66,8 +68,43 @@ const TOUR_STEPS = [
   },
 ];
 
+// Tips första gången man öppnar ett upplägg man får redigera (upplag.html)
+const PLAN_TIPS = [
+  {
+    target: ['#structureList .lesson-group > .week-row'], side: 'bottom', icon: 'list-ordered',
+    title: 'Lektioner',
+    text: 'Upplägget består av lektioner. Klicka på namnet för att byta det, och dra i raden för att flytta lektionen.',
+  },
+  {
+    target: ['#structureList .activity-row'], side: 'bottom', icon: 'grip-vertical',
+    title: 'Aktiviteter',
+    text: 'Aktiviteterna är det som händer på lektionen. Klicka för att fylla i, och dra i prickarna för att flytta dem, även till en annan lektion.',
+  },
+  {
+    target: ['#structureList .lesson-more-btn'], side: 'bottom', icon: 'ellipsis',
+    title: 'Lektionens meny',
+    text: 'Här lägger du till aktiviteter, duplicerar lektionen och markerar den som prov eller inlämning.',
+  },
+  {
+    target: ['#structureList .lesson-schedule-btn'], side: 'bottom', icon: 'calendar-plus',
+    title: 'Lägg in i kalendern',
+    text: 'Välj dag och tid för lektionen. Då syns den i kalendern och under Kommande på översikten.',
+  },
+  {
+    target: ['#sec-files .section-head'], side: 'top', icon: 'paperclip',
+    title: 'Filer',
+    text: 'Ladda upp material till upplägget. Bilder visas direkt och kommer med när du exporterar till PowerPoint.',
+  },
+  {
+    target: ['#exportBtn'], side: 'bottom', icon: 'download',
+    title: 'Exportera',
+    text: 'Ladda ner upplägget som Word eller PowerPoint, eller skriv ut det.',
+  },
+];
+const PLAN_TIPS_KEY = 'lossi-plan-tips';
+
 const tourEl = id => document.getElementById(id);
-const tourState = { welcomeStep: 0, step: -1, mascot: null, welcomeMascot: null, pointer: null };
+const tourState = { welcomeStep: 0, step: -1, steps: TOUR_STEPS, onEnd: null, mascot: null, welcomeMascot: null, pointer: null };
 
 function welcomePropsHTML(props) {
   return props.map(p => `
@@ -141,8 +178,11 @@ function finishWelcome(startTour) {
 }
 
 // ── Rundturen ──
-function startLossiTour() {
+// steps: TOUR_STEPS (översikten) eller PLAN_TIPS; onEnd körs när den stängs.
+function startLossiTour(steps = TOUR_STEPS, { endLabel = 'Avsluta rundtur', onEnd = null } = {}) {
   endLossiTour();
+  tourState.steps = steps;
+  tourState.onEnd = onEnd;
   document.body.insertAdjacentHTML('beforeend', `
     <div class="tour-layer" id="tourLayer">
       <div class="tour-spot" id="tourSpot"></div>
@@ -152,7 +192,7 @@ function startLossiTour() {
         <h3 class="tour-pop-title" id="tourTitle"></h3>
         <p class="tour-pop-text" id="tourText"></p>
         <footer class="tour-pop-actions">
-          <button type="button" class="btn btn-text btn-lg" onclick="endLossiTour()">Avsluta rundtur</button>
+          <button type="button" class="btn btn-text btn-lg" onclick="endLossiTour()">${endLabel}</button>
           <button type="button" class="btn btn-solid btn-lg" id="tourNext" onclick="showTourStep(tourState.step + 1)">Nästa</button>
         </footer>
       </div>
@@ -160,6 +200,7 @@ function startLossiTour() {
   tourState.mascot = createMascot(tourEl('tourMascot'));
   blinkNowAndThen(tourState.mascot, () => !!tourEl('tourLayer'));
   window.addEventListener('resize', placeTourStep);
+  document.addEventListener('scroll', placeTourStep, true);
   document.addEventListener('keydown', tourKeys);
   showTourStep(0);
 }
@@ -169,7 +210,11 @@ function endLossiTour() {
   tourState.step = -1;
   tourState.mascot = null;
   window.removeEventListener('resize', placeTourStep);
+  document.removeEventListener('scroll', placeTourStep, true);
   document.removeEventListener('keydown', tourKeys);
+  const onEnd = tourState.onEnd;
+  tourState.onEnd = null;
+  onEnd?.();
 }
 
 function tourKeys(e) {
@@ -188,8 +233,9 @@ function tourTarget(step) {
 }
 
 function showTourStep(index, tries = 0) {
-  if (index >= TOUR_STEPS.length) return endLossiTour();
-  const step = TOUR_STEPS[index];
+  const steps = tourState.steps;
+  if (index >= steps.length) return endLossiTour();
+  const step = steps[index];
   const target = tourTarget(step);
   if (!target) {
     // Listor och sidopanelen ritas efter hand: vänta lite, hoppa sedan över steget
@@ -197,21 +243,25 @@ function showTourStep(index, tries = 0) {
     return showTourStep(index + 1);
   }
   tourState.step = index;
-  const last = !TOUR_STEPS.slice(index + 1).some(s => tourTarget(s));
+  const last = !steps.slice(index + 1).some(s => tourTarget(s));
   tourEl('tourTitle').textContent = step.title;
   tourEl('tourText').textContent = step.text;
   tourEl('tourNext').textContent = last ? 'Klar' : 'Nästa';
   tourEl('tourProps').innerHTML = welcomePropsHTML([{ icon: step.icon, x: 80, y: 22, rot: 8 }]);
   lucide.createIcons({ nodes: [tourEl('tourProps')] });
   tourState.mascot.setMood(last ? 'happy' : 'normal');
-  target.scrollIntoView({ block: 'nearest' });
+  // Scrolla fram målet om det är dolt (även bakom den fasta toppraden)
+  const r = target.getBoundingClientRect();
+  const topbar = document.querySelector('.app-topbar')?.getBoundingClientRect().bottom || 0;
+  if (r.top < topbar + 8 || r.bottom > window.innerHeight - 8) target.scrollIntoView({ block: 'center' });
   placeTourStep();
-  tourEl('tourNext').focus();
+  setTimeout(placeTourStep, 80); // efter scrollningen, om scroll-händelsen dröjer
+  tourEl('tourNext').focus({ preventScroll: true });
 }
 
 // Markeringen runt målet och bubblan bredvid, med pilen mot målet
 function placeTourStep() {
-  const step = TOUR_STEPS[tourState.step];
+  const step = tourState.steps[tourState.step];
   const target = step && tourTarget(step);
   if (!target) return;
   const PAD = 8, GAP = 20, EDGE = 16;
@@ -257,7 +307,17 @@ function placeTourStep() {
   requestAnimationFrame(() => tourState.mascot?.lookAt(cx, cy));
 }
 
+// Uppläggssidan: tipsen visas en gång (anropas när upplägget har laddats)
+function maybeShowPlanTips() {
+  try { if (localStorage.getItem(PLAN_TIPS_KEY)) return; } catch (e) { return; }
+  setTimeout(() => startLossiTour(PLAN_TIPS, {
+    endLabel: 'Stäng tipsen',
+    onEnd: () => { try { localStorage.setItem(PLAN_TIPS_KEY, '1'); } catch (e) {} },
+  }), 600);
+}
+
 (function startWelcomeOrTour() {
+  if (!document.getElementById('planList')) return; // bara översikten
   const params = new URLSearchParams(window.location.search);
   if (params.has('rundtur')) {
     history.replaceState(null, '', window.location.pathname);

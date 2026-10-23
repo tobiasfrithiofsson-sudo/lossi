@@ -1872,7 +1872,7 @@ function dismissInvite() {
 // Visa rundturen (tour.js): på översikten direkt, annars via länken dit
 function openTourFromMenu() {
   document.getElementById('userMenuDropdown')?.classList.remove('open');
-  if (typeof startLossiTour === 'function') startLossiTour();
+  if (typeof startLossiTour === 'function' && document.getElementById('planList')) startLossiTour();
   else window.location.href = 'index.html?rundtur';
 }
 

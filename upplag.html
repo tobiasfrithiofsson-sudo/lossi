@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="buttons.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="mascot.css" />
   <script src="https://unpkg.com/lucide@1.61.0/dist/umd/lucide.min.js"></script>
   <script src="https://unpkg.com/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -25,6 +26,8 @@
   <script src="plan-markup.js"></script>
   <script src="ai-import.js"></script>
   <script src="feedback.js"></script>
+  <script src="mascot.js"></script>
+  <script src="tour.js"></script>
 </head>
 <body class="edit-mode plan-loading">
 
@@ -117,7 +120,7 @@
       </div>
 
       <div class="popover-wrap" onclick="event.stopPropagation()">
-        <button class="btn btn-outline" onclick="toggleAppPopover(this)">
+        <button class="btn btn-outline" id="exportBtn" onclick="toggleAppPopover(this)">
           <i data-lucide="download"></i>
           Exportera
           <i data-lucide="chevron-down"></i>
@@ -3467,6 +3470,7 @@
     loadPlanEvents();
     loadPlanFiles();
     loadClassesFromPlans();
+    maybeShowPlanTips(); // första gången: tips om lektioner, aktiviteter m.m. (tour.js)
   })();
 </script>
 </body>

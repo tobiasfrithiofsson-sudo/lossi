@@ -28,7 +28,9 @@ const evalJS = async expr => (await send('Runtime.evaluate', { expression: expr,
 async function load(url) {
   await send('Page.navigate', { url });
   for (let i = 0; i < 50; i++) { await sleep(200); if (await evalJS(`typeof planLoaded !== 'undefined' && planLoaded`)) break; }
-  await sleep(500);
+  // Tipsen första gången (tour.js) ligger annars över sidan: vänta in dem och stäng
+  await sleep(900);
+  await evalJS(`endLossiTour()`);
 }
 const order = () => evalJS(`[...document.querySelectorAll('.lesson-group')].map(g => [...g.querySelectorAll('.activity-wrapper')].map(a => a.querySelector('.activity-name, .activity-title, h4, .activity-header')?.textContent.trim().slice(0, 25) || a.dataset.activityId))`);
 

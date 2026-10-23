@@ -16,7 +16,8 @@ Läs den här filen först i en ny session. Detaljer (databas, projekt, filer, n
 - **Visa rundturen** i användarmenyn (theme.js `openTourFromMenu`) startar den igen; från andra sidor via `index.html?rundtur`.
 - **Maskoten** är nu gemensam: `mascot.js` (`createMascot`, `blinkNowAndThen`) + `mascot.css`, används av onboarding.js och tour.js. Den tittar mot det rundturen visar; bilderna har små svävande ikoner (`tour-prop`).
 - Den gamla välkomstrutan (`#welcomeCard`) är borttagen.
-- Möjliga nästa steg: tips första gången man öppnar ett upplägg (dra och släpp, ⋯-menyn med Prov/Inlämning och kalender, filer), tomma lägen.
+- **Tips i upplägget** (2026-10-23): första gången man öppnar ett upplägg man får redigera visar samma bubblor sex tips – Lektioner, Aktiviteter, Lektionens meny, Lägg in i kalendern, Filer, Exportera (`PLAN_TIPS` i tour.js, `maybeShowPlanTips()` sist i upplag.html). Visas en gång (`localStorage['lossi-plan-tips']`), "Stäng tipsen" eller Klar. `scripts/drag-test.mjs` stänger tipsen innan den drar.
+- Möjliga nästa steg: tomma lägen med hjälptext.
 
 ## SQL (Tobias har kört alla, bekräftat 2026-10-22)
 Alla filer går att köra om. Ordning: efter `projects.sql`, `notifications.sql`, `feedback-admin.sql`.
@@ -66,7 +67,7 @@ Efter (3): skapa en kod på **Admin → Koder** för att testa onboardingen live
 - Efter UI-ändringar som syns på landningssidan: `node scripts/landing-screenshots.mjs` och committa `landing/`.
 
 ## Öppna trådar
-- **Onboarding i appen:** välkomst + rundtur byggd (ovan); tips inne i ett upplägg återstår.
+- **Onboarding i appen:** välkomst, rundtur och tips i upplägget byggda (ovan).
 - **Feedback:** #9 markerad `done` 2026-10-22 (Tobias bekräftade live; alla SQL-filer körda). #7 markerad `done` 2026-10-22. #8 (Ida: koppla centralt innehåll till lektionen) är inte påbörjad.
 - **Maskoten:** byt till Tobias Figma-export (SVG med separata lager: bakgrund, mun, ögonvitor, pupiller i mitten) om han skickar en.
 - **Verktygsraden i Beskrivning** (T, B, lista, citat) gör ingenting när man klickar – fråga Tobias om den ska kopplas in eller tas bort.

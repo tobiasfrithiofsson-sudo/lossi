@@ -1,0 +1,20 @@
+/* ── Lossis maskot (mascot.js) ──
+   Ytan med färgtoningen och ansiktet; storleken sätts där maskoten används. */
+.mascot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(225deg, #FF2E33 0%, #FF4A2E 45%, #FF6B2B 100%);
+}
+.mascot-face { width: 180px; overflow: visible; transition: transform 0.3s; }
+.mascot-pupil { transition: transform 0.12s ease-out; transform-box: fill-box; }
+.mascot-eye { transform-box: fill-box; transform-origin: center; transition: transform 0.12s; }
+.mascot.is-closed .mascot-eye, .mascot.is-blinking .mascot-eye { transform: scaleY(0.08); }
+.mascot-mouth { transition: d 0.25s; }
+.mascot.is-happy .mascot-face { animation: mascot-hop 0.45s ease; }
+@keyframes mascot-hop { 40% { transform: translateY(-10px); } }
+@media (prefers-reduced-motion: reduce) {
+  .mascot-pupil, .mascot-eye, .mascot-face { transition: none; }
+  .mascot.is-happy .mascot-face { animation: none; }
+}

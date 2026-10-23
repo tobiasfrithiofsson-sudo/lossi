@@ -574,6 +574,10 @@ function buildTopbarHTML(active) {
           <i data-lucide="user"></i>
           Profil
         </button>
+        <button class="user-menu-item" onclick="openTourFromMenu()">
+          <i data-lucide="map"></i>
+          Visa rundturen
+        </button>
         <button class="user-menu-item" id="themeMenuItem" onclick="toggleTheme()"></button>
         <a class="user-menu-item" href="admin.html" id="adminFeedbackLink" hidden>
           <i data-lucide="shield"></i>
@@ -1865,6 +1869,13 @@ function dismissInvite() {
 }
 
 // ── Användarmeny ──
+// Visa rundturen (tour.js): på översikten direkt, annars via länken dit
+function openTourFromMenu() {
+  document.getElementById('userMenuDropdown')?.classList.remove('open');
+  if (typeof startLossiTour === 'function') startLossiTour();
+  else window.location.href = 'index.html?rundtur';
+}
+
 function toggleUserMenu() {
   const dropdown = document.getElementById('userMenuDropdown');
   const badge = document.getElementById('userBadge');

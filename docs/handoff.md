@@ -10,13 +10,15 @@ Läs den här filen först i en ny session. Detaljer (databas, projekt, filer, n
 - **Committa och pusha till `main`** när en ändring är testad; Cloudflare deployar (~40–60 s). **Kontrollera alltid att ändringen faktiskt är live** (curl på en ny sträng i filen) innan du säger att den är klar. 2026-10-22 missade Cloudflare en push helt (ingen bock på commiten i GitHub); en tom commit (`git commit --allow-empty`) satte igång bygget igen.
 - Feedback från testare: `bash scripts/feedback.sh list` (se minnet lossi-feedback).
 
-## Nästa steg: onboarding inne i appen
-Tobias (2026-10-22): onboardingen fram till Starta "ser riktigt bra ut", men **vi behöver arbeta mer med onboardingen när användaren väl har kommit in i applikationen**. Inget är bestämt – börja med att fråga honom vad han ser framför sig, och föreslå gärna:
-- Vad som finns i dag: efter Starta öppnas den egna ytan ("{Förnamn}s yta") med tre demo-upplägg och en välkomstruta på översikten (`#welcomeCard` i index.html, visas när `localStorage['lossi-welcome'] = '1'`, sätts av `obStart()` i onboarding.js; påminner om att inte skriva in elevers personuppgifter; knappar "Skapa ditt första upplägg" och "Jag förstår").
-- Idéer att ta upp: en kort rundtur/checklista (skapa upplägg, lägg till lektion, lägg in i kalendern, bjud in kollega), tips första gången man öppnar ett upplägg (dra och släpp, ⋯-menyn, Prov/Inlämning, filer), tomma lägen med hjälptext, maskoten (finns i onboarding.js) som återkommer i appen. Tobias gillade maskoten med ögonen.
-- Demo-uppläggen saknar sparade lektioner tills de öppnas (feedback #4) – kan påverka en rundtur som visar kalendern.
+## Välkomst och rundtur i appen (2026-10-23, efter Tobias skisser)
+- Efter Starta i onboardingen (`localStorage['lossi-welcome'] = '1'`) visar översikten en **dialog i tre steg** (986 × 562 px, text till vänster, maskoten i en 423 × 482-bild till höger): Välkommen till Lossi → Använd inte riktiga personuppgifter (med blå infoplatta) → Få en rundtur (Hoppa över / Starta rundturen). Texterna är Tobias.
+- **Rundturen**: pratbubbla (342 px, maskoten överst, Avsluta rundtur / Nästa, pil mot målet) och en markering runt målet, resten tonas ner. Steg: Projekt, Skapa, Upplägg, Kalender, Feedback (`TOUR_STEPS` i tour.js – lägg till steg där). Steg vars mål inte syns hoppas över (i mobil ligger sidopanelen undan). Esc avslutar.
+- **Visa rundturen** i användarmenyn (theme.js `openTourFromMenu`) startar den igen; från andra sidor via `index.html?rundtur`.
+- **Maskoten** är nu gemensam: `mascot.js` (`createMascot`, `blinkNowAndThen`) + `mascot.css`, används av onboarding.js och tour.js. Den tittar mot det rundturen visar; bilderna har små svävande ikoner (`tour-prop`).
+- Den gamla välkomstrutan (`#welcomeCard`) är borttagen.
+- Möjliga nästa steg: tips första gången man öppnar ett upplägg (dra och släpp, ⋯-menyn med Prov/Inlämning och kalender, filer), tomma lägen.
 
-## SQL som Tobias ska ha kört (fråga och bekräfta)
+## SQL (Tobias har kört alla, bekräftat 2026-10-22)
 Alla filer går att köra om. Ordning: efter `projects.sql`, `notifications.sql`, `feedback-admin.sql`.
 1. `supabase/calendar-shared.sql` – medlemmar ser varandras kalenderhändelser (#9). Tobias testade kalendern men hade inte kollat kollegornas lektioner.
 2. `supabase/project-classes.sql` – klasser tillhör projektet.
@@ -64,8 +66,8 @@ Efter (3): skapa en kod på **Admin → Koder** för att testa onboardingen live
 - Efter UI-ändringar som syns på landningssidan: `node scripts/landing-screenshots.mjs` och committa `landing/`.
 
 ## Öppna trådar
-- **Onboarding i appen** – nästa steg (ovan).
-- **Feedback:** #9 (projektets kalender) är byggd men inte markerad klar – markera `done` när Tobias bekräftat att kollegors lektioner syns live. #7 markerad `done` 2026-10-22. #8 (Ida: koppla centralt innehåll till lektionen) är inte påbörjad.
+- **Onboarding i appen:** välkomst + rundtur byggd (ovan); tips inne i ett upplägg återstår.
+- **Feedback:** #9 markerad `done` 2026-10-22 (Tobias bekräftade live; alla SQL-filer körda). #7 markerad `done` 2026-10-22. #8 (Ida: koppla centralt innehåll till lektionen) är inte påbörjad.
 - **Maskoten:** byt till Tobias Figma-export (SVG med separata lager: bakgrund, mun, ögonvitor, pupiller i mitten) om han skickar en.
 - **Verktygsraden i Beskrivning** (T, B, lista, citat) gör ingenting när man klickar – fråga Tobias om den ska kopplas in eller tas bort.
 - **Lektionsradens små kontroller** (kalender, ⋯, tid) är inte flyttade till knappsystemet.

@@ -324,112 +324,46 @@ function obRenderApp() {
 }
 
 
-// ── Maskoten ──
-// En SVG med två ögon (vita + pupiller) och en mun. Pupillerna flyttas mot
-// det den tittar på, men stannar inom ögonvitorna (som klipper dem). Blundar
-// när man skriver lösenordet och blinkar då och då.
+// ── Maskoten (mascot.js) ──
+// Tittar på pekaren och på fältet man skriver i, blundar när man skriver
+// lösenordet och blinkar då och då.
 const obMascot = (() => {
-  const host = obEl('obMascot');
-  host.innerHTML = `
-    <svg class="ob-face" viewBox="0 0 200 130" role="img" aria-label="Lossis maskot">
-      <defs>
-        <clipPath id="obEyeClipL"><circle cx="58" cy="52" r="40" /></clipPath>
-        <clipPath id="obEyeClipR"><circle cx="142" cy="52" r="40" /></clipPath>
-      </defs>
-      <g class="ob-eye" data-cx="58" data-cy="52">
-        <circle cx="58" cy="52" r="40" fill="#fff" />
-        <g clip-path="url(#obEyeClipL)"><circle class="ob-pupil" cx="58" cy="52" r="24" fill="#2b2b2b" /></g>
-      </g>
-      <g class="ob-eye" data-cx="142" data-cy="52">
-        <circle cx="142" cy="52" r="40" fill="#fff" />
-        <g clip-path="url(#obEyeClipR)"><circle class="ob-pupil" cx="142" cy="52" r="24" fill="#2b2b2b" /></g>
-      </g>
-      <path class="ob-mouth" d="M 92 108 Q 100 117 108 108" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" />
-    </svg>`;
-  const svg = host.querySelector('svg');
-  const eyes = [...host.querySelectorAll('.ob-eye')];
-  const MAX_OFFSET = 24; // i SVG-enheter: pupillen får gå ut över kanten (klipps), som i Tobias skiss
-  const MOUTHS = {
-    normal: 'M 92 108 Q 100 117 108 108',
-    curious: 'M 95 110 Q 100 113 105 110',
-    happy: 'M 84 104 Q 100 124 116 104',
-    sad: 'M 92 114 Q 100 106 108 114',
-  };
-  let closed = false;
+  const mascot = createMascot(obEl('obMascot'));
   let lastPointer = 0;
-
-  function lookAt(x, y) {
-    const box = svg.getBoundingClientRect();
-    if (!box.width) return;
-    const scale = box.width / 200;
-    eyes.forEach(eye => {
-      const cx = box.left + Number(eye.dataset.cx) * scale;
-      const cy = box.top + Number(eye.dataset.cy) * scale;
-      const dx = x - cx, dy = y - cy;
-      const dist = Math.hypot(dx, dy) || 1;
-      // Långt bort = ända ut mot kanten; nära = lite
-      const reach = Math.min(MAX_OFFSET, dist / scale / 6);
-      eye.querySelector('.ob-pupil').style.transform = `translate(${(dx / dist) * reach}px, ${(dy / dist) * reach}px)`;
-    });
-  }
-
-  function center() {
-    eyes.forEach(eye => { eye.querySelector('.ob-pupil').style.transform = ''; });
-  }
-
-  function setClosed(on) {
-    closed = on;
-    host.classList.toggle('is-closed', on);
-  }
-
-  function setMood(mood) {
-    host.querySelector('.ob-mouth').setAttribute('d', MOUTHS[mood] || MOUTHS.normal);
-    host.classList.toggle('is-happy', mood === 'happy');
-  }
 
   // Tittar på fältet man skriver i (ungefär där markören står)
   function lookAtField(el) {
     const r = el.getBoundingClientRect();
-    if (el.classList.contains('ob-code-box')) return lookAt(r.left + r.width / 2, r.top + r.height / 2);
+    if (el.classList.contains('ob-code-box')) return mascot.lookAt(r.left + r.width / 2, r.top + r.height / 2);
     const typed = Math.min(r.width - 16, 12 + (el.value || '').length * 8);
-    lookAt(r.left + typed, r.top + r.height / 2);
+    mascot.lookAt(r.left + typed, r.top + r.height / 2);
   }
 
   document.addEventListener('pointermove', e => {
     if (obEl('signupCard').hidden || e.pointerType === 'touch') return;
     lastPointer = Date.now();
-    lookAt(e.clientX, e.clientY);
+    mascot.lookAt(e.clientX, e.clientY);
   });
-  document.addEventListener('pointerleave', center);
-  document.documentElement.addEventListener('mouseleave', center);
+  document.addEventListener('pointerleave', mascot.center);
+  document.documentElement.addEventListener('mouseleave', mascot.center);
 
   const form = obEl('obForm');
   form.addEventListener('focusin', e => {
     if (!e.target.matches('input')) return;
-    setClosed(e.target.type === 'password');
+    mascot.setClosed(e.target.type === 'password');
     lookAtField(e.target);
   });
   form.addEventListener('focusout', e => {
-    if (e.target.type === 'password') setClosed(false);
+    if (e.target.type === 'password') mascot.setClosed(false);
   });
   form.addEventListener('input', e => {
     // När man skriver följer blicken texten, även om musen nyss rört sig
     if (e.target.matches('input') && Date.now() - lastPointer > 300) lookAtField(e.target);
   });
 
-  // Blinkar ibland (inte när den redan blundar, inte med reducerade animationer)
-  const calm = window.matchMedia('(prefers-reduced-motion: reduce)');
-  (function blinkLater() {
-    setTimeout(() => {
-      if (!closed && !calm.matches && !obEl('signupCard').hidden) {
-        host.classList.add('is-blinking');
-        setTimeout(() => host.classList.remove('is-blinking'), 140);
-      }
-      blinkLater();
-    }, 3000 + Math.random() * 4000);
-  })();
+  blinkNowAndThen(mascot, () => !obEl('signupCard').hidden);
 
-  return { lookAt, center, setMood, setClosed };
+  return mascot;
 })();
 
 

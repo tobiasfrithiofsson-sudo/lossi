@@ -488,24 +488,10 @@ body {
 .ob-mascot {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
   border-radius: 12px;
-  background: linear-gradient(225deg, #FF2E33 0%, #FF4A2E 45%, #FF6B2B 100%);
-  overflow: hidden;
 }
 .ob-mascot[hidden] { display: none; }
-.ob-face { width: 190px; overflow: visible; transition: transform 0.3s; }
-.ob-pupil { transition: transform 0.12s ease-out; transform-box: fill-box; }
-.ob-eye { transform-box: fill-box; transform-origin: center; transition: transform 0.12s; }
-.ob-mascot.is-closed .ob-eye, .ob-mascot.is-blinking .ob-eye { transform: scaleY(0.08); }
-.ob-mouth { transition: d 0.25s; }
-.ob-mascot.is-happy .ob-face { animation: ob-hop 0.45s ease; }
-@keyframes ob-hop { 40% { transform: translateY(-10px); } }
-@media (prefers-reduced-motion: reduce) {
-  .ob-pupil, .ob-eye, .ob-face { transition: none; }
-  .ob-mascot.is-happy .ob-face { animation: none; }
-}
+.ob-mascot .mascot-face { width: 190px; }
 
 /* Steg 3: en liten Lossi med projektväljaren utfälld (obRenderApp) */
 .ob-app { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: flex-start; overflow: hidden; border-radius: 12px; background: linear-gradient(160deg, var(--color-bg-hover), color-mix(in srgb, var(--color-primary) 8%, var(--color-bg-primary))); }

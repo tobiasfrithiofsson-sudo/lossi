@@ -35,15 +35,17 @@
 /* Ögonen sitter tätare än i skissen: dölj dem när armarna är framme, så att
    bara munnen syns i glipan */
 .mascot.is-closed .mascot-eye { opacity: 0; transition: transform 0.12s, opacity 0s 0.3s; }
-/* Hjärtögon (setLove): pupillerna byts mot röda hjärtan som poppar fram */
-.mascot-heart { opacity: 0; transform: scale(0.3); transform-box: fill-box; transform-origin: center; transition: opacity 0.15s, transform 0.3s cubic-bezier(0.3, 1.6, 0.5, 1); }
-.mascot-pupil-dot { transition: opacity 0.15s; }
-.mascot.is-love .mascot-heart { opacity: 1; transform: none; }
+/* Hjärtögon (setLove): pupillerna byts mot röda hjärtan medan ögat blinkar,
+   och ögonvitorna växer långsamt från 64 till 70 px (70/64 = 1,094) */
+.mascot-eyeball { transform-box: view-box; transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+.mascot-heart { opacity: 0; }
+.mascot.is-love .mascot-heart { opacity: 1; }
 .mascot.is-love .mascot-pupil-dot { opacity: 0; }
+.mascot.is-love .mascot-eyeball { transform: scale(1.094); }
 .mascot-mouth { transition: d 0.25s; }
 .mascot.is-happy .mascot-face { animation: mascot-hop 0.45s ease; }
 @keyframes mascot-hop { 40% { transform: translateY(-10px); } }
 @media (prefers-reduced-motion: reduce) {
-  .mascot-pupil, .mascot-eye, .mascot-face, .mascot-arm, .mascot-heart, .mascot-pupil-dot { transition: none; }
+  .mascot-pupil, .mascot-eye, .mascot-face, .mascot-arm, .mascot-eyeball { transition: none; }
   .mascot.is-happy .mascot-face { animation: none; }
 }

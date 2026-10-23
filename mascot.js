@@ -8,7 +8,8 @@
 //   m.center()       – tittar rakt fram
 //   m.setMood('normal' | 'curious' | 'happy' | 'sad')
 //   m.setClosed(true/false) – armarna kommer in och håller för ögonen
-//   m.setLove(true/false) – pupillerna blir röda hjärtan
+//   m.setLove(true/false) – blinkar och byter pupillerna mot röda hjärtan
+//                           (ögonvitorna växer samtidigt från 64 till 70 px)
 //   m.blink()
 
 let mascotCount = 0;
@@ -30,12 +31,16 @@ function createMascot(host) {
         <clipPath id="${id}R"><circle cx="155" cy="52" r="40" /></clipPath>
       </defs>
       <g class="mascot-eye" data-cx="45" data-cy="52">
-        <circle cx="45" cy="52" r="40" fill="#fff" />
-        <g clip-path="url(#${id}L)"><g class="mascot-pupil"><circle class="mascot-pupil-dot" cx="45" cy="52" r="26.25" fill="#2b2b2b" /><path class="mascot-heart" d="${heartPath(45, 52)}" fill="#E8183A" /></g></g>
+        <g class="mascot-eyeball" style="transform-origin: 45px 52px">
+          <circle cx="45" cy="52" r="40" fill="#fff" />
+          <g clip-path="url(#${id}L)"><g class="mascot-pupil"><circle class="mascot-pupil-dot" cx="45" cy="52" r="26.25" fill="#2b2b2b" /><path class="mascot-heart" d="${heartPath(45, 52)}" fill="#E8183A" /></g></g>
+        </g>
       </g>
       <g class="mascot-eye" data-cx="155" data-cy="52">
-        <circle cx="155" cy="52" r="40" fill="#fff" />
-        <g clip-path="url(#${id}R)"><g class="mascot-pupil"><circle class="mascot-pupil-dot" cx="155" cy="52" r="26.25" fill="#2b2b2b" /><path class="mascot-heart" d="${heartPath(155, 52)}" fill="#E8183A" /></g></g>
+        <g class="mascot-eyeball" style="transform-origin: 155px 52px">
+          <circle cx="155" cy="52" r="40" fill="#fff" />
+          <g clip-path="url(#${id}R)"><g class="mascot-pupil"><circle class="mascot-pupil-dot" cx="155" cy="52" r="26.25" fill="#2b2b2b" /><path class="mascot-heart" d="${heartPath(155, 52)}" fill="#E8183A" /></g></g>
+        </g>
       </g>
       <path class="mascot-mouth" d="M 92 108 Q 100 117 108 108" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" />
     </svg>
@@ -82,8 +87,18 @@ function createMascot(host) {
     host.classList.toggle('is-happy', mood === 'happy');
   }
 
+  // Bytet sker mitt i en blinkning, när ögonen är stängda
+  let love = false;
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)');
   function setLove(on) {
-    host.classList.toggle('is-love', !!on);
+    if (!!on === love) return;
+    love = !!on;
+    if (calm.matches || closed) return host.classList.toggle('is-love', love);
+    host.classList.add('is-blinking');
+    setTimeout(() => {
+      host.classList.toggle('is-love', love);
+      host.classList.remove('is-blinking');
+    }, 130);
   }
 
   function blink() {

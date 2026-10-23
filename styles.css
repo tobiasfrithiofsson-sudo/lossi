@@ -3722,6 +3722,7 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
   box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.45);
   transition: left 0.25s, top 0.25s, width 0.25s, height 0.25s;
 }
+.tour-spot.is-clickable { cursor: pointer; }
 .tour-pop {
   position: fixed;
   width: 342px;

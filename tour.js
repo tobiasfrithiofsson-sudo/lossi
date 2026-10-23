@@ -3,7 +3,8 @@
 // visas en dialog i tre steg: Välkommen, Använd inte riktiga personuppgifter
 // och Få en rundtur. Starta rundturen visar en pratbubbla i taget vid de
 // viktigaste delarna av översikten; resten av sidan tonas ner. Rundturen går
-// att starta igen från användarmenyn (Visa rundturen → index.html?rundtur).
+// att visa igen med Kom igång i toppraden (openOnboarding i theme.js; från
+// andra sidor via index.html?kom-igang, rundturen direkt via ?rundtur).
 // Maskoten (mascot.js) finns i bilden och tittar mot det som visas.
 // På uppläggssidan visar samma bubblor tips första gången man öppnar ett
 // upplägg man får redigera (PLAN_TIPS, maybeShowPlanTips i upplag.html).
@@ -64,7 +65,7 @@ const TOUR_STEPS = [
   {
     target: ['.feedback-btn'], side: 'bottom', icon: 'message-square-heart',
     title: 'Feedback',
-    text: 'Något som krånglar eller en idé? Tryck här, vi läser allt. Rundturen hittar du igen under din profilbild.',
+    text: 'Något som krånglar eller en idé? Tryck här, vi läser allt. Vill du se introduktionen igen trycker du på Kom igång.',
   },
 ];
 
@@ -319,9 +320,9 @@ function maybeShowPlanTips() {
 (function startWelcomeOrTour() {
   if (!document.getElementById('planList')) return; // bara översikten
   const params = new URLSearchParams(window.location.search);
-  if (params.has('rundtur')) {
+  if (params.has('rundtur') || params.has('kom-igang')) {
     history.replaceState(null, '', window.location.pathname);
-    return startLossiTour();
+    return params.has('rundtur') ? startLossiTour() : openWelcomeDialog();
   }
   let show = false;
   try { show = localStorage.getItem('lossi-welcome') === '1'; } catch (e) {}

@@ -553,6 +553,11 @@ function buildTopbarHTML(active) {
         <div class="notif-list" id="notifList"></div>
       </div>
     </div>
+    <!-- Kom igång: välkomstdialogen och rundturen igen (tour.js) -->
+    <button class="btn btn-outline onboarding-btn" onclick="openOnboarding()" title="Visa introduktionen och rundturen igen">
+      <i data-lucide="map"></i>
+      <span class="onboarding-btn-label">Kom igång</span>
+    </button>
     <button class="btn btn-outline feedback-btn" onclick="openFeedbackModal()" title="Ge feedback – idéer, tankar eller buggar">
       <i data-lucide="message-square-heart"></i>
       <span class="feedback-btn-label">Feedback</span>
@@ -573,10 +578,6 @@ function buildTopbarHTML(active) {
         <button class="user-menu-item" onclick="openProfileModal()">
           <i data-lucide="user"></i>
           Profil
-        </button>
-        <button class="user-menu-item" onclick="openTourFromMenu()">
-          <i data-lucide="map"></i>
-          Visa rundturen
         </button>
         <button class="user-menu-item" id="themeMenuItem" onclick="toggleTheme()"></button>
         <a class="user-menu-item" href="admin.html" id="adminFeedbackLink" hidden>
@@ -1869,11 +1870,11 @@ function dismissInvite() {
 }
 
 // ── Användarmeny ──
-// Visa rundturen (tour.js): på översikten direkt, annars via länken dit
-function openTourFromMenu() {
-  document.getElementById('userMenuDropdown')?.classList.remove('open');
-  if (typeof startLossiTour === 'function' && document.getElementById('planList')) startLossiTour();
-  else window.location.href = 'index.html?rundtur';
+// Kom igång (tour.js): välkomstdialogen och rundturen, på översikten direkt,
+// annars via länken dit
+function openOnboarding() {
+  if (typeof openWelcomeDialog === 'function' && document.getElementById('planList')) openWelcomeDialog();
+  else window.location.href = 'index.html?kom-igang';
 }
 
 function toggleUserMenu() {

@@ -954,7 +954,7 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 .schedule-footer [hidden] { display: none; }
 
 /* ── Feedback (feedback.js) ── */
-.feedback-btn { margin-right: 4px; }
+.feedback-btn, .onboarding-btn { margin-right: 4px; }
 .feedback-btn svg { color: #E24B4A; }
 
 #feedbackModal [hidden] { display: none; }
@@ -3858,8 +3858,8 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
   .logo-text,
   .topnav-link.is-soon { display: none; }
   .topnav { margin-left: 0; }
-  .feedback-btn { width: var(--btn-height); padding: 0; margin-right: 0; }
-  .feedback-btn-label { display: none; }
+  .feedback-btn, .onboarding-btn { width: var(--btn-height); padding: 0; margin-right: 0; }
+  .feedback-btn-label, .onboarding-btn-label { display: none; }
 
   /* Sidopanelen som utdragbar meny */
   aside {

@@ -19,13 +19,13 @@ Läs den här filen först i en ny session. Detaljer (databas, projekt, filer, n
 - **Tips i upplägget** (2026-10-23): första gången man öppnar ett upplägg man får redigera visar samma bubblor sex tips – Lektioner, Aktiviteter, Lektionens meny, Lägg in i kalendern, Filer, Exportera (`PLAN_TIPS` i tour.js, `maybeShowPlanTips()` sist i upplag.html). Visas en gång (`localStorage['lossi-plan-tips']`), "Stäng tipsen" eller Klar. `scripts/drag-test.mjs` stänger tipsen innan den drar.
 - Möjliga nästa steg: tomma lägen med hjälptext.
 
-## SQL (1–4 körda, bekräftat 2026-10-22; 5 väntar)
+## SQL (Tobias har kört alla; 1–4 bekräftade 2026-10-22, 5 bekräftad 2026-10-23)
 Alla filer går att köra om. Ordning: efter `projects.sql`, `notifications.sql`, `feedback-admin.sql`.
 1. `supabase/calendar-shared.sql` – medlemmar ser varandras kalenderhändelser (#9). Tobias testade kalendern men hade inte kollat kollegornas lektioner.
 2. `supabase/project-classes.sql` – klasser tillhör projektet.
 3. `supabase/access-codes.sql` – fristående koder, onboarding. **Utan den går det inte att skapa konto med kod live.**
 4. Om (3) kördes före 2026-10-22 kl ~22: den lilla uppdateringen av `require_invite_code()` (kod krävs av alla, även inbjudna) – den finns redan i filen, så det räcker att köra om hela `access-codes.sql`.
-5. `supabase/personal-private.sql` (2026-10-23) – den egna ytan kan inte delas: spärrar inbjudningar och medlemskap där, tar bort obesvarade inbjudningar och flyttar ut medlemmar som redan var med (deras upplägg flyttas till deras egen yta). **Inte bekräftad körd ännu.**
+5. `supabase/personal-private.sql` (2026-10-23) – den egna ytan kan inte delas: spärrar inbjudningar och medlemskap där, tar bort obesvarade inbjudningar och flyttar ut medlemmar som redan var med (deras upplägg flyttas till deras egen yta). Körd 2026-10-23.
 Efter (3): skapa en kod på **Admin → Koder** för att testa onboardingen live.
 
 ## Läget

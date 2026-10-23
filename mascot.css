@@ -42,10 +42,12 @@
 .mascot.is-love .mascot-heart { opacity: 1; }
 .mascot.is-love .mascot-pupil-dot { opacity: 0; }
 .mascot.is-love .mascot-eyeball { transform: scale(1.094); }
+.mascot.is-love .mascot-mouth { transform-box: fill-box; transform-origin: center top; animation: mascot-wow 0.35s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes mascot-wow { from { transform: scale(0.4); } }
 .mascot-mouth { transition: d 0.25s; }
 .mascot.is-happy .mascot-face { animation: mascot-hop 0.45s ease; }
 @keyframes mascot-hop { 40% { transform: translateY(-10px); } }
 @media (prefers-reduced-motion: reduce) {
   .mascot-pupil, .mascot-eye, .mascot-face, .mascot-arm, .mascot-eyeball { transition: none; }
-  .mascot.is-happy .mascot-face { animation: none; }
+  .mascot.is-happy .mascot-face, .mascot.is-love .mascot-mouth { animation: none; }
 }

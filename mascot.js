@@ -9,7 +9,8 @@
 //   m.setMood('normal' | 'curious' | 'happy' | 'sad')
 //   m.setClosed(true/false) – armarna kommer in och håller för ögonen
 //   m.setLove(true/false) – blinkar och byter pupillerna mot röda hjärtan
-//                           (ögonvitorna växer samtidigt från 64 till 70 px)
+//                           (ögonvitorna växer samtidigt från 64 till 70 px,
+//                           munnen blir en öppen wow-mun)
 //   m.blink()
 
 let mascotCount = 0;
@@ -56,6 +57,10 @@ function createMascot(host) {
     happy: 'M 84 104 Q 100 124 116 104',
     sad: 'M 92 114 Q 100 106 108 114',
   };
+  // Hjärtläget: en öppen, fylld "wow"-mun (rak överkant, rund underkant) efter Tobias skiss
+  const LOVE_MOUTH = 'M 85 100 Q 85 97 88 97 L 112 97 Q 115 97 115 100 C 115 108 108 113 100 113 C 92 113 85 108 85 100 Z';
+  let mood = 'normal';
+  let love = false;
   let closed = false;
 
   function lookAt(x, y) {
@@ -82,21 +87,32 @@ function createMascot(host) {
     host.classList.toggle('is-closed', on);
   }
 
-  function setMood(mood) {
-    svg.querySelector('.mascot-mouth').setAttribute('d', MOUTHS[mood] || MOUTHS.normal);
+  function drawMouth() {
+    const mouth = svg.querySelector('.mascot-mouth');
+    mouth.setAttribute('d', love ? LOVE_MOUTH : MOUTHS[mood] || MOUTHS.normal);
+    mouth.setAttribute('fill', love ? '#fff' : 'none');
+    mouth.setAttribute('stroke', love ? 'none' : '#fff');
+  }
+
+  function setMood(next) {
+    mood = next;
+    drawMouth();
     host.classList.toggle('is-happy', mood === 'happy');
   }
 
   // Bytet sker mitt i en blinkning, när ögonen är stängda
-  let love = false;
   const calm = window.matchMedia('(prefers-reduced-motion: reduce)');
   function setLove(on) {
     if (!!on === love) return;
     love = !!on;
-    if (calm.matches || closed) return host.classList.toggle('is-love', love);
+    const swap = () => {
+      host.classList.toggle('is-love', love);
+      drawMouth();
+    };
+    if (calm.matches || closed) return swap();
     host.classList.add('is-blinking');
     setTimeout(() => {
-      host.classList.toggle('is-love', love);
+      swap();
       host.classList.remove('is-blinking');
     }, 130);
   }

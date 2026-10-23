@@ -17,7 +17,7 @@ await db.exec(`
   grant usage on schema auth to authenticated, anon;
   grant usage on schema public to authenticated, anon;
 `);
-for (const f of ['schema.sql', 'calendar.sql', 'projects.sql', 'notifications.sql', 'feedback.sql', 'feedback-admin.sql', 'access-codes.sql', 'access-codes.sql']) {
+for (const f of ['schema.sql', 'calendar.sql', 'projects.sql', 'notifications.sql', 'feedback.sql', 'feedback-admin.sql', 'access-codes.sql', 'access-codes.sql', 'personal-private.sql']) {
   try { await db.exec(sql(f)); } catch (e) { console.log('Kunde inte köra', f, e.message); process.exit(1); }
 }
 
@@ -76,7 +76,8 @@ if (projectCode) {
 }
 
 // Inbjudan via e-post räcker (utan kod)
-const annasProject = (await db.query(`select id from public.projects where personal_owner = $1`, [a.id])).rows[0].id;
+// (till ett delat projekt: den egna ytan kan inte delas, supabase/personal-private.sql)
+const annasProject = (await as(a.id, false, () => db.query(`select public.create_project('Skolan') as id`))).rows[0].id;
 await as(a.id, false, () => db.query(`select public.invite_by_email($1, 'kollega@x')`, [annasProject]));
 const noCode = await signUp('kollega@x', { first_name: 'Kim' });
 check('Inbjuden e-post utan kod nekas', !!noCode.error, JSON.stringify(noCode));

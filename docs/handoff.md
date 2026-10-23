@@ -19,12 +19,13 @@ Läs den här filen först i en ny session. Detaljer (databas, projekt, filer, n
 - **Tips i upplägget** (2026-10-23): första gången man öppnar ett upplägg man får redigera visar samma bubblor sex tips – Lektioner, Aktiviteter, Lektionens meny, Lägg in i kalendern, Filer, Exportera (`PLAN_TIPS` i tour.js, `maybeShowPlanTips()` sist i upplag.html). Visas en gång (`localStorage['lossi-plan-tips']`), "Stäng tipsen" eller Klar. `scripts/drag-test.mjs` stänger tipsen innan den drar.
 - Möjliga nästa steg: tomma lägen med hjälptext.
 
-## SQL (Tobias har kört alla, bekräftat 2026-10-22)
+## SQL (1–4 körda, bekräftat 2026-10-22; 5 väntar)
 Alla filer går att köra om. Ordning: efter `projects.sql`, `notifications.sql`, `feedback-admin.sql`.
 1. `supabase/calendar-shared.sql` – medlemmar ser varandras kalenderhändelser (#9). Tobias testade kalendern men hade inte kollat kollegornas lektioner.
 2. `supabase/project-classes.sql` – klasser tillhör projektet.
 3. `supabase/access-codes.sql` – fristående koder, onboarding. **Utan den går det inte att skapa konto med kod live.**
 4. Om (3) kördes före 2026-10-22 kl ~22: den lilla uppdateringen av `require_invite_code()` (kod krävs av alla, även inbjudna) – den finns redan i filen, så det räcker att köra om hela `access-codes.sql`.
+5. `supabase/personal-private.sql` (2026-10-23) – den egna ytan kan inte delas: spärrar inbjudningar och medlemskap där, tar bort obesvarade inbjudningar och flyttar ut medlemmar som redan var med (deras upplägg flyttas till deras egen yta). **Inte bekräftad körd ännu.**
 Efter (3): skapa en kod på **Admin → Koder** för att testa onboardingen live.
 
 ## Läget
@@ -37,7 +38,7 @@ Efter (3): skapa en kod på **Admin → Koder** för att testa onboardingen live
   Högerytan: maskoten (min egen SVG efter Tobias bild; ögonen följer pekaren och fältet man skriver i, blundar vid lösenordet, blinkar, glad/ledsen vid rätt/fel kod) och i steg 3 en liten projektväljare som visar projekt man går med i. Bilden döljs under 900 px.
   Koderna skapas av administratörer på **admin.html → Koder** (gäller till ett datum eller tills vidare, kan avslutas/öppnas igen, kopiera kod/länk, visar vilka som skapat konto med koden). Inte kopplade till projekt, kan användas av flera. Databas: `supabase/access-codes.sql`. Tobias är admin (`app_metadata.role = 'admin'`). E-postbekräftelse avstängd; Lossi skickar inga mejl. "Add user" i Supabase-panelen fungerar inte (kontot saknar kod).
 - **Admin-sidan** `admin.html` (vänstermeny: Feedback, Koder; `#koder` öppnar Koder). `feedbackboard.html` leder dit. Länken "Admin" i användarmenyn syns bara för administratörer.
-- **Projekt:** flera projekt per användare; alla har ett första projekt (nya konton: "{Förnamn}s yta", äldre: "Sandlådan") som kan delas men inte tas bort. Projektmeny med Inställningar, Bjud in medlemmar, Nytt projekt. **Inställningar** är en dialog med vänstermeny (`PROJECT_SETTINGS_TABS` i theme.js – lägg nya delar där): Allmänt (namn, avatar, ta bort/lämna), Medlemmar (medlemmar, bjud in via e-post), Klasser (projektets klasser, antal upplägg per klass, ta bort). Översikten visar alla i projektet med Alla/Bara mina; andras upplägg öppnas i läsläge.
+- **Projekt:** flera projekt per användare; alla har ett första projekt (nya konton: "{Förnamn}s yta", äldre: "Sandlådan") som är bara ens eget: det kan inte delas eller tas bort (2026-10-23, `supabase/personal-private.sql`; där visas inte Bjud in, Medlemmar eller Team – `body.is-personal-project`). Projektmeny med Inställningar, Bjud in medlemmar, Nytt projekt. **Inställningar** är en dialog med vänstermeny (`PROJECT_SETTINGS_TABS` i theme.js – lägg nya delar där): Allmänt (namn, avatar, ta bort/lämna), Medlemmar (medlemmar, bjud in via e-post), Klasser (projektets klasser, antal upplägg per klass, ta bort). Översikten visar alla i projektet med Alla/Bara mina; andras upplägg öppnas i läsläge.
 - **Inbjudan:** bara via e-post (Bjud in). Har personen konto får hen en notis under klockan; annars väntar inbjudan tills hen skapar konto **med kod** och samma adress (visas i steg 3). Projektkoder och "Gå med med kod" är borttagna.
 - **Medskapare:** be om redigeringsrätt, skaparen godkänner/nekar eller lägger till direkt.
 - **Klasser tillhör projektet:** `projects.classes` (+ RPC `add_project_class`/`remove_project_class`). Detaljer › Klass visar bara projektets lista (när den finns), så en borttagen klass kommer inte tillbaka via gamla upplägg.

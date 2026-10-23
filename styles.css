@@ -600,6 +600,10 @@ button.aside-item { width: 100%; border: none; background: none; font-family: in
 .aside-more svg { width: 18px; height: 18px; flex-shrink: 0; }
 
 /* "Bjud in kollegor": kort längst ner i sidopanelen, går att dölja */
+/* Den egna ytan kan inte delas (theme.js updateInviteCard) */
+body.is-personal-project .aside-invite,
+body.is-personal-project .aside-group[data-aside-group="teams"] { display: none; }
+
 .aside-invite {
   display: flex;
   align-items: flex-start;

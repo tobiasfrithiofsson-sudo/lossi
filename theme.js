@@ -704,7 +704,9 @@ function buildAsideHTML(active) {
 // onProjectChange, om sidan själv vill rita om, som översikten).
 const PROJECT_COLORS = ['--color-avatar-6', '--color-avatar-2', '--color-avatar-3', '--color-avatar-4', '--color-avatar-5', '--color-avatar-1'];
 
-// Alla projekt är likadana; det första (personal) kan bara inte tas bort.
+// Alla projekt är likadana, utom det första (personal, "{Förnamn}s yta"): det
+// kan inte tas bort och är bara ens eget – ingen kan bjudas in dit, och
+// Medlemmar, Bjud in och Team visas inte där (supabase/personal-private.sql).
 // Projektets avatar: en ur USER_AVATARS (ikon på färgtoning), eller projektets
 // första bokstav. Utan vald avatar får projektet en färg efter sitt id.
 function projectAvatarHTML(project, avatarId = project.avatar, extraClass = '') {
@@ -763,9 +765,9 @@ async function renderProjectSwitcher(onProjectChange) {
       <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openProjectSettings()">
         <i data-lucide="settings" class="project-menu-glyph"></i><span class="project-menu-name">Inställningar</span>
       </button>
-      <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openInviteModal()">
+      ${current.personal ? '' : `<button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openInviteModal()">
         <i data-lucide="user-plus" class="project-menu-glyph"></i><span class="project-menu-name">Bjud in medlemmar</span>
-      </button>
+      </button>`}
       <div class="menu-popover-sep"></div>
       <div class="project-menu-label">Dina projekt</div>
       ${projects.map(p => `
@@ -949,6 +951,8 @@ document.addEventListener('keydown', e => {
 
 // Kortet längst ner i sidopanelen: bjud in till valt projekt, eller gå med i ett
 function updateInviteCard(project) {
+  // Den egna ytan kan inte delas: inget Bjud in-kort och ingen Team-grupp (styles.css)
+  document.body.classList.toggle('is-personal-project', !!project?.personal);
   const title = document.getElementById('asideInviteTitle');
   const sub = document.getElementById('asideInviteSub');
   if (!title || !sub) return;
@@ -1059,7 +1063,7 @@ async function openInviteModal() {
     alert('Kunde inte hämta projektet. Ladda om sidan och försök igen.');
     return;
   }
-  if (!project) return;
+  if (!project || project.personal) return;
   inviteProject = project;
   document.getElementById('inviteModalTitle').textContent = `Bjud in till ${project.name}`;
   const members = project.members;
@@ -1123,9 +1127,14 @@ let settingsTab = 'general';
 
 const PROJECT_SETTINGS_TABS = [
   { id: 'general', label: 'Allmänt', icon: 'settings', title: 'Allmänt', lead: 'Projektets namn och avatar, och vad som händer med projektet.' },
-  { id: 'members', label: 'Medlemmar', icon: 'users', title: 'Medlemmar', lead: 'Vilka som är med i projektet och hur du bjuder in fler.' },
+  { id: 'members', label: 'Medlemmar', icon: 'users', title: 'Medlemmar', lead: 'Vilka som är med i projektet och hur du bjuder in fler.', shared: true },
   { id: 'classes', label: 'Klasser', icon: 'graduation-cap', title: 'Klasser', lead: 'Klasserna som alla i projektet väljer bland under Detaljer › Klass.' },
 ];
+
+// Delar som bara gäller delade projekt (shared) visas inte för den egna ytan
+function settingsTabs() {
+  return PROJECT_SETTINGS_TABS.filter(t => !(t.shared && settingsProject?.personal));
+}
 
 function renderSettingsNav() {
   const p = settingsProject;
@@ -1136,7 +1145,7 @@ function renderSettingsNav() {
       <span class="settings-nav-name">${escapeHTML(p.name)}</span>
     </div>
     <div class="settings-nav-label">Projekt</div>
-    ${PROJECT_SETTINGS_TABS.map(t => `
+    ${settingsTabs().map(t => `
       <button type="button" class="settings-nav-item${t.id === settingsTab ? ' is-active' : ''}" onclick="showProjectSettingsTab('${t.id}')"${t.id === settingsTab ? ' aria-current="page"' : ''}>
         <i data-lucide="${t.icon}"></i><span>${t.label}</span>
       </button>`).join('')}`;
@@ -1204,7 +1213,7 @@ function renderProjectSettings() {
   const p = settingsProject;
   const owner = isProjectOwner(p, settingsUser);
   const members = p.members.slice().sort((a, b) => (b.role === 'owner') - (a.role === 'owner'));
-  const tab = PROJECT_SETTINGS_TABS.find(t => t.id === settingsTab) || PROJECT_SETTINGS_TABS[0];
+  const tab = settingsTabs().find(t => t.id === settingsTab) || PROJECT_SETTINGS_TABS[0];
   renderSettingsNav();
   const body = document.getElementById('projectSettingsBody');
   const sections = {
@@ -1234,7 +1243,7 @@ function renderProjectSettings() {
     <section class="settings-section settings-danger">
       ${owner
         ? (p.personal
-          ? '<p class="settings-note">Det här är ditt första projekt. Det kan inte tas bort, eftersom nya upplägg hamnar här och upplägg från borttagna projekt flyttas hit.</p>'
+          ? '<p class="settings-note">Det här är din egen yta. Den är bara din och kan inte delas eller tas bort, eftersom nya upplägg hamnar här och upplägg från borttagna projekt flyttas hit. Vill du samarbeta skapar du ett nytt projekt.</p>'
           : `<div class="settings-danger-row"><span><strong>Ta bort projektet</strong><span class="settings-note">Uppläggen flyttas tillbaka till respektive skapare.</span></span><button type="button" class="btn btn-outline btn-danger" onclick="closeProjectSettings(); openDeleteProjectModal()"><i data-lucide="trash-2"></i>Ta bort</button></div>`)
         : `<div class="settings-danger-row"><span><strong>Lämna projektet</strong><span class="settings-note">Dina upplägg här flyttas till ditt första projekt.</span></span><button type="button" class="btn btn-outline btn-danger" onclick="leaveProjectFromSettings()"><i data-lucide="log-out"></i>Lämna</button></div>`}
     </section>`,

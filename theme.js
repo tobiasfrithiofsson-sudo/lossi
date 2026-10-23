@@ -1,28 +1,63 @@
-// Apply saved theme before paint to avoid flash
-(function () {
-  if (localStorage.getItem('lossi-theme') === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-  }
-})();
+// ── Tema: Ljust, Mörkt eller System ──
+// localStorage['lossi-theme'] = 'light' | 'dark' | 'system' (inget sparat =
+// System, som följer webbläsarens/datorns inställning och byter direkt när den
+// ändras). Sätts innan sidan ritas, så att det inte blinkar. Väljs i
+// användarmenyn (Tema); login- och landningssidan har en knapp som växlar
+// mellan ljust och mörkt.
+const THEME_KEY = 'lossi-theme';
+const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-function toggleTheme() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  if (isDark) {
-    document.documentElement.removeAttribute('data-theme');
-    localStorage.setItem('lossi-theme', 'light');
-  } else {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    localStorage.setItem('lossi-theme', 'dark');
-  }
+function themePreference() {
+  let saved = null;
+  try { saved = localStorage.getItem(THEME_KEY); } catch (e) {}
+  return saved === 'light' || saved === 'dark' ? saved : 'system';
+}
+
+function applyTheme() {
+  const pref = themePreference();
+  const dark = pref === 'dark' || (pref === 'system' && darkQuery.matches);
+  if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+  else document.documentElement.removeAttribute('data-theme');
+}
+applyTheme();
+
+darkQuery.addEventListener('change', () => {
+  if (themePreference() !== 'system') return;
+  applyTheme();
+  syncThemeIcons();
+});
+
+function setTheme(pref) {
+  try { localStorage.setItem(THEME_KEY, pref); } catch (e) {}
+  applyTheme();
   syncThemeIcons();
 }
 
+// Knappen på login-/landningssidan: växlar till motsatsen av det som syns
+function toggleTheme() {
+  setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+
+const THEME_CHOICES = [
+  { id: 'light', label: 'Ljust', icon: 'sun' },
+  { id: 'dark', label: 'Mörkt', icon: 'moon' },
+  { id: 'system', label: 'System', icon: 'monitor' },
+];
+
 function syncThemeIcons() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  // Användarmenyns tema-rad (topbaren har ingen egen temaknapp längre)
+  const pref = themePreference();
+  // Användarmenyns tema-rad: tre val, det valda markerat
   const themeItem = document.getElementById('themeMenuItem');
   if (themeItem) {
-    themeItem.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}"></i>${isDark ? 'Ljust läge' : 'Mörkt läge'}`;
+    themeItem.innerHTML = `
+      <span class="user-menu-theme-label"><i data-lucide="${isDark ? 'moon' : 'sun'}"></i>Tema</span>
+      <span class="theme-switch" role="radiogroup" aria-label="Tema">
+        ${THEME_CHOICES.map(c => `
+          <button type="button" class="theme-switch-btn" role="radio" aria-checked="${c.id === pref}" title="${c.label}${c.id === 'system' ? ' (följer webbläsaren)' : ''}" onclick="event.stopPropagation(); setTheme('${c.id}')">
+            <i data-lucide="${c.icon}"></i><span>${c.label}</span>
+          </button>`).join('')}
+      </span>`;
     if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [themeItem] });
   }
   document.querySelectorAll('.theme-toggle').forEach(btn => {
@@ -579,7 +614,7 @@ function buildTopbarHTML(active) {
           <i data-lucide="user"></i>
           Profil
         </button>
-        <button class="user-menu-item" id="themeMenuItem" onclick="toggleTheme()"></button>
+        <div class="user-menu-item user-menu-theme" id="themeMenuItem"></div>
         <a class="user-menu-item" href="admin.html" id="adminFeedbackLink" hidden>
           <i data-lucide="shield"></i>
           Admin

@@ -7,7 +7,7 @@
 //   3. Ditt projekt: ens egen yta ("Annas yta") och inbjudningar till
 //      kollegors projekt (Gå med / Avstå). Starta öppnar alltid den egna ytan.
 // Till höger: maskoten (steg 1–2), vars ögon följer pekaren och tittar på
-// fältet man skriver i (blundar vid lösenordet), och i steg 3 en liten
+// fältet man skriver i (håller för ögonen vid lösenordet), och i steg 3 en liten
 // version av Lossis projektväljare som visar ens projekt.
 // Kräver auth.js, theme.js och data.js. Anropas från login.html (showSignup/showLogin).
 
@@ -325,7 +325,7 @@ function obRenderApp() {
 
 
 // ── Maskoten (mascot.js) ──
-// Tittar på pekaren och på fältet man skriver i, blundar när man skriver
+// Tittar på pekaren och på fältet man skriver i, håller för ögonen när man skriver
 // lösenordet och blinkar då och då.
 const obMascot = (() => {
   const mascot = createMascot(obEl('obMascot'));

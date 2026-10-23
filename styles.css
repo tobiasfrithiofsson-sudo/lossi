@@ -3753,10 +3753,10 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 @media (max-width: 760px) {
   .modal.welcome-dialog { grid-template-columns: 1fr; gap: 24px; padding: 24px; }
   .welcome-dialog-media { order: -1; min-height: 200px; }
-  .welcome-dialog-media .mascot-face { width: 140px; }
+  .welcome-dialog-media { --face: 140px; }
   .welcome-dialog-title { font-size: 26px; }
   .tour-pop-media { height: 150px; }
-  .tour-pop-media .mascot-face { width: 140px; }
+  .tour-pop-media { --face: 140px; }
 }
 
 /* ============================================================

@@ -1,13 +1,14 @@
 // ── Lossis maskot ──
 // En SVG med två ögon (vita + pupiller) och en mun. Pupillerna flyttas mot
 // det den tittar på, men stannar inom ögonvitorna (som klipper dem). Kan
-// blunda, blinka och byta min. Används i onboardingen (onboarding.js) och i
+// hålla för ögonen, blinka och byta min. Används i onboardingen (onboarding.js) och i
 // välkomsten/rundturen i appen (tour.js). Utseendet finns i mascot.css.
 //   const m = createMascot(hostElement);
 //   m.lookAt(x, y)   – tittar mot en punkt på skärmen (clientX/clientY)
 //   m.center()       – tittar rakt fram
 //   m.setMood('normal' | 'curious' | 'happy' | 'sad')
-//   m.setClosed(true/false), m.blink()
+//   m.setClosed(true/false) – armarna kommer in och håller för ögonen
+//   m.blink()
 
 let mascotCount = 0;
 
@@ -29,7 +30,8 @@ function createMascot(host) {
         <g clip-path="url(#${id}R)"><circle class="mascot-pupil" cx="142" cy="52" r="24" fill="#2b2b2b" /></g>
       </g>
       <path class="mascot-mouth" d="M 92 108 Q 100 117 108 108" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" />
-    </svg>`);
+    </svg>
+    <span class="mascot-arm is-left"></span><span class="mascot-arm is-right"></span>`);
   const svg = host.querySelector('.mascot-face');
   const eyes = [...svg.querySelectorAll('.mascot-eye')];
   const MAX_OFFSET = 24; // i SVG-enheter: pupillen får gå ut över kanten (klipps), som i Tobias skiss

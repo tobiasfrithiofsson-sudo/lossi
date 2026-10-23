@@ -1,20 +1,44 @@
 /* ── Lossis maskot (mascot.js) ──
-   Ytan med färgtoningen och ansiktet; storleken sätts där maskoten används. */
+   Ytan med färgtoningen och ansiktet. Storleken sätts där maskoten används,
+   med --face (ansiktets bredd); armarna räknas ut från den. */
 .mascot {
   position: relative;
   display: grid;
   place-items: center;
   overflow: hidden;
+  --face: 180px;
   background: linear-gradient(225deg, #FF2E33 0%, #FF4A2E 45%, #FF6B2B 100%);
 }
-.mascot-face { width: 180px; overflow: visible; transition: transform 0.3s; }
+.mascot-face { width: var(--face); overflow: visible; transition: transform 0.3s; }
 .mascot-pupil { transition: transform 0.12s ease-out; transform-box: fill-box; }
 .mascot-eye { transform-box: fill-box; transform-origin: center; transition: transform 0.12s; }
-.mascot.is-closed .mascot-eye, .mascot.is-blinking .mascot-eye { transform: scaleY(0.08); }
+.mascot.is-blinking .mascot-eye { transform: scaleY(0.08); }
+
+/* Armarna (vid lösenordet, setClosed): kommer in från kanterna och möts
+   framför ögonen, med en smal glipa där munnen syns. Mått efter Tobias skiss:
+   höjd ≈ 1,5 ögon, glipa ≈ 0,4 öga, mitt i höjd med ögonen. */
+.mascot-arm {
+  --arm-h: calc(var(--face) * 0.6);
+  position: absolute;
+  z-index: 1;
+  top: calc(50% - var(--face) * 0.065 - var(--arm-h) / 2);
+  width: calc(50% - var(--face) * 0.078);
+  height: var(--arm-h);
+  box-sizing: border-box;
+  border: 4px solid #fff;
+  background: linear-gradient(200deg, #FF2E33 0%, #FF4A2E 50%, #FF6B2B 100%);
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.mascot-arm.is-left { left: 0; border-left: 0; border-radius: 0 999px 999px 0; transform: translateX(-102%); }
+.mascot-arm.is-right { right: 0; border-right: 0; border-radius: 999px 0 0 999px; transform: translateX(102%); }
+.mascot.is-closed .mascot-arm { transform: none; }
+/* Ögonen sitter tätare än i skissen: dölj dem när armarna är framme, så att
+   bara munnen syns i glipan */
+.mascot.is-closed .mascot-eye { opacity: 0; transition: transform 0.12s, opacity 0s 0.3s; }
 .mascot-mouth { transition: d 0.25s; }
 .mascot.is-happy .mascot-face { animation: mascot-hop 0.45s ease; }
 @keyframes mascot-hop { 40% { transform: translateY(-10px); } }
 @media (prefers-reduced-motion: reduce) {
-  .mascot-pupil, .mascot-eye, .mascot-face { transition: none; }
+  .mascot-pupil, .mascot-eye, .mascot-face, .mascot-arm { transition: none; }
   .mascot.is-happy .mascot-face { animation: none; }
 }

@@ -3790,6 +3790,290 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 }
 
 /* ============================================================
+   LÄROPLAN (curriculum.js)
+   Skolverkets punkter i Centralt innehåll och Betygskriterier, kursvalet
+   under Detaljer och dialogerna för att välja kurs och punkter. Skolverkets
+   text går inte att redigera; lärarens anteckning står under, i kursiv.
+   ============================================================ */
+
+.course-trigger { flex-wrap: wrap; row-gap: 4px; }
+.course-tag { max-width: 100%; flex-wrap: wrap; row-gap: 2px; }
+.course-tag-name { min-width: 0; }
+.course-tag-reform {
+  flex-shrink: 0;
+  padding: 0 5px;
+  border-radius: var(--radius-xs);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 16px;
+}
+.course-tag-reform.is-old { background: var(--color-bg-hover); color: var(--color-text-secondary); }
+.course-outdated { font-size: var(--font-size-sm); color: #b45309; }
+
+/* Med vald kurs syns tomma egna listor inte; finns egna rader får de en rubrik */
+.plan-section.has-course .goals-list:not(.sv-list):empty { display: none; }
+.plan-section:not(.has-course) .sv-list { display: none; }
+.plan-section.has-course .goals-list:not(.sv-list):not(:empty) { margin-top: var(--space-3); }
+.plan-section.has-course .goals-list:not(.sv-list):not(:empty)::before {
+  content: 'Egna rader (inte Skolverkets text)';
+  display: block;
+  padding: 6px var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-hover);
+  border-bottom: 1px solid var(--color-border);
+}
+/* Utan kurs och utan egna rader: bara ledtråden till kursvalet (i redigeringsläge) */
+body.edit-mode .plan-section:not(.has-course) .goals-list:not(.sv-list):empty { display: none; }
+body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):empty { display: flex; }
+
+.sv-hint {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  color: var(--color-text-tertiary);
+}
+.sv-hint[hidden] { display: none; }
+.sv-hint-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+.sv-hint-link:hover { text-decoration: underline; }
+
+.sv-item { align-items: flex-start; }
+.sv-item .goal-check { padding-top: 1px; }
+.sv-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.sv-heading { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-text-tertiary); }
+.sv-text { line-height: 1.5; cursor: default; }
+.sv-text strong { font-weight: 700; }
+.sv-steps { align-self: flex-start; height: 24px; }
+.sv-steps button { padding: 0 7px; font-size: var(--font-size-sm); font-weight: 600; }
+
+.sv-note {
+  font-size: var(--font-size-base);
+  font-style: italic;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  outline: none;
+  padding-left: 10px;
+  border-left: 2px solid var(--color-border);
+}
+.sv-note.is-empty:not(:focus) { display: none; }
+.sv-note[contenteditable="true"]:empty::before { content: attr(data-placeholder); color: var(--color-text-tertiary); }
+.sv-note[contenteditable="true"]:focus { border-left-color: var(--color-primary); }
+
+.sv-row-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sv-row-foot:empty { display: none; }
+.sv-lessons { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.sv-lesson-chip {
+  padding: 0 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 20px;
+}
+.sv-link-btn, .sv-note-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.sv-link-btn svg, .sv-note-btn svg { width: 13px; height: 13px; }
+.sv-link-btn:hover, .sv-note-btn:hover { background: var(--color-bg-secondary); color: var(--color-text-primary); }
+body:not(.edit-mode) .sv-note-btn { display: none; }
+/* Knapparna syns när man pekar på raden, utom kopplingen när raden saknar lektioner */
+@media (hover: hover) {
+  .sv-item .sv-note-btn, .sv-item .sv-lesson-chip + .popover-wrap .sv-link-btn { opacity: 0; transition: opacity 0.15s; }
+  .sv-item:hover .sv-note-btn, .sv-item:hover .sv-link-btn, .sv-item:focus-within .sv-note-btn, .sv-item:focus-within .sv-link-btn { opacity: 1; }
+}
+
+.sv-lessons-menu { width: 280px; max-height: 320px; overflow-y: auto; padding: 4px; }
+.sv-lessons-title { padding: 8px 8px 4px; font-size: var(--font-size-sm); font-weight: 600; color: var(--color-text-tertiary); }
+.sv-lesson-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  cursor: pointer;
+}
+.sv-lesson-option:hover { background: var(--color-bg-hover); }
+.sv-lesson-option input { margin: 3px 0 0; accent-color: var(--color-primary); }
+.sv-lesson-name { color: var(--color-text-secondary); }
+
+.sv-flag {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: #fef3c7;
+  color: #92400e;
+  font-size: var(--font-size-sm);
+}
+.sv-flag svg { width: 14px; height: 14px; flex-shrink: 0; }
+.sv-flag .btn { color: inherit; font-weight: 600; }
+.sv-flag-new { flex-basis: 100%; }
+.sv-flag-new summary { cursor: pointer; font-weight: 600; }
+.sv-flag-new p { margin: 4px 0 0; color: var(--color-text-primary); line-height: 1.5; }
+[data-theme="dark"] .sv-flag { background: rgba(245, 158, 11, 0.14); color: #fcd34d; }
+
+.sv-source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+.sv-source[hidden] { display: none; }
+.sv-source svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+/* Läroplan-sidan (laroplan.html): vad uppläggen täcker av en kurs */
+.cov-main { max-width: 960px; }
+.cov-intro { margin: 0 0 var(--space-4); font-size: var(--font-size-md); color: var(--color-text-secondary); line-height: 1.5; max-width: 680px; }
+.cov-course-select select { max-width: 420px; }
+.cov-empty { margin: 0; padding: var(--space-3) 0; font-size: var(--font-size-md); color: var(--color-text-tertiary); }
+.cov-empty-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  padding: var(--space-6, 24px);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  max-width: 560px;
+}
+.cov-empty-card svg { width: 24px; height: 24px; color: var(--color-primary); }
+.cov-empty-card p { margin: 0; font-size: var(--font-size-md); color: var(--color-text-secondary); line-height: 1.5; }
+.cov-empty-card strong { color: var(--color-text-primary); }
+.cov-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin: var(--space-4) 0 var(--space-6, 24px); }
+.cov-card { padding: 14px 16px; border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 6px; }
+.cov-card-label { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-text-tertiary); }
+.cov-card-value { font-size: var(--font-size-md); color: var(--color-text-secondary); }
+.cov-card-value strong { font-size: 22px; font-weight: 700; color: var(--color-text-primary); margin-right: 2px; }
+.cov-meter { height: 6px; border-radius: var(--radius-full); background: var(--color-bg-hover); overflow: hidden; }
+.cov-meter span { display: block; height: 100%; border-radius: inherit; background: #22c55e; }
+.cov-block { margin-bottom: var(--space-6, 24px); }
+.cov-block-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-2); }
+.cov-block-head h3 { margin: 0; font-size: var(--font-size-lg); font-weight: 700; }
+.cov-sub { margin: 0 0 var(--space-2); font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
+.cov-list { border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; }
+.cov-group { padding: 8px var(--space-3); font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text-tertiary); background: var(--color-bg-hover); }
+.cov-row { display: flex; gap: var(--space-3); padding: var(--space-3); border-top: 1px solid var(--color-border); }
+.cov-list > :first-child { border-top: none; }
+.cov-group + .cov-row { border-top: none; }
+.cov-row + .cov-group { border-top: 1px solid var(--color-border); }
+.cov-status svg { width: 20px; height: 20px; color: var(--color-text-tertiary); }
+.cov-row.is-covered .cov-status svg { color: #22c55e; }
+.cov-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.cov-text { font-size: var(--font-size-md); line-height: 1.5; color: var(--color-text-primary); }
+.cov-uses { display: flex; flex-wrap: wrap; gap: 6px; }
+.cov-uses.is-none { font-size: var(--font-size-sm); font-weight: 600; color: #b45309; }
+.cov-plan {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 26px; padding: 0 8px 0 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  max-width: 100%;
+}
+.cov-plan:hover { background: var(--color-bg-hover); }
+.cov-plan-icon { width: 20px; height: 20px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
+.cov-plan-icon img, .cov-plan-icon svg { width: 100%; height: 100%; display: block; }
+.cov-plan-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.cov-plan-lessons { color: var(--color-text-tertiary); white-space: nowrap; }
+.cov-plan-older { color: #b45309; white-space: nowrap; }
+@media (max-width: 760px) {
+  .cov-summary { grid-template-columns: 1fr; }
+}
+
+/* Dialog: välj kurs */
+.course-modal .modal-body { gap: var(--space-3); }
+.modal-body p.course-intro { margin: 0; font-size: var(--font-size-base); color: var(--color-text-secondary); line-height: 1.5; }
+.course-search-row { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+.course-search { flex: 1; min-width: 200px; margin: 0; }
+.course-options {
+  display: flex;
+  flex-direction: column;
+  height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+.course-option, .course-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.course-option:hover, .course-back:hover { background: var(--color-bg-hover); }
+.course-option svg, .course-back svg { width: 15px; height: 15px; color: var(--color-text-tertiary); flex-shrink: 0; }
+.course-option.is-selected .course-option-name { font-weight: 700; }
+.course-option-name { flex: 1; min-width: 0; }
+.course-option-meta { font-size: var(--font-size-sm); color: var(--color-text-tertiary); flex-shrink: 0; }
+.course-back { color: var(--color-text-secondary); min-height: 30px; }
+.course-subject-head { padding: 8px 10px 4px; font-weight: 700; font-size: var(--font-size-md); display: flex; align-items: center; gap: 6px; }
+.modal-body p.course-empty, p.course-empty { margin: 0; padding: 12px 10px; font-size: var(--font-size-md); color: var(--color-text-tertiary); }
+.modal-body p.course-warning { margin: 0; font-size: var(--font-size-sm); color: #b45309; }
+.course-source { margin-right: auto; align-self: center; font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
+.course-footer .btn[hidden] { display: none; }
+
+/* Dialog: bocka för punkter */
+.sv-picker-modal { display: flex; flex-direction: column; max-height: min(760px, 100%); overflow: hidden; }
+.sv-picker-modal .modal-header { align-items: flex-start; }
+.modal-header p.sv-picker-sub { margin: 2px 0 0; font-size: var(--font-size-base); color: var(--color-text-secondary); }
+.sv-picker-body { overflow-y: auto; gap: 2px; padding-top: 12px; }
+.modal-body p.sv-picker-help { margin: 0 0 6px; font-size: var(--font-size-base); color: var(--color-text-secondary); line-height: 1.5; }
+.sv-picker-group { padding: 12px 8px 4px; font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text-tertiary); }
+.sv-picker-group:first-child { padding-top: 0; }
+.sv-picker-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  cursor: pointer;
+}
+.sv-picker-option:hover { background: var(--color-bg-hover); }
+.sv-picker-option input { margin: 4px 0 0; flex-shrink: 0; accent-color: var(--color-primary); width: 15px; height: 15px; }
+.sv-picker-option:has(input:checked) { background: var(--color-primary-light); }
+
+/* ============================================================
    KNAPPAR I APPEN – själva knappsystemet (.btn, varianter, storlekar)
    finns i buttons.css, som alla sidor laddar före sina egna stilar.
    Här: statusknappen och filtren på översikten.

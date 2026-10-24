@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="sv" class="auth-pending" data-auth-required>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Läroplan | Lossi</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="buttons.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="theme.css" />
+  <script src="https://unpkg.com/lucide@1.61.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <script src="theme.js"></script>
+  <script src="data.js"></script>
+  <script src="schedule.js"></script>
+  <script src="plan-markup.js"></script>
+  <script src="ai-import.js"></script>
+  <script src="curriculum.js"></script>
+  <script src="feedback.js"></script>
+</head>
+<body>
+
+<header class="app-topbar"></header>
+
+<div class="app-body">
+<aside class="app-aside"></aside>
+
+<!-- ── Läroplan: vad projektets upplägg täcker av en kurs ──
+     Skolverkets punkter för kursen, och för varje punkt de upplägg (och
+     lektioner) som tar upp den. Punkter som inget upplägg tar upp syns tydligt.
+     Bara Skolverkets egen text; lärarnas val kommer från uppläggen (state.curriculum). -->
+<main class="cov-main">
+
+  <div class="plan-section">
+    <div class="section-head">
+      <h2>Läroplan</h2>
+    </div>
+    <div class="section-body">
+      <p class="cov-intro">Se vilket centralt innehåll och vilka betygskriterier uppläggen tar upp i en kurs, och vad som inte är med än. Texten är Skolverkets; valen görs i varje upplägg under Detaljer › Kurs.</p>
+
+      <div class="filter-bar" id="covFilters" hidden>
+        <div class="filter-toggle" id="ownerFilter" role="group" aria-label="Visa upplägg" hidden>
+          <button type="button" data-owner="all" aria-pressed="true" onclick="setOwnerFilter('all')">Alla</button>
+          <button type="button" data-owner="mine" aria-pressed="false" onclick="setOwnerFilter('mine')">Bara mina</button>
+        </div>
+        <div class="btn btn-subtle filter-select cov-course-select">
+          <i data-lucide="landmark"></i>
+          <select id="covCourse" onchange="selectCourse(this.value)" aria-label="Kurs"></select>
+          <i data-lucide="chevron-down" class="filter-select-chevron"></i>
+        </div>
+      </div>
+
+      <div id="covBody"><p class="cov-empty">Hämtar uppläggen…</p></div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+  LossiAuth.requireUser().then(applyUserProfile);
+  renderAppShell({ active: 'curriculum', onProjectChange: () => load() });
+  lucide.createIcons();
+  syncThemeIcons();
+
+  const C = LossiCurriculum;
+  const COURSE_KEY = 'lossi-curriculum-course';
+  let me = null;
+  let plans = [];            // upplägg med kurs: { id, title, avatar, ownerId, cur, lessons: [id] }
+  let ownerFilter = 'all';
+  let courseKey = '';
+  let criteriaStep = 'E';
+  try { ownerFilter = localStorage.getItem('lossi-owner-filter') || 'all'; } catch (e) {}
+
+  const keyOf = c => `${c.schoolType}/${c.subject}/${c.level}`;
+
+  function setOwnerFilter(value) {
+    ownerFilter = value;
+    try { localStorage.setItem('lossi-owner-filter', value); } catch (e) {}
+    document.querySelectorAll('#ownerFilter button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.owner === value)));
+    renderCourses();
+  }
+
+  // Lektionernas ordning i upplägget (för "Lektion 2")
+  function lessonOrder(structureHTML) {
+    if (!structureHTML) return [];
+    const doc = new DOMParser().parseFromString(`<div>${structureHTML}</div>`, 'text/html');
+    return [...doc.querySelectorAll('.lesson-group')].map(g => g.dataset.lessonId).filter(Boolean);
+  }
+
+  async function load() {
+    const body = document.getElementById('covBody');
+    body.innerHTML = '<p class="cov-empty">Hämtar uppläggen…</p>';
+    try {
+      const [user, project] = await Promise.all([LossiAuth.getUser(), LossiData.currentProject()]);
+      me = user;
+      const shared = (project?.members || []).length > 1;
+      document.getElementById('ownerFilter').hidden = !shared;
+      if (!shared) ownerFilter = 'all';
+      const list = await LossiData.withFullStates(await LossiData.listPlans({ projectId: project?.id }));
+      plans = list.filter(p => p.state?.curriculum?.subject).map(p => ({
+        id: p.id,
+        title: p.state.title || 'Namnlöst upplägg',
+        avatar: p.state.avatar,
+        ownerId: p.ownerId,
+        cur: p.state.curriculum,
+        lessons: lessonOrder(p.state.structureHTML),
+      }));
+    } catch (e) {
+      console.warn('Kunde inte hämta uppläggen:', e);
+      body.innerHTML = '<p class="cov-empty">Kunde inte hämta uppläggen. Kontrollera uppkopplingen och ladda om sidan.</p>';
+      return;
+    }
+    document.querySelectorAll('#ownerFilter button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.owner === ownerFilter)));
+    renderCourses();
+  }
+
+  const visiblePlans = () => plans.filter(p => ownerFilter !== 'mine' || p.ownerId === me?.id);
+
+  // Kurserna som uppläggen använder, flest upplägg först
+  function renderCourses() {
+    const courses = new Map();
+    visiblePlans().forEach(p => {
+      const k = keyOf(p.cur);
+      if (!courses.has(k)) courses.set(k, { ...p.cur, count: 0 });
+      courses.get(k).count++;
+    });
+    const sorted = [...courses.entries()].sort((a, b) => b[1].count - a[1].count || C.courseLabel(a[1]).localeCompare(C.courseLabel(b[1]), 'sv'));
+    document.getElementById('covFilters').hidden = !plans.length;
+    if (!sorted.length) {
+      document.getElementById('covBody').innerHTML = `<div class="cov-empty-card">
+        <i data-lucide="landmark"></i>
+        <p><strong>${plans.length ? 'Inga av dina upplägg har en kurs än.' : 'Inga upplägg har en kurs än.'}</strong></p>
+        <p>Öppna ett upplägg och välj kurs under Detaljer › Kurs. Bocka sedan för centralt innehåll och betygskriterier ur Skolverkets text, så syns de här.</p>
+      </div>`;
+      lucide.createIcons({ nodes: [document.getElementById('covBody')] });
+      return;
+    }
+    let saved = '';
+    try { saved = localStorage.getItem(COURSE_KEY) || ''; } catch (e) {}
+    if (!courses.has(courseKey)) courseKey = courses.has(saved) ? saved : sorted[0][0];
+    document.getElementById('covCourse').innerHTML = sorted.map(([k, c]) =>
+      `<option value="${escapeHTML(k)}"${k === courseKey ? ' selected' : ''}>${escapeHTML(C.courseLabel(c))}${c.reform ? ` (${escapeHTML(c.reform)})` : ''} · ${c.count} upplägg</option>`).join('');
+    renderCoverage();
+  }
+
+  function selectCourse(k) {
+    courseKey = k;
+    try { localStorage.setItem(COURSE_KEY, k); } catch (e) {}
+    renderCoverage();
+  }
+
+  function setCriteriaStep(step) {
+    criteriaStep = step;
+    renderCoverage();
+  }
+
+  async function renderCoverage() {
+    const body = document.getElementById('covBody');
+    const [schoolType, subjectCode, level] = courseKey.split('/');
+    let subj;
+    try {
+      subj = await C.subject(schoolType, subjectCode);
+    } catch (e) {
+      body.innerHTML = '<p class="cov-empty">Kunde inte hämta Skolverkets text. Kontrollera uppkopplingen och försök igen.</p>';
+      return;
+    }
+    const usingPlans = visiblePlans().filter(p => keyOf(p.cur) === courseKey);
+    const contentItems = C.levelOf(subj, level)?.content || [];
+    const criteriaGroup = C.criteriaOf(subj, level);
+    const criteriaItems = criteriaGroup?.items || [];
+
+    // Katalogpunkt-id → [{ plan, lessons, older }]
+    function coverage(kind, items) {
+      const map = new Map(items.map(it => [it.id, []]));
+      usingPlans.forEach(p => (p.cur[kind] || []).forEach(saved => {
+        const r = C.compare(saved, items, kind);
+        if (!r.item) return;
+        map.get(r.item.id).push({ plan: p, lessons: saved.lessons || [], older: r.status === 'changed' });
+      }));
+      return map;
+    }
+    const contentCov = coverage('content', contentItems);
+    const criteriaCov = coverage('criteria', criteriaItems);
+    const covered = map => [...map.values()].filter(v => v.length).length;
+
+    function usesHTML(uses) {
+      if (!uses.length) return '<div class="cov-uses is-none">Inte med i något upplägg än</div>';
+      return `<div class="cov-uses">${uses.map(u => {
+        const nums = u.lessons.map(id => u.plan.lessons.indexOf(id)).filter(i => i >= 0).sort((a, b) => a - b).map(i => i + 1);
+        return `<a class="cov-plan" href="upplag.html?id=${encodeURIComponent(u.plan.id)}">
+          <span class="cov-plan-icon">${planAvatarImgHTML(resolvePlanAvatarId(u.plan.id, u.plan.avatar))}</span>
+          <span class="cov-plan-title">${escapeHTML(u.plan.title)}</span>
+          ${nums.length ? `<span class="cov-plan-lessons">${nums.length === 1 ? 'Lektion' : 'Lektion'} ${nums.join(', ')}</span>` : ''}
+          ${u.older ? '<span class="cov-plan-older" title="Upplägget har en äldre formulering av punkten">äldre text</span>' : ''}
+        </a>`;
+      }).join('')}</div>`;
+    }
+
+    function rowsHTML(items, map, kind) {
+      let last = null;
+      return items.map(it => {
+        let head = '';
+        if (it.heading && it.heading !== last) { head = `<div class="cov-group">${escapeHTML(it.heading)}</div>`; last = it.heading; }
+        const uses = map.get(it.id);
+        const text = kind === 'criteria' ? (it.text || it[criteriaStep]) : it.text;
+        return `${head}<div class="cov-row${uses.length ? ' is-covered' : ''}">
+          <span class="cov-status" title="${uses.length ? 'Finns i minst ett upplägg' : 'Inte med i något upplägg'}"><i data-lucide="${uses.length ? 'circle-check' : 'circle-dashed'}"></i></span>
+          <div class="cov-row-main">
+            <div class="cov-text">${C.textHTML(text)}</div>
+            ${usesHTML(uses)}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    const meter = (n, total) => `<div class="cov-meter" role="img" aria-label="${n} av ${total}"><span style="width:${total ? Math.round(100 * n / total) : 0}%"></span></div>`;
+    const hasSteps = criteriaItems.some(it => !it.text);
+
+    body.innerHTML = `
+      <div class="cov-summary">
+        <div class="cov-card">
+          <div class="cov-card-label">Centralt innehåll</div>
+          <div class="cov-card-value"><strong>${covered(contentCov)}</strong> av ${contentItems.length} punkter</div>
+          ${meter(covered(contentCov), contentItems.length)}
+        </div>
+        <div class="cov-card">
+          <div class="cov-card-label">Betygskriterier</div>
+          <div class="cov-card-value"><strong>${covered(criteriaCov)}</strong> av ${criteriaItems.length} delar</div>
+          ${meter(covered(criteriaCov), criteriaItems.length)}
+        </div>
+        <div class="cov-card">
+          <div class="cov-card-label">Upplägg med kursen</div>
+          <div class="cov-card-value"><strong>${usingPlans.length}</strong></div>
+        </div>
+      </div>
+
+      <div class="cov-block">
+        <div class="cov-block-head"><h3>Centralt innehåll</h3></div>
+        <div class="cov-list">${rowsHTML(contentItems, contentCov, 'content') || '<p class="cov-empty">Skolverket har inget centralt innehåll för kursen.</p>'}</div>
+      </div>
+
+      <div class="cov-block">
+        <div class="cov-block-head">
+          <h3>Betygskriterier</h3>
+          ${hasSteps ? `<div class="filter-toggle sv-steps" role="group" aria-label="Visa betygssteg">
+            ${['E', 'C', 'A'].map(s => `<button type="button" aria-pressed="${s === criteriaStep}" onclick="setCriteriaStep('${s}')">${s}</button>`).join('')}
+          </div>` : ''}
+        </div>
+        ${criteriaGroup?.heading ? `<p class="cov-sub">${escapeHTML(criteriaGroup.heading)}</p>` : ''}
+        <div class="cov-list">${rowsHTML(criteriaItems, criteriaCov, 'criteria') || '<p class="cov-empty">Skolverket har inga betygskriterier för kursen.</p>'}</div>
+      </div>
+
+      <p class="sv-source"><i data-lucide="landmark"></i>Ordagrann text ur Skolverkets ${schoolType === 'GR' ? 'kursplan' : 'ämnesplan'}, version ${subj.version ?? '–'}, hämtad ${escapeHTML(subj.fetchedAt || '')}.</p>`;
+    lucide.createIcons({ nodes: [body] });
+  }
+
+  load();
+</script>
+</body>
+</html>

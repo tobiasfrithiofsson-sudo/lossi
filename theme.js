@@ -683,6 +683,7 @@ function asideNavHTML(active) {
     <nav class="aside-group aside-nav" aria-label="Sidor i Lossi">
       ${link('plans', 'index.html', 'roller-coaster', 'Upplägg')}
       ${link('calendar', 'calendar.html', 'calendar-days', 'Kalender')}
+      ${link('curriculum', 'laroplan.html', 'landmark', 'Läroplan')}
       ${soon('folder-open', 'Material', 'Material')}
       ${link('marketplace', 'marknadsplats.html', 'candy', 'Marknadsplats')}
     </nav>`;

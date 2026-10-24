@@ -24,6 +24,7 @@
   <script src="data.js"></script>
   <script src="schedule.js"></script>
   <script src="plan-markup.js"></script>
+  <script src="curriculum.js"></script>
   <script src="ai-import.js"></script>
   <script src="starter-plans.js"></script>
   <script src="feedback.js"></script>
@@ -200,12 +201,25 @@
       <div class="section-head">
         <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-goals" onclick="toggleSection('sec-goals')">Centralt innehåll<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
-          <button class="btn btn-text btn-icon section-add-btn" onclick="addGoal('goalsList')" title="Lägg till centralt innehåll">
+          <button class="btn btn-text btn-icon section-add-btn" onclick="toggleAppPopover(this)" title="Lägg till centralt innehåll">
             <i data-lucide="badge-plus"></i>
           </button>
+          <div class="menu-popover">
+            <button class="menu-popover-item" onclick="PlanCurriculum.openPicker('content')">
+              <i data-lucide="landmark"></i>
+              Välj ur Skolverkets text
+            </button>
+            <button class="menu-popover-item" onclick="closeAllMenuPopovers(); addGoal('goalsList')">
+              <i data-lucide="pencil-line"></i>
+              Egen rad
+            </button>
+          </div>
         </div>
       </div>
       <div class="section-body">
+        <p class="sv-hint edit-only" id="contentSvHint">Välj <button type="button" class="sv-hint-link" onclick="PlanCurriculum.openCoursePicker()">kurs</button> för att hämta det centrala innehållet med Skolverkets egen text.</p>
+        <div class="goals-list sv-list" id="contentSv" data-empty="Inget centralt innehåll valt än. Välj ur Skolverkets text med plusknappen."></div>
+        <p class="sv-source" id="contentSvSource" hidden></p>
         <div class="goals-list" id="goalsList" data-empty="Vilket centralt innehåll ger upplägget eleverna möjlighet att arbeta med?">
           <div class="goal-item">
             <div class="drag-handle edit-only" title="Dra för att ändra ordning">
@@ -249,12 +263,25 @@
       <div class="section-head">
         <h2><button type="button" class="section-toggle" aria-expanded="true" aria-controls="sec-criteria" onclick="toggleSection('sec-criteria')">Betygskriterier<i data-lucide="chevron-down" class="section-chevron"></i></button></h2>
         <div class="section-head-actions edit-only" onclick="event.stopPropagation()">
-          <button class="btn btn-text btn-icon section-add-btn" onclick="addGoal('criteriaList')" title="Lägg till betygskriterium">
+          <button class="btn btn-text btn-icon section-add-btn" onclick="toggleAppPopover(this)" title="Lägg till betygskriterium">
             <i data-lucide="badge-plus"></i>
           </button>
+          <div class="menu-popover">
+            <button class="menu-popover-item" onclick="PlanCurriculum.openPicker('criteria')">
+              <i data-lucide="landmark"></i>
+              Välj ur Skolverkets text
+            </button>
+            <button class="menu-popover-item" onclick="closeAllMenuPopovers(); addGoal('criteriaList')">
+              <i data-lucide="pencil-line"></i>
+              Egen rad
+            </button>
+          </div>
         </div>
       </div>
       <div class="section-body">
+        <p class="sv-hint edit-only" id="criteriaSvHint">Välj <button type="button" class="sv-hint-link" onclick="PlanCurriculum.openCoursePicker()">kurs</button> för att hämta betygskriterierna med Skolverkets egen text.</p>
+        <div class="goals-list sv-list" id="criteriaSv" data-empty="Inga betygskriterier valda än. Välj ur Skolverkets text med plusknappen."></div>
+        <p class="sv-source" id="criteriaSvSource" hidden></p>
         <div class="goals-list" id="criteriaList" data-empty="Vilka delar av betygskriterierna ger upplägget eleven chans att visa?"></div>
       </div>
     </div>
@@ -856,6 +883,12 @@
             </div>
           </div>
           <div class="read-field">
+            <span class="read-field-label">Kurs</span>
+            <div class="class-picker-trigger course-trigger" id="courseTrigger" onclick="PlanCurriculum.openCoursePicker()" title="Välj kurs ur Skolverkets kurs- och ämnesplaner">
+              <span class="class-tag is-empty">Ej vald</span>
+            </div>
+          </div>
+          <div class="read-field">
             <span class="read-field-label">Årskurs</span>
             <div class="popover-wrap" onclick="event.stopPropagation()">
               <div class="class-picker-trigger" onclick="openChoiceMenu(this, gradeChoices)" title="Välj eller skriv in årskurs">
@@ -1188,6 +1221,7 @@
       statusLabel: document.getElementById('statusLabel').textContent.trim(),
       goalsHTML: document.getElementById('goalsList').innerHTML,
       criteriaHTML: document.getElementById('criteriaList').innerHTML,
+      curriculum: PlanCurriculum.get(),
       structureHTML: document.getElementById('structureList').innerHTML,
     };
     if (planDemoKey) state.demoKey = planDemoKey;
@@ -1365,6 +1399,7 @@
     // Äldre sparade lägen saknar criteriaHTML och får en tom lista
     document.getElementById('criteriaList').innerHTML = state.criteriaHTML || '';
     document.getElementById('structureList').innerHTML = state.structureHTML;
+    PlanCurriculum.set(state.curriculum);
     upgradeSavedButtons(document.getElementById('structureList'));
   }
 
@@ -1909,8 +1944,8 @@
   function exportAsWord() {
     const title = document.getElementById('planTitle').textContent.trim();
     const idea = document.querySelector('.idea-text').innerText.trim();
-    const goals = Array.from(document.querySelectorAll('#goalsList .goal-text')).map(g => g.textContent.trim()).filter(Boolean);
-    const criteria = Array.from(document.querySelectorAll('#criteriaList .goal-text')).map(g => g.textContent.trim()).filter(Boolean);
+    const goals = Array.from(document.querySelectorAll('#sec-goals .goal-text')).map(g => g.textContent.trim()).filter(Boolean);
+    const criteria = Array.from(document.querySelectorAll('#sec-criteria .goal-text')).map(g => g.textContent.trim()).filter(Boolean);
     const activities = Array.from(document.querySelectorAll('.activity-title')).map(a => a.textContent.trim());
 
     const html = `<html><head><meta charset="utf-8"></head><body>
@@ -1962,8 +1997,8 @@
     const title = document.getElementById('planTitle').textContent.trim();
     const subject = document.getElementById('detailSubject').textContent.trim();
     const grade = document.getElementById('detailGrade').textContent.trim();
-    const goals = Array.from(document.querySelectorAll('#goalsList .goal-text')).map(g => g.textContent.trim()).filter(Boolean);
-    const criteria = Array.from(document.querySelectorAll('#criteriaList .goal-text')).map(g => g.textContent.trim()).filter(Boolean);
+    const goals = Array.from(document.querySelectorAll('#sec-goals .goal-text')).map(g => g.textContent.trim()).filter(Boolean);
+    const criteria = Array.from(document.querySelectorAll('#sec-criteria .goal-text')).map(g => g.textContent.trim()).filter(Boolean);
 
     const lessons = Array.from(document.querySelectorAll('.lesson-group')).map(group => {
       const durationVal = group.querySelector('.lesson-time-pill-value')?.textContent.trim();
@@ -2619,6 +2654,7 @@
       timePill.classList.toggle('over', !!(duration && sum > duration));
       syncLessonCollapse(group);
     });
+    PlanCurriculum.refreshLessons();
   }
 
   // Hopfälld lektion: knappens text för skärmläsare och tooltip
@@ -3411,6 +3447,15 @@
 
   const AI_FILL = { current: currentPlanForAi, previewHTML: aiFillPreviewHTML, apply: applyAiFillToPlan };
 
+  // Läroplanen (curriculum.js): Skolverkets punkter, kopplade till lektionerna
+  PlanCurriculum.init({
+    save: () => saveState(),
+    readOnly: () => planReadOnly,
+    lessons: () => [...document.querySelectorAll('#structureList .lesson-group')]
+      .filter(g => g.dataset.lessonId)
+      .map(g => ({ id: g.dataset.lessonId, name: g.querySelector('.week-pill')?.textContent.trim() || '' })),
+  });
+
   // ── Start: läs in upplägget och initiera sidan ──
   (async function boot() {
     let state, info, user;
@@ -3463,6 +3508,7 @@
     const myRight = planEditors.find(e => e.userId === user?.id)?.status;
     if (!planIsOwner && myRight !== 'approved') {
       enterReadOnly();
+      PlanCurriculum.refreshLessons();
       renderReadBanner();
       renderPlanPeople();
       planLoaded = true;

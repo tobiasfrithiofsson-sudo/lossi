@@ -33,7 +33,7 @@ const LOSSI_AI_PROMPT = `Du hjälper en lärare att planera ett pedagogiskt uppl
 
 ## Så arbetar vi
 1. Prata först med läraren om upplägget: ämne, årskurs eller kurs, syfte, hur många lektioner och hur långa de är, arbetssätt och vad eleverna ska lära sig. Ställ frågor, ge förslag och justera tills läraren är nöjd. Hitta inte på källor, citat eller statistik.
-2. När läraren ber om "Lossi-inmatningen" (eller säger att ni är klara) svarar du med ETT kodblock i formatet nedan och ingenting annat i kodblocket. Läraren klistrar in det i Lossi.
+2. När planeringen börjar kännas färdig frågar du på ett naturligt sätt om läraren känner sig klar och vill ta med upplägget tillbaka till Lossi. Säger läraren ja (eller ber om det själv) svarar du med ETT kodblock i formatet nedan och ingenting annat i kodblocket, och berättar kort att läraren kopierar det och klistrar in det i Lossi. Använd inga tekniska ord som "JSON", "inmatning" eller "format" när du pratar med läraren.
 3. Om läraren vill ändra något efteråt: ge ett nytt, komplett kodblock.
 
 ## Så ser ett upplägg ut i Lossi
@@ -44,7 +44,7 @@ const LOSSI_AI_PROMPT = `Du hjälper en lärare att planera ett pedagogiskt uppl
 - beskrivning: 2–4 meningar om uppläggets syfte och upplägg.
 - centraltInnehall: 3–6 punkter ur Skolverkets centrala innehåll för kursen som upplägget behandlar (förskolan: mål ur Lpfö 18). Skriv varje punkt ORDAGRANT som den står hos Skolverket – skriv inte om, sammanfatta eller hitta på. Lossi jämför med Skolverkets text och lägger in originalet; en punkt som inte går att hitta där läggs inte in som läroplan. Är du osäker på lydelsen, ta hellre med färre punkter.
 - betygskriterier: de delar av betygskriterierna som upplägget ger eleven chans att visa, ordagrant som Skolverkets mening för betyget E. Samma regler som ovan. Förskola och förskoleklass har inga betygskriterier – lämna listan tom.
-- lektioner: i ordning. Varje lektion har ett namn, längd i minuter och aktiviteter. Namnet är fritt (t.ex. "Begrepp och grundidéer" eller "Lektion 1: Begrepp"); läraren bestämmer själv, och har läraren redan namngett en lektion behåller du namnet.
+- lektioner: i ordning. Varje lektion har ett namn, längd i minuter och aktiviteter. Namnet är fritt (t.ex. "Begrepp och grundidéer" eller "Lektion 1: Begrepp"); läraren bestämmer själv, och har läraren redan namngett en lektion behåller du namnet. Behöver en ny lektion ett namn kan du föreslå ett eller fråga läraren vad den ska heta.
 - aktiviteter: typ, titel, minuter och beskrivning. Typ är en av: "Genomgång" (läraren går igenom), "Diskussion" (samtal i par, grupp eller helklass), "Aktivitet" (övning, grupparbete, laboration, skrivande), "Läsning" (eleverna läser) eller "Exit ticket" (kort avstämning i slutet). Aktiviteternas minuter ska tillsammans rymmas i lektionens längd.
 - Skriv inga elevnamn eller andra personuppgifter.
 
@@ -90,7 +90,7 @@ function buildFillPrompt(current, curriculumListing = '') {
     .replace(/1\. Prata först med läraren om upplägget:[^\n]*\n/,
       '1. Utgå från upplägget nedan – det är lärarens eget arbete. Fråga inte om sådant som redan står där, och ändra inte det läraren redan bestämt utan att fråga. Ge förslag, ställ frågor och justera tills läraren är nöjd. Hitta inte på källor, citat eller statistik.\n')
     .replace('Bekräfta kort att du förstått och fråga sedan läraren vad upplägget ska handla om.', `## Upplägget som det ser ut nu
-Varje lektion har en "kod". Det här gäller när du ger Lossi-inmatningen:
+Varje lektion har en "kod". Det här gäller när du ger kodblocket som tar upplägget tillbaka till Lossi:
 - Behåll koden på de lektioner du ändrar, så att Lossi hittar dem (de kan redan ligga i lärarens kalender).
 - Nya lektioner får ingen kod. De läggs sist i upplägget.
 - Lektioner du utelämnar lämnas orörda, och ingenting tas bort. Vill läraren ta bort något gör hen det själv i Lossi.
@@ -101,7 +101,7 @@ Varje lektion har en "kod". Det här gäller när du ger Lossi-inmatningen:
 ${JSON.stringify(current, null, 2)}
 \`\`\`
 ${curriculumListing}
-Börja med att kort sammanfatta upplägget som det ser ut nu (2–4 meningar). Peka sedan på det som verkar saknas eller kan utvecklas, till exempel lektioner utan aktiviteter, aktiviteter som inte ryms i lektionstiden, en tom beskrivning eller inget centralt innehåll, och ge 2–3 konkreta förslag på hur ni kan fortsätta. Fråga till sist läraren vad hen vill arbeta vidare med. Ge ingen Lossi-inmatning förrän läraren ber om den.`);
+Börja med att kort sammanfatta upplägget som det ser ut nu (2–4 meningar). Peka sedan på det som verkar saknas eller kan utvecklas, till exempel lektioner utan aktiviteter, aktiviteter som inte ryms i lektionstiden, en tom beskrivning eller inget centralt innehåll, och ge 2–3 konkreta förslag på hur ni kan fortsätta. Fråga till sist läraren vad hen vill arbeta vidare med. Ge inget kodblock förrän läraren känner sig klar och vill tillbaka till Lossi.`);
 }
 
 // Skolverkets punkter för uppläggets kurs, med koder, till Fyll i-instruktionen
@@ -115,7 +115,7 @@ async function buildCurriculumListing(cur) {
   const line = (id, text) => `- ${id}: ${C.plainText(text)}`;
   let out = `
 ## Läroplanen
-Upplägget är kopplat till ${C.courseLabel(cur)}${cur.reform ? ` (${cur.reform})` : ''}. Här är Skolverkets text med koder. Använd koderna i Lossi-inmatningen; Lossi lägger in Skolverkets text.
+Upplägget är kopplat till ${C.courseLabel(cur)}${cur.reform ? ` (${cur.reform})` : ''}. Här är Skolverkets text med koder. Använd koderna i kodblocket till Lossi; Lossi lägger in Skolverkets text. Prata gärna om punkterna med deras innehåll, inte med koderna.
 
 ${C.contentTitle(cur)}:
 ${content.map(it => line(it.id, (it.lead ? it.lead + ' ' : '') + it.text)).join('\n')}
@@ -199,12 +199,12 @@ function parseLossiAi(text, { fill = false } = {}) {
   if (!String(text || '').trim()) return { error: 'Klistra in svaret från din AI först.' };
   const data = extractAiJson(String(text));
   if (!data) {
-    return { error: 'Hittade ingen Lossi-inmatning i texten. Be din AI om "Lossi-inmatningen" och klistra in hela svaret, med kodblocket.' };
+    return { error: 'Hittade inget upplägg i texten. Säg till din AI att du är klar och vill ta med upplägget till Lossi, och klistra in hela svaret, med kodblocket.' };
   }
   const warnings = [];
 
   const title = aiText(aiPick(data, 'titel', 'title'), AI_LIMITS.title);
-  if (!title && !fill) return { error: 'Inmatningen saknar titel. Be din AI om en ny, komplett Lossi-inmatning.' };
+  if (!title && !fill) return { error: 'Upplägget saknar titel. Be din AI om upplägget en gång till, komplett och med titel.' };
 
   const grade = normalizeGrade(aiText(aiPick(data, 'arskurs', 'årskurs', 'grade'), 20));
 
@@ -240,7 +240,7 @@ function parseLossiAi(text, { fill = false } = {}) {
     if (minutes && sum > minutes) warnings.push(`${label}: aktiviteterna är ${sum} min men lektionen ${minutes} min.`);
     return { code: aiText(aiPick(l, 'kod', 'code'), 40), name, minutes, activities, hasActivities };
   });
-  if (!lessons.length && !fill) warnings.push('Inmatningen har inga lektioner. Upplägget skapas ändå, och du kan lägga till lektioner själv.');
+  if (!lessons.length && !fill) warnings.push('Upplägget har inga lektioner. Det skapas ändå, och du kan lägga till lektioner själv.');
   const has = key => aiPick(data, ...key) !== undefined;
 
   return {
@@ -405,8 +405,8 @@ let aiPromptText = LOSSI_AI_PROMPT;
 let aiFill = null;
 
 const AI_HELP = {
-  create: 'Kopiera instruktionen och klistra in den i Claude, ChatGPT eller den AI du brukar använda. Prata sedan med din AI om upplägget, så länge du vill. När ni är nöjda ber du om <strong>Lossi-inmatningen</strong>.',
-  fill: 'Instruktionen innehåller allt du har skrivit i upplägget, och Skolverkets punkter om upplägget har en kurs. Klistra in den i Claude, ChatGPT eller den AI du brukar använda: den sammanfattar upplägget, föreslår hur du kan fortsätta och blir ditt bollplank. När ni är nöjda ber du om <strong>Lossi-inmatningen</strong> och klistrar in den här.',
+  create: 'Kopiera instruktionen och klistra in den i Claude, ChatGPT eller den AI du brukar använda. Prata sedan med din AI om upplägget, så länge du vill. När du känner dig klar ger AI:n dig upplägget att <strong>klistra in här</strong>.',
+  fill: 'Instruktionen innehåller allt du har skrivit i upplägget, och Skolverkets punkter om upplägget har en kurs. Klistra in den i Claude, ChatGPT eller den AI du brukar använda: den sammanfattar upplägget, föreslår hur du kan fortsätta och blir ditt bollplank. När du känner dig klar ger AI:n dig upplägget att <strong>klistra in här</strong>.',
 };
 
 function openAiPlanModal() {

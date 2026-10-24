@@ -1825,7 +1825,8 @@ body.is-personal-project .aside-group[data-aside-group="teams"] { display: none;
 body.edit-mode .inline-editable-rich:not(.active):hover {
   background: var(--color-bg-hover);
 }
-body.edit-mode .inline-editable-rich:not(.active):hover .inline-editable-body { color: var(--color-text-primary); }
+/* Beskrivningens text i primärfärg; platshållaren (:empty::before) är kvar i tertiär */
+.idea-text.inline-editable-body { color: var(--color-text-primary); }
 
 body.edit-mode .inline-editable-rich.active {
   border-color: var(--color-border);

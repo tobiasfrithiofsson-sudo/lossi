@@ -16,7 +16,7 @@ const ACTIVITY_TYPES = {
 };
 
 const GOAL_LISTS = {
-  goalsList:    { icon: 'square-check', iconClass: '',                    placeholder: 'Nytt centralt innehåll…' },
+  goalsList:    { icon: 'list-checks', iconClass: '',                    placeholder: 'Nytt centralt innehåll…' },
   criteriaList: { icon: 'target',       iconClass: 'goal-check-criteria', placeholder: 'Nytt betygskriterium…' },
 };
 

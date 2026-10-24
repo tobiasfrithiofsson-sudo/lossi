@@ -7,8 +7,10 @@
 //
 // I upplägget sparas valen som state.curriculum:
 //   { schoolType, subject, subjectName, reform, version, level, levelName,
-//     content:  [{ id, heading, text, note, lessons: [lessonId] }],
-//     criteria: [{ id, E, C, A } | { id, text }, + note, lessons] }
+//     content:  [{ id, heading, text, note, lessons: [lessonId], activities: [activityId] }],
+//     criteria: [{ id, E, C, A } | { id, text }, + note, lessons, activities] }
+// En punkt kan kopplas till hela lektioner och/eller enskilda aktiviteter;
+// lektions- och aktivitetsraderna visar en tagg med antalet (renderTags).
 // Texten sparas med, så att upplägget går att läsa och exportera även om
 // Skolverket ändrar något. Ändrar Skolverket en punkt visas det på raden.
 // Kräver escapeHTML (theme.js).
@@ -117,8 +119,8 @@ const LossiCurriculum = (() => {
 
   // En vald punkt som den sparas i upplägget (texten följer med, se överst)
   function savedItem(it, kind) {
-    if (kind === 'criteria') return it.text ? { id: it.id, text: it.text, lessons: [] } : { id: it.id, E: it.E, C: it.C, A: it.A, lessons: [] };
-    return { id: it.id, heading: it.heading || null, ...(it.lead ? { lead: it.lead } : {}), text: it.text, lessons: [] };
+    if (kind === 'criteria') return it.text ? { id: it.id, text: it.text, lessons: [], activities: [] } : { id: it.id, E: it.E, C: it.C, A: it.A, lessons: [], activities: [] };
+    return { id: it.id, heading: it.heading || null, ...(it.lead ? { lead: it.lead } : {}), text: it.text, lessons: [], activities: [] };
   }
 
   // Kursen som den sparas i upplägget (utan punkter)
@@ -216,7 +218,25 @@ const LossiCurriculum = (() => {
     return { matched, unmatched };
   }
 
-  return { index, subject, levelOf, criteriaOf, courseLabel, textHTML, plainText, criterionText, compare, sourcePhrase, sourceDoc, contentTitle, leadHTML, hasCriteria, schoolTypeForGrade, savedItem, courseOf, findCourse, matchItems, WHOLE_SCHOOL_TYPES, SCHOOL_TYPE_NAMES };
+  // AI:ns kopplingar till lektioner och aktiviteter (ai-import.js, aiLinkTargets):
+  // [{ lessonId, has, refs: [{ kind, item }], activities: [{ activityId, refs }] }].
+  // has = AI:n tog med läroplan för lektionen; då ersätts lektionens egna kopplingar.
+  function applyLinks(cur, targets) {
+    const find = (kind, id) => cur[kind].find(it => it.id === id);
+    targets.forEach(t => {
+      if (t.lessonId && t.has) ['content', 'criteria'].forEach(k => cur[k].forEach(it => { it.lessons = (it.lessons || []).filter(x => x !== t.lessonId); }));
+      t.refs.forEach(r => {
+        const it = find(r.kind, r.item.id);
+        if (it && t.lessonId && !(it.lessons ||= []).includes(t.lessonId)) it.lessons.push(t.lessonId);
+      });
+      (t.activities || []).forEach(a => a.refs.forEach(r => {
+        const it = find(r.kind, r.item.id);
+        if (it && a.activityId && !(it.activities ||= []).includes(a.activityId)) it.activities.push(a.activityId);
+      }));
+    });
+  }
+
+  return { applyLinks, index, subject, levelOf, criteriaOf, courseLabel, textHTML, plainText, criterionText, compare, sourcePhrase, sourceDoc, contentTitle, leadHTML, hasCriteria, schoolTypeForGrade, savedItem, courseOf, findCourse, matchItems, WHOLE_SCHOOL_TYPES, SCHOOL_TYPE_NAMES };
 })();
 
 
@@ -230,10 +250,11 @@ const PlanCurriculum = (() => {
   let cur = null;          // state.curriculum
   let catalog = null;      // ämnet ur curriculum/ (för versionskontroll och väljaren)
   let catalogKey = '';
+  // lessons() → [{ id, name, activities: [{ id, title }] }] i uppläggets ordning
   let hooks = { save() {}, readOnly: () => false, lessons: () => [] };
   const shownStep = new Map(); // kriterium-id → visat betygssteg (bara på sidan)
   const KINDS = {
-    content:  { listId: 'contentSv',  sectionId: 'sec-goals',    icon: 'square-check', iconClass: '',                    title: 'Centralt innehåll' },
+    content:  { listId: 'contentSv',  sectionId: 'sec-goals',    icon: 'list-checks', iconClass: '',                    title: 'Centralt innehåll' },
     criteria: { listId: 'criteriaSv', sectionId: 'sec-criteria', icon: 'target',       iconClass: 'goal-check-criteria', title: 'Betygskriterier' },
   };
 
@@ -293,6 +314,7 @@ const PlanCurriculum = (() => {
   function render() {
     renderCourseField();
     Object.keys(KINDS).forEach(renderList);
+    renderTags();
   }
 
   function renderCourseField() {
@@ -311,19 +333,28 @@ const PlanCurriculum = (() => {
     trigger.title = 'Byt kurs';
   }
 
+  // Kort text för en aktivitet i ett chip
+  const shortTitle = t => (t = String(t || '').trim()).length > 28 ? t.slice(0, 27).trimEnd() + '…' : t;
+
   function lessonChipsHTML(item, kind) {
     const lessons = hooks.lessons();
-    const linked = (item.lessons || []).map(id => lessons.findIndex(l => l.id === id)).filter(i => i >= 0).sort((a, b) => a - b);
-    const chips = linked.map(i => `<span class="sv-lesson-chip" title="${escapeHTML(lessons[i].name)}">Lektion ${i + 1}</span>`).join('');
+    const chips = [];
+    lessons.forEach((l, i) => {
+      if ((item.lessons || []).includes(l.id)) chips.push(`<span class="sv-lesson-chip" title="${escapeHTML(l.name)}">Lektion ${i + 1}</span>`);
+      l.activities.forEach(a => {
+        if ((item.activities || []).includes(a.id)) chips.push(`<span class="sv-lesson-chip is-activity" title="${escapeHTML(`${l.name} › ${a.title}`)}">Lektion ${i + 1} › ${escapeHTML(shortTitle(a.title))}</span>`);
+      });
+    });
+    const linkedCount = chips.length;
     const editable = !hooks.readOnly();
     const button = editable && lessons.length ? `
       <div class="popover-wrap" onclick="event.stopPropagation()">
-        <button type="button" class="sv-link-btn" onclick="PlanCurriculum.openLessons(this, '${kind}', '${item.id}')" title="Koppla till lektioner">
-          <i data-lucide="link"></i>${linked.length ? '' : '<span>Koppla till lektion</span>'}
+        <button type="button" class="sv-link-btn" onclick="PlanCurriculum.openLessons(this, '${kind}', '${item.id}')" title="Koppla till lektioner och aktiviteter">
+          <i data-lucide="link"></i>${linkedCount ? '' : '<span>Koppla till lektion</span>'}
         </button>
         <div class="menu-popover sv-lessons-menu"></div>
       </div>` : '';
-    return chips || button ? `<div class="sv-lessons">${chips}${button}</div>` : '';
+    return linkedCount || button ? `<div class="sv-lessons">${chips.join('')}${button}</div>` : '';
   }
 
   function flagHTML(item, kind) {
@@ -396,7 +427,7 @@ const PlanCurriculum = (() => {
     const source = document.getElementById(cfg.listId + 'Source');
     if (source) {
       source.hidden = !items.length;
-      source.innerHTML = items.length ? `<i data-lucide="landmark"></i>Ordagrann text ur ${escapeHTML(C.sourcePhrase(cur))}${cur.reform ? ` (${escapeHTML(cur.reform)})` : ''}` : '';
+      source.innerHTML = items.length ? `<i data-lucide="graduation-cap"></i>Ordagrann text ur ${escapeHTML(C.sourcePhrase(cur))}${cur.reform ? ` (${escapeHTML(cur.reform)})` : ''}` : '';
     }
     const hint = document.getElementById(cfg.listId + 'Hint');
     if (hint) hint.hidden = !!cur;
@@ -405,15 +436,61 @@ const PlanCurriculum = (() => {
 
   // Lektionerna har ändrats (ny, borttagen, flyttad, nytt namn)
   function refreshLessons() {
-    if (!cur) return;
-    const ids = new Set(hooks.lessons().map(l => l.id));
+    if (!cur) { renderTags(); return; }
+    const lessons = hooks.lessons();
+    const lessonIds = new Set(lessons.map(l => l.id));
+    const activityIds = new Set(lessons.flatMap(l => l.activities.map(a => a.id)));
     let pruned = false;
     ['content', 'criteria'].forEach(kind => cur[kind].forEach(item => {
-      const kept = (item.lessons || []).filter(id => ids.has(id));
-      if (kept.length !== (item.lessons || []).length) { item.lessons = kept; pruned = true; }
+      const kept = (item.lessons || []).filter(id => lessonIds.has(id));
+      const keptActs = (item.activities || []).filter(id => activityIds.has(id));
+      if (kept.length !== (item.lessons || []).length || keptActs.length !== (item.activities || []).length) {
+        item.lessons = kept;
+        item.activities = keptActs;
+        pruned = true;
+      }
     }));
     Object.keys(KINDS).forEach(renderList);
+    renderTags();
     if (pruned && !hooks.readOnly()) hooks.save();
+  }
+
+  // ── Taggar på lektions- och aktivitetsraderna ──
+  // Läroplansikon + antal punkter. Lektionen räknar punkter kopplade till
+  // lektionen eller till någon av dess aktiviteter. Taggarna ritas om här och
+  // sparas inte med upplägget (upplag.html tar bort .sv-tag när det sparas).
+  function linkedTo({ lessonId, activityIds = [] }) {
+    if (!cur) return [];
+    const acts = new Set(activityIds);
+    return ['content', 'criteria'].flatMap(kind => cur[kind]
+      .filter(it => (lessonId && (it.lessons || []).includes(lessonId)) || (it.activities || []).some(id => acts.has(id)))
+      .map(it => ({ kind, item: it })));
+  }
+
+  function tagHTML(list, where) {
+    if (!list.length) return '';
+    const lines = list.map(({ kind, item }) => '• ' + C.plainText(kind === 'criteria' ? C.criterionText(item) : (item.lead ? item.lead + ' ' : '') + item.text).slice(0, 110));
+    const label = `${list.length} ${list.length === 1 ? 'punkt' : 'punkter'} ur läroplanen ${where}`;
+    return `<span class="sv-tag" title="${escapeHTML(label + ':\n' + lines.join('\n'))}" aria-label="${escapeHTML(label)}"><i data-lucide="graduation-cap"></i>${list.length}</span>`;
+  }
+
+  function renderTags() {
+    const lessons = hooks.lessons();
+    document.querySelectorAll('#structureList .sv-tag').forEach(el => el.remove());
+    if (!cur) return;
+    const nodes = [];
+    lessons.forEach(l => {
+      const group = document.querySelector(`#structureList .lesson-group[data-lesson-id="${CSS.escape(l.id)}"]`);
+      const pill = group?.querySelector('.week-row .week-pill');
+      const html = tagHTML(linkedTo({ lessonId: l.id, activityIds: l.activities.map(a => a.id) }), 'i lektionen');
+      if (pill && html) { pill.insertAdjacentHTML('afterend', html); nodes.push(pill.nextElementSibling); }
+      l.activities.forEach(a => {
+        const time = document.getElementById(a.id)?.querySelector('.activity-row .activity-time');
+        const ahtml = tagHTML(linkedTo({ activityIds: [a.id] }), 'i aktiviteten');
+        if (time && ahtml) { time.insertAdjacentHTML('beforebegin', ahtml); nodes.push(time.previousElementSibling); }
+      });
+    });
+    if (nodes.length) lucide.createIcons({ nodes });
   }
 
   // ── Ändringar på raderna ──
@@ -457,14 +534,22 @@ const PlanCurriculum = (() => {
     if (!item || !menu) return;
     const lessons = hooks.lessons();
     const linked = new Set(item.lessons || []);
-    menu.innerHTML = `<div class="sv-lessons-title">Vilka lektioner tar upp det här?</div>` + lessons.map((l, i) => `
+    const linkedActs = new Set(item.activities || []);
+    menu.innerHTML = `<div class="sv-lessons-title">Var tas det här upp? Välj hela lektionen eller enskilda aktiviteter.</div>` + lessons.map((l, i) => `
       <label class="sv-lesson-option">
-        <input type="checkbox" value="${escapeHTML(l.id)}"${linked.has(l.id) ? ' checked' : ''} />
+        <input type="checkbox" data-lesson="${escapeHTML(l.id)}"${linked.has(l.id) ? ' checked' : ''} />
         <span><strong>Lektion ${i + 1}</strong>${l.name && !/^lektion \d+$/i.test(l.name) ? ` <span class="sv-lesson-name">${escapeHTML(l.name.replace(/^lektion \d+\s*[:–-]\s*/i, ''))}</span>` : ''}</span>
-      </label>`).join('');
+      </label>
+      ${l.activities.map(a => `
+      <label class="sv-lesson-option is-activity">
+        <input type="checkbox" data-activity="${escapeHTML(a.id)}"${linkedActs.has(a.id) ? ' checked' : ''} />
+        <span>${escapeHTML(a.title || 'Aktivitet')}</span>
+      </label>`).join('')}`).join('');
     menu.onchange = () => {
-      item.lessons = [...menu.querySelectorAll('input:checked')].map(i => i.value);
+      item.lessons = [...menu.querySelectorAll('input[data-lesson]:checked')].map(i => i.dataset.lesson);
+      item.activities = [...menu.querySelectorAll('input[data-activity]:checked')].map(i => i.dataset.activity);
       hooks.save();
+      renderTags();
     };
     toggleAppPopover(btn);
     // Raden ritas om när menyn stängs, så att kopplingarna syns
@@ -716,7 +801,15 @@ const PlanCurriculum = (() => {
   // resolveAiCurriculum). Kursen sätts bara om upplägget saknar kurs (eller har
   // en tom), och en lista ersätts bara när AI:n tog med den. Anteckningar och
   // lektionskopplingar följer med på punkter som redan var valda.
-  function applyFromAi(res) {
+  // Aktiviteter som ersatts (Planera med AI): deras kopplingar tas bort
+  function forgetActivities(ids) {
+    if (!cur || !ids?.length) return;
+    const gone = new Set(ids);
+    ['content', 'criteria'].forEach(kind => cur[kind].forEach(it => { it.activities = (it.activities || []).filter(id => !gone.has(id)); }));
+  }
+
+  // targets = lektionerna/aktiviteterna i Lossi i AI:ns ordning (aiLinkTargets)
+  function applyFromAi(res, targets = []) {
     if (hooks.readOnly() || !res?.course) return;
     const empty = !cur || (!cur.content.length && !cur.criteria.length);
     const same = cur && cur.schoolType === res.course.schoolType && cur.subject === res.course.subject && cur.level === res.course.level;
@@ -727,10 +820,16 @@ const PlanCurriculum = (() => {
       catalogKey = '';
     }
     ['content', 'criteria'].forEach(kind => {
-      if (!res.has[kind] || !res[kind].matched.length) return;
       const old = new Map(cur[kind].map(it => [it.id, it]));
-      cur[kind] = res[kind].matched.map(it => old.get(it.id) || C.savedItem(it, kind));
+      const extra = (res.extra?.[kind] || []).filter(it => !old.has(it.id) || res.has[kind]);
+      if (res.has[kind] && res[kind].matched.length) {
+        cur[kind] = [...res[kind].matched, ...extra].map(it => old.get(it.id) || C.savedItem(it, kind));
+      } else {
+        // Listan togs inte med: punkter som bara nämns på lektioner läggs till
+        extra.filter(it => !old.has(it.id)).forEach(it => cur[kind].push(C.savedItem(it, kind)));
+      }
     });
+    C.applyLinks(cur, targets);
     changed();
     loadCatalog();
   }
@@ -821,6 +920,6 @@ const PlanCurriculum = (() => {
 
   return {
     init, set, get, refreshLessons, openCoursePicker, pickSchoolType, renderCourseOptions, chooseSubject, backToSubjects,
-    chooseLevel, clearCourse, ensureForGrade, applyFromAi, openPicker, savePicker, closeModal, remove, useNewText, showStep, focusNote, openLessons,
+    chooseLevel, clearCourse, ensureForGrade, applyFromAi, forgetActivities, openPicker, savePicker, closeModal, remove, useNewText, showStep, focusNote, openLessons,
   };
 })();

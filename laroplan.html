@@ -52,7 +52,7 @@
           <button type="button" data-owner="mine" aria-pressed="false" onclick="setOwnerFilter('mine')">Bara mina</button>
         </div>
         <div class="btn btn-subtle filter-select cov-course-select">
-          <i data-lucide="landmark"></i>
+          <i data-lucide="graduation-cap"></i>
           <select id="covCourse" onchange="selectCourse(this.value)" aria-label="Kurs"></select>
           <i data-lucide="chevron-down" class="filter-select-chevron"></i>
         </div>
@@ -89,11 +89,17 @@
     renderCourses();
   }
 
-  // Lektionernas ordning i upplägget (för "Lektion 2")
+  // Lektionernas ordning i upplägget (för "Lektion 2") och vilken lektion varje aktivitet ligger i
   function lessonOrder(structureHTML) {
-    if (!structureHTML) return [];
+    const order = { lessons: [], activityLesson: new Map() };
+    if (!structureHTML) return order;
     const doc = new DOMParser().parseFromString(`<div>${structureHTML}</div>`, 'text/html');
-    return [...doc.querySelectorAll('.lesson-group')].map(g => g.dataset.lessonId).filter(Boolean);
+    doc.querySelectorAll('.lesson-group').forEach(g => {
+      if (!g.dataset.lessonId) return;
+      order.lessons.push(g.dataset.lessonId);
+      g.querySelectorAll('.activity-wrapper').forEach(w => order.activityLesson.set(w.id, g.dataset.lessonId));
+    });
+    return order;
   }
 
   async function load() {
@@ -112,7 +118,7 @@
         avatar: p.state.avatar,
         ownerId: p.ownerId,
         cur: p.state.curriculum,
-        lessons: lessonOrder(p.state.structureHTML),
+        order: lessonOrder(p.state.structureHTML),
       }));
     } catch (e) {
       console.warn('Kunde inte hämta uppläggen:', e);
@@ -137,7 +143,7 @@
     document.getElementById('covFilters').hidden = !plans.length;
     if (!sorted.length) {
       document.getElementById('covBody').innerHTML = `<div class="cov-empty-card">
-        <i data-lucide="landmark"></i>
+        <i data-lucide="graduation-cap"></i>
         <p><strong>${plans.length ? 'Inga av dina upplägg har en kurs än.' : 'Inga upplägg har en kurs än.'}</strong></p>
         <p>Öppna ett upplägg och välj kurs under Detaljer › Kurs. Bocka sedan för centralt innehåll och betygskriterier ur Skolverkets text, så syns de här.</p>
       </div>`;
@@ -184,7 +190,9 @@
       usingPlans.forEach(p => (p.cur[kind] || []).forEach(saved => {
         const r = C.compare(saved, items, kind);
         if (!r.item) return;
-        map.get(r.item.id).push({ plan: p, lessons: saved.lessons || [], older: r.status === 'changed' });
+        // Kopplade lektioner, även via aktiviteter i dem
+        const lessons = [...(saved.lessons || []), ...(saved.activities || []).map(id => p.order.activityLesson.get(id)).filter(Boolean)];
+        map.get(r.item.id).push({ plan: p, lessons, older: r.status === 'changed' });
       }));
       return map;
     }
@@ -195,7 +203,7 @@
     function usesHTML(uses) {
       if (!uses.length) return '<div class="cov-uses is-none">Inte med i något upplägg än</div>';
       return `<div class="cov-uses">${uses.map(u => {
-        const nums = u.lessons.map(id => u.plan.lessons.indexOf(id)).filter(i => i >= 0).sort((a, b) => a - b).map(i => i + 1);
+        const nums = [...new Set(u.lessons.map(id => u.plan.order.lessons.indexOf(id)).filter(i => i >= 0))].sort((a, b) => a - b).map(i => i + 1);
         return `<a class="cov-plan" href="upplag.html?id=${encodeURIComponent(u.plan.id)}">
           <span class="cov-plan-icon">${planAvatarImgHTML(resolvePlanAvatarId(u.plan.id, u.plan.avatar))}</span>
           <span class="cov-plan-title">${escapeHTML(u.plan.title)}</span>
@@ -261,7 +269,7 @@
         <div class="cov-list">${rowsHTML(criteriaItems, criteriaCov, 'criteria') || '<p class="cov-empty">Skolverket har inga betygskriterier för kursen.</p>'}</div>
       </div>`}
 
-      <p class="sv-source"><i data-lucide="landmark"></i>Ordagrann text ur ${escapeHTML(C.sourceDoc({ schoolType }))}, version ${subj.version ?? '–'}, hämtad ${escapeHTML(subj.fetchedAt || '')}.</p>`;
+      <p class="sv-source"><i data-lucide="graduation-cap"></i>Ordagrann text ur ${escapeHTML(C.sourceDoc({ schoolType }))}, version ${subj.version ?? '–'}, hämtad ${escapeHTML(subj.fetchedAt || '')}.</p>`;
     lucide.createIcons({ nodes: [body] });
   }
 

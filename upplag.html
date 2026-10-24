@@ -196,7 +196,7 @@
           </button>
           <div class="menu-popover">
             <button class="menu-popover-item" onclick="PlanCurriculum.openPicker('content')">
-              <i data-lucide="landmark"></i>
+              <i data-lucide="graduation-cap"></i>
               Välj ur Skolverkets text
             </button>
             <button class="menu-popover-item" onclick="closeAllMenuPopovers(); addGoal('goalsList')">
@@ -216,7 +216,7 @@
               <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
             </div>
             <div class="goal-check">
-              <i data-lucide="square-check"></i>
+              <i data-lucide="list-checks"></i>
             </div>
             <div class="goal-text" contenteditable="true">Förstå grundläggande principer för demokrati och diktatur</div>
             <button class="goal-delete" onclick="deleteGoal(this)" title="Ta bort"><i data-lucide="x"></i></button>
@@ -226,7 +226,7 @@
               <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
             </div>
             <div class="goal-check">
-              <i data-lucide="square-check"></i>
+              <i data-lucide="list-checks"></i>
             </div>
             <div class="goal-text" contenteditable="true">Förklara hur demokratiska beslut fattas i Sverige</div>
             <button class="goal-delete" onclick="deleteGoal(this)" title="Ta bort"><i data-lucide="x"></i></button>
@@ -236,7 +236,7 @@
               <span><i></i><i></i></span><span><i></i><i></i></span><span><i></i><i></i></span>
             </div>
             <div class="goal-check">
-              <i data-lucide="square-check"></i>
+              <i data-lucide="list-checks"></i>
             </div>
             <div class="goal-text" contenteditable="true">Resonera kring medborgarens roll och ansvar i en demokrati</div>
             <button class="goal-delete" onclick="deleteGoal(this)" title="Ta bort"><i data-lucide="x"></i></button>
@@ -258,7 +258,7 @@
           </button>
           <div class="menu-popover">
             <button class="menu-popover-item" onclick="PlanCurriculum.openPicker('criteria')">
-              <i data-lucide="landmark"></i>
+              <i data-lucide="graduation-cap"></i>
               Välj ur Skolverkets text
             </button>
             <button class="menu-popover-item" onclick="closeAllMenuPopovers(); addGoal('criteriaList')">
@@ -1211,6 +1211,15 @@
 
   renderPlanIcon(null);
 
+  // Läroplanstaggarna på lektioner och aktiviteter ritas av curriculum.js och sparas inte
+  function structureHTMLForSave() {
+    const list = document.getElementById('structureList');
+    if (!list.querySelector('.sv-tag')) return list.innerHTML;
+    const clone = list.cloneNode(true);
+    clone.querySelectorAll('.sv-tag').forEach(el => el.remove());
+    return clone.innerHTML;
+  }
+
   // Hela upplägget som det ser ut på sidan just nu
   function collectState() {
     const state = {
@@ -1226,7 +1235,7 @@
       goalsHTML: document.getElementById('goalsList').innerHTML,
       criteriaHTML: document.getElementById('criteriaList').innerHTML,
       curriculum: PlanCurriculum.get(),
-      structureHTML: document.getElementById('structureList').innerHTML,
+      structureHTML: structureHTMLForSave(),
     };
     if (planDemoKey) state.demoKey = planDemoKey;
     return state;
@@ -1400,6 +1409,10 @@
     document.getElementById('statusLabel').textContent = state.statusLabel;
 
     document.getElementById('goalsList').innerHTML = state.goalsHTML;
+    // Centralt innehåll har ikonen list-checks (2026-10-25); sparade rader kan ha den gamla bockrutan
+    document.querySelectorAll('#goalsList .goal-check').forEach(el => {
+      if (!el.querySelector('[data-lucide="list-checks"], .lucide-list-checks')) el.innerHTML = '<i data-lucide="list-checks"></i>';
+    });
     // Äldre sparade lägen saknar criteriaHTML och får en tom lista
     document.getElementById('criteriaList').innerHTML = state.criteriaHTML || '';
     document.getElementById('structureList').innerHTML = state.structureHTML;
@@ -3335,6 +3348,7 @@
       titel: document.getElementById('planTitle').textContent.trim(),
       amne: document.getElementById('detailSubject').textContent.trim(),
       arskurs: document.getElementById('detailGrade').textContent.trim(),
+      klass: document.getElementById('classPickerTrigger').dataset.klass || '',
       ...(cur ? { kurs: LossiCurriculum.courseLabel(cur) } : {}),
       beskrivning: document.querySelector('.idea-text').innerText.trim(),
       centraltInnehall: cur ? cur.content.map(it => it.id) : texts('#goalsList .goal-text'),
@@ -3345,11 +3359,16 @@
         const lesson = { kod: g.dataset.lessonId, namn: g.querySelector('.week-pill')?.textContent.trim() || '' };
         if (minutes) lesson.minuter = minutes;
         if (event) lesson.inlagdIKalendern = formatEventWhen(event, { long: true });
+        // Läroplanskopplingar som koder (instruktionen listar Skolverkets text)
+        const codesFor = (field, id) => cur ? [...cur.content, ...cur.criteria].filter(it => (it[field] || []).includes(id)).map(it => it.id) : [];
+        const lessonCodes = codesFor('lessons', g.dataset.lessonId);
+        if (lessonCodes.length) lesson.laroplan = lessonCodes;
         lesson.aktiviteter = [...g.querySelectorAll('.activity-wrapper')].map(w => ({
           typ: w.querySelector('.activity-icon')?.title || 'Aktivitet',
           titel: w.querySelector('.activity-title')?.textContent.trim() || '',
           minuter: parseMinutes(w.querySelector('.activity-time')?.textContent) || null,
           beskrivning: w.querySelector('.inline-editable-body')?.innerText.trim() || '',
+          ...(codesFor('activities', w.id).length ? { laroplan: codesFor('activities', w.id) } : {}),
         }));
         return lesson;
       }),
@@ -3364,9 +3383,13 @@
     if (plan.description && plan.description !== current.beskrivning) changes.push(`<div class="ai-change"><span class="ai-change-label">Beskrivning</span>${textToHTML(plan.description)}</div>`);
     if (plan.subject && plan.subject !== current.amne) changes.push(`<div class="ai-change"><span class="ai-change-label">Ämne</span>${escapeHTML(plan.subject)}</div>`);
     if (plan.grade && plan.grade !== current.arskurs) changes.push(`<div class="ai-change"><span class="ai-change-label">Årskurs</span>${escapeHTML(plan.grade)}</div>`);
+    if (plan.classInfo?.klass && plan.classInfo.klass !== current.klass) changes.push(`<div class="ai-change"><span class="ai-change-label">Klass</span>${escapeHTML(plan.classInfo.klass)}</div>`);
+    if (plan.classInfo?.missing) notes.push(`Klassen "${plan.classInfo.missing}" finns inte i projektet och läggs inte in.`);
     const listChange = (label, items, before) => `<div class="ai-change"><span class="ai-change-label">${label} (${items.length} ${items.length === 1 ? 'punkt' : 'punkter'}, ersätter ${before})</span><ul class="ai-preview-list">${items.map(t => `<li>${escapeHTML(t)}</li>`).join('')}</ul></div>`;
     if (plan.curriculum) {
-      const html = aiCurriculumPreviewHTML(plan.curriculum, { fill: !!PlanCurriculum.get() });
+      // Lektionernas namn i Lossi (AI:n anger ofta bara koden för en befintlig lektion)
+      const named = { ...plan, classInfo: null, lessons: plan.lessons.map(l => ({ ...l, name: l.name || current.lektioner.find(x => x.kod === l.code)?.namn || 'Ny lektion' })) };
+      const html = aiCurriculumPreviewHTML({ ...plan.curriculum }, { fill: !!PlanCurriculum.get(), plan: named });
       if (html) changes.push(`<div class="ai-change">${html}</div>`);
     } else {
       if (plan.goals.length) changes.push(listChange('Centralt innehåll', plan.goals, current.centraltInnehall.length));
@@ -3374,7 +3397,9 @@
     }
 
     let touched = 0;
-    plan.lessons.forEach(l => {
+    plan.lessons.forEach((l, li) => {
+      const link = plan.curriculum?.links?.[li];
+      const tagCount = link ? new Set([...link.refs, ...link.activities.flatMap(a => a.refs)].map(r => r.kind + r.item.id)).size : 0;
       const group = lessonGroupByCode(l.code);
       if (l.code && !group) notes.push(`Lektionen med koden ${l.code} finns inte längre och läggs till som en ny lektion.`);
       const existing = group ? current.lektioner.find(x => x.kod === l.code) : null;
@@ -3384,15 +3409,16 @@
         if (l.name && l.name !== existing.namn) parts.push('nytt namn');
         if (l.minutes && l.minutes !== existing.minuter) parts.push(`${l.minutes} min`);
         if (l.activities.length) parts.push(`${l.activities.length} ${l.activities.length === 1 ? 'aktivitet' : 'aktiviteter'} (ersätter ${existing.aktiviteter.length})`);
+        if (link?.has) parts.push('läroplan');
         if (!parts.length) return;
       }
       const name = l.name || existing?.namn || 'Ny lektion';
       changes.push(`<div class="ai-lesson">
         <div class="ai-lesson-head">
-          <span class="ai-lesson-name">${existing ? '' : '<span class="ai-new">Ny</span>'}${escapeHTML(name)}</span>
+          <span class="ai-lesson-name">${existing ? '' : '<span class="ai-new">Ny</span>'}${escapeHTML(name)}${aiTagHTML(tagCount)}</span>
           <span class="ai-lesson-time">${escapeHTML(existing ? parts.join(' · ') : `${l.minutes ?? '–'} min`)}</span>
         </div>
-        ${aiActivityRowsHTML(l.activities)}
+        ${aiActivityRowsHTML(l.activities, link ? link.activities.map(a => a.refs.length) : [])}
       </div>`);
     });
     const untouched = current.lektioner.length - touched;
@@ -3433,13 +3459,16 @@
         const own = aiOwnRows(res, kind);
         if (own.length) document.getElementById(listId).insertAdjacentHTML('beforeend', buildGoalListHTML(listId, own));
       });
-      PlanCurriculum.applyFromAi(res);
     } else {
       if (plan.goals.length) document.getElementById('goalsList').innerHTML = buildGoalListHTML('goalsList', plan.goals);
       if (plan.criteria.length) document.getElementById('criteriaList').innerHTML = buildGoalListHTML('criteriaList', plan.criteria);
     }
 
+    if (plan.classInfo?.klass) renderClassTag(plan.classInfo.klass);
+
     const structure = document.getElementById('structureList');
+    const targets = []; // lektion/aktiviteter i Lossi i AI:ns ordning, för läroplanskopplingarna
+    const replacedActivities = []; // deras läroplanskopplingar tas bort (nya aktiviteter kan få samma id)
     plan.lessons.forEach(l => {
       let group = lessonGroupByCode(l.code);
       if (!group) {
@@ -3458,12 +3487,25 @@
           group.querySelector('.lesson-time-pill-value').textContent = String(l.minutes);
         }
       }
+      const activityIds = [];
       if (l.activities.length || !l.code) {
         const list = group.querySelector('.lesson-activities');
-        if (l.activities.length) list.innerHTML = '';
-        l.activities.forEach(a => list.appendChild(buildActivityWrapper(a)));
+        if (l.activities.length) {
+          replacedActivities.push(...[...list.querySelectorAll('.activity-wrapper')].map(w => w.id));
+          list.innerHTML = '';
+        }
+        l.activities.forEach(a => {
+          const wrapper = buildActivityWrapper(a);
+          list.appendChild(wrapper);
+          activityIds.push(wrapper.id);
+        });
       }
+      ensureLessonControls();
+      targets.push({ lessonId: group.dataset.lessonId, activityIds });
     });
+    // Skolverkets punkter och deras koppling till lektioner/aktiviteter (curriculum.js)
+    PlanCurriculum.forgetActivities(replacedActivities);
+    if (res) PlanCurriculum.applyFromAi(res, aiLinkTargets(res, targets));
 
     lucide.createIcons({ nodes: ['goalsList', 'criteriaList', 'structureList'].map(id => document.getElementById(id)) });
     recalcLessonTimes();
@@ -3471,7 +3513,11 @@
     saveState();
   }
 
-  const AI_FILL = { current: currentPlanForAi, previewHTML: aiFillPreviewHTML, apply: applyAiFillToPlan, curriculum: () => PlanCurriculum.get() };
+  const AI_FILL = {
+    current: currentPlanForAi, previewHTML: aiFillPreviewHTML, apply: applyAiFillToPlan, curriculum: () => PlanCurriculum.get(),
+    // Uppläggets projekts klasser (instruktionen och vilka klasser som får sättas)
+    classes: async () => (await LossiData.listProjects().catch(() => [])).find(p => p.id === planProjectId)?.classes || [],
+  };
 
   // Läroplanen (curriculum.js): Skolverkets punkter, kopplade till lektionerna
   PlanCurriculum.init({
@@ -3479,7 +3525,11 @@
     readOnly: () => planReadOnly,
     lessons: () => [...document.querySelectorAll('#structureList .lesson-group')]
       .filter(g => g.dataset.lessonId)
-      .map(g => ({ id: g.dataset.lessonId, name: g.querySelector('.week-pill')?.textContent.trim() || '' })),
+      .map(g => ({
+        id: g.dataset.lessonId,
+        name: g.querySelector('.week-pill')?.textContent.trim() || '',
+        activities: [...g.querySelectorAll('.activity-wrapper')].map(w => ({ id: w.id, title: w.querySelector('.activity-title')?.textContent.trim() || '' })),
+      })),
   });
 
   // ── Start: läs in upplägget och initiera sidan ──

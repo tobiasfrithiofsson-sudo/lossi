@@ -923,11 +923,11 @@
         <div class="detail-fields">
           <div class="read-field">
             <span class="read-field-label">Skapad</span>
-            <span class="read-field-value" id="detailCreated">18 feb 2025</span>
+            <span class="read-field-value" id="detailCreated">–</span>
           </div>
           <div class="read-field">
             <span class="read-field-label">Senast uppdaterad</span>
-            <span class="read-field-value">3 aug 2025</span>
+            <span class="read-field-value" id="detailUpdated">–</span>
           </div>
         </div>
       </div>
@@ -1351,13 +1351,7 @@
     renderClassTag(state.klass || '');
     document.getElementById('detailSubject').textContent = state.subject;
     document.getElementById('detailGrade').textContent = state.grade;
-    // Bara upplägg skapade via Skapa har ett riktigt datum; demo-uppläggen behåller sitt.
-    // Filer sparas inte per upplägg än, så demo-filerna visas inte i nya upplägg.
-    if (state.createdAt) {
-      const created = document.getElementById('detailCreated');
-      created.dataset.created = state.createdAt;
-      created.textContent = new Date(state.createdAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' });
-    }
+    if (state.createdAt) setPlanDate('detailCreated', state.createdAt);
 
     // Äldre sparade lägen saknar "avatar" (eller har gamla lucide-ikoner) och får uppläggets standardbild
     renderPlanIcon(state.avatar);
@@ -2768,7 +2762,17 @@
   }
 
   // Liten statusrad när sparningen går långsamt eller misslyckas
+  // Datum under Detaljer › Datum. Skapad sparas i upplägget (createdAt);
+  // Senast uppdaterad kommer från databasen och sätts till nu vid varje sparning.
+  function setPlanDate(id, iso) {
+    const el = document.getElementById(id);
+    if (!iso || !el) return;
+    if (id === 'detailCreated') el.dataset.created = iso;
+    el.textContent = new Date(iso).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
   function showSaveStatus(status) {
+    if (status === 'saved') setPlanDate('detailUpdated', new Date().toISOString());
     let el = document.getElementById('saveStatus');
     if (!el) {
       el = document.createElement('div');
@@ -3429,6 +3433,9 @@
     planProjectId = info.projectId;
     if (state.demo) applyDemoState(state);
     else applyState(state);
+    // Äldre upplägg saknar createdAt i upplägget: databasens datum gäller då
+    if (!state.createdAt) setPlanDate('detailCreated', info.createdAt);
+    setPlanDate('detailUpdated', info.updatedAt);
     // Påhittade exempelfiler från demo-upplägget (riktiga filer finns i plan_files)
     document.querySelectorAll('#structureList .file-chip-sm, #structureList .attached-files').forEach(el => el.remove());
     // Upplägg skapade utanför sidan (t.ex. Skapa med AI) har ikoner som inte ritats än

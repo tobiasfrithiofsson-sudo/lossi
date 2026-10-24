@@ -158,12 +158,12 @@ const LossiData = (() => {
   // { state, ownerId, projectId }, eller null om upplägget inte finns eller inte syns för en
   async function loadPlanInfo(id) {
     if (!/^\d+$/.test(String(id))) return null;
-    const row = check(await db().from('plans').select(PLAN_COLUMNS).eq('id', id).maybeSingle());
+    const row = check(await db().from('plans').select(PLAN_COLUMNS + ', created_at, updated_at').eq('id', id).maybeSingle());
     if (!row) return null;
     lastSaved.set(String(id), JSON.stringify(row.state));
     fullStates.set(String(id), Promise.resolve(row.state));
     const plan = toPlan(row);
-    return { state: plan.state, ownerId: plan.ownerId, projectId: plan.projectId };
+    return { state: plan.state, ownerId: plan.ownerId, projectId: plan.projectId, createdAt: row.created_at || null, updatedAt: row.updated_at || null };
   }
 
   async function loadPlan(id) {

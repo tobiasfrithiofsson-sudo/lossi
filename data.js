@@ -6,8 +6,9 @@
 // Kräver auth.js (LossiAuth.client).
 //
 // Ett upplägg = ett id + ett state-objekt (formen sätts av saveState() i
-// upplag.html). Demo-upplägg som aldrig redigerats har state.demo = true och
-// bara titel/ämne/årskurs/avatar; sidans inbyggda innehåll visas för dem.
+// upplag.html). Äldre demo-upplägg som aldrig redigerats har state.demo = true
+// och bara titel/ämne/årskurs/avatar; sidans inbyggda innehåll visas för dem.
+// Nya konton får i stället startuppläggen i starter-plans.js.
 //
 // UI-inställningar (tema, dold inbjudan, slumpad reservavatar) är inte
 // uppläggsdata och ligger kvar i localStorage i theme.js.
@@ -29,10 +30,12 @@ const LossiData = (() => {
     return data;
   }
 
-  // ── Demo-upplägg ──
-  // En ny lärare får demo-uppläggen en gång. Att det skett noteras i
-  // användarens metadata (demo_seeded), så att den som själv tagit bort alla
-  // sina upplägg inte får tillbaka demona. supabase/reset.sql kan nollställa.
+  // ── Startupplägg ──
+  // En ny lärare får startuppläggen (starter-plans.js) en gång, plus en
+  // lektion i kalendern nästa vardag. Att det skett noteras i användarens
+  // metadata (demo_seeded), så att den som själv tagit bort alla sina upplägg
+  // inte får tillbaka dem. supabase/reset.sql kan nollställa. Sidor utan
+  // starter-plans.js lägger inte in något (översikten gör det).
   // Körs högst en gång per sidladdning, även om aside och översikt frågar samtidigt.
   let seeding = null;
 
@@ -40,26 +43,25 @@ const LossiData = (() => {
     return db().auth.updateUser({ data: { demo_seeded: true } });
   }
 
-  function demoRows() {
-    return Object.entries(DEMO_PLANS).map(([key, demo], i) => {
-      const avatar = PLAN_AVATARS[i % PLAN_AVATARS.length].id;
-      return {
-        title: demo.title,
-        avatar,
-        state: { demo: true, demoKey: key, title: demo.title, subject: demo.subject, grade: demo.grade, avatar },
-      };
-    });
-  }
-
-  // Har den inloggade inga egna upplägg och har aldrig fått demona: lägg in dem
+  // Har den inloggade inga egna upplägg och har aldrig fått startuppläggen: lägg in dem
   // (i det egna projektet, databasens standardval). Högst en gång per sidladdning.
   async function ensureDemoPlans() {
     if (seeding) return seeding;
     seeding = (async () => {
+      if (typeof buildStarterPlans !== 'function') return;
       const user = await LossiAuth.getUser();
       if (!user || user.user_metadata?.demo_seeded) return;
       const own = check(await db().from('plans').select('id').eq('owner_id', user.id).limit(1));
-      if (!own.length) check(await db().from('plans').insert(demoRows()));
+      if (!own.length) {
+        const { rows, event } = buildStarterPlans();
+        // Omvänd ordning: listorna visar senast skapade först, och det första ska stå överst
+        const created = check(await db().from('plans').insert(rows.slice().reverse()).select('id, title'));
+        const plan = event && created.find(c => c.title === rows[event.index].title);
+        if (plan) {
+          await scheduleLesson({ planId: plan.id, lessonId: event.lessonId, start: event.start, durationMin: event.durationMin })
+            .catch(e => console.warn('Kunde inte lägga in startlektionen i kalendern:', e));
+        }
+      }
       await markSeeded();
     })();
     return seeding;
@@ -501,7 +503,9 @@ const LossiData = (() => {
   }
 
   // Händelser som börjar i intervallet [from, to)
+  // Startlektionen (ensureDemoPlans) ska finnas med redan första gången
   async function listEvents(from, to) {
+    await ensureDemoPlans().catch(() => {});
     const rows = check(await db().from('lesson_events').select(EVENT_COLUMNS)
       .gte('starts_at', from.toISOString()).lt('starts_at', to.toISOString()).order('starts_at'));
     return rows.map(toEvent);
@@ -514,6 +518,7 @@ const LossiData = (() => {
 
   // Den inloggades närmaste händelser som inte är slut än (Kommande är personligt)
   async function upcomingEvents(limit = 5) {
+    await ensureDemoPlans().catch(() => {});
     const now = new Date();
     const since = new Date(now.getTime() - 10 * 60 * 60 * 1000);
     const user = await LossiAuth.getUser();

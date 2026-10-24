@@ -77,7 +77,8 @@
         // Som databasen: skaparen är den inloggade, projektet det egna om inget anges
         const defaults = table === 'plans' ? { owner_id: user.id, project_id: 1 }
           : table === 'plan_files' ? { uploaded_by: user.id, created_at: new Date().toISOString() } : {};
-        const ins = [].concat(q.p).map(p => ({ id: nextId(), ...defaults, ...p }));
+        const first = nextId(); // flera rader på en gång får olika id
+        const ins = [].concat(q.p).map((p, i) => ({ id: first + i, ...defaults, ...p }));
         rows().push(...ins); res = ins;
       }
       // Som databasens regler: bara skaparen ändrar och tar bort upplägg

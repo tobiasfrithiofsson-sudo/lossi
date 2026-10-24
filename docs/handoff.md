@@ -18,6 +18,7 @@ Läs den här filen först i en ny session. Detaljer (databas, projekt, filer, n
 - Den gamla välkomstrutan (`#welcomeCard`) är borttagen.
 - **Tips i upplägget** (2026-10-23): första gången man öppnar ett upplägg man får redigera visar samma bubblor sex tips – Lektioner, Aktiviteter, Lektionens meny, Lägg in i kalendern, Filer, Exportera (`PLAN_TIPS` i tour.js, `maybeShowPlanTips()` sist i upplag.html). Visas en gång (`localStorage['lossi-plan-tips']`), "Stäng tipsen" eller Klar. `scripts/drag-test.mjs` stänger tipsen innan den drar.
 - Möjliga nästa steg: tomma lägen med hjälptext.
+- **Startupplägg** (2026-10-24): nya konton får två riktiga upplägg, "Ditt första upplägg" och "Planera enklare" (`starter-plans.js`, lagts in av `ensureDemoPlans` i data.js), i stället för de tre gamla demona. Lektion 1 i "Ditt första upplägg" läggs i kalendern nästa vardag kl 10 (`starterEventStart`), så att kalendern och Kommande inte är tomma. "Planera enklare" har en lektion markerad som Prov. Konton som redan fått demona (`demo_seeded`) påverkas inte.
 
 ## SQL (Tobias har kört alla; 1–4 bekräftade 2026-10-22, 5 bekräftad 2026-10-23)
 Alla filer går att köra om. Ordning: efter `projects.sql`, `notifications.sql`, `feedback-admin.sql`.

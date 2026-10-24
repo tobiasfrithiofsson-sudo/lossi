@@ -427,8 +427,8 @@ const PLAN_GRADES = ['F', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 // ── Uppläggsregister ──
 // Vilka upplägg som finns och deras innehåll hämtas via LossiData (data.js).
-// DEMO_PLANS är demo-uppläggen som nya lärare får (data.js lägger in dem);
-// nyckeln följer med som state.demoKey så att Kommande-korten hittar dem.
+// DEMO_PLANS är de gamla demo-uppläggen (konton skapade före 2026-10-24);
+// nyckeln följer med som state.demoKey. Nya konton får starter-plans.js.
 const DEMO_PLANS = {
   '1': { title: 'Demokrati – grunderna och processerna', subject: 'Samhällskunskap', grade: '7–9' },
   '2': { title: 'Källkritik i det digitala samhället', subject: 'Samhällskunskap', grade: '9' },

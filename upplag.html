@@ -3324,14 +3324,17 @@
     if (openActivityId) closeActivity(openActivityId);
     ensureLessonControls();
     const texts = sel => [...document.querySelectorAll(sel)].map(el => el.innerText.trim()).filter(Boolean);
+    // Med kurs: de valda punkternas koder (instruktionen listar Skolverkets text, se buildCurriculumListing)
+    const cur = PlanCurriculum.get();
     return {
       lossi: AI_FORMAT_VERSION,
       titel: document.getElementById('planTitle').textContent.trim(),
       amne: document.getElementById('detailSubject').textContent.trim(),
       arskurs: document.getElementById('detailGrade').textContent.trim(),
+      ...(cur ? { kurs: LossiCurriculum.courseLabel(cur) } : {}),
       beskrivning: document.querySelector('.idea-text').innerText.trim(),
-      centraltInnehall: texts('#goalsList .goal-text'),
-      betygskriterier: texts('#criteriaList .goal-text'),
+      centraltInnehall: cur ? cur.content.map(it => it.id) : texts('#goalsList .goal-text'),
+      betygskriterier: cur ? cur.criteria.map(it => it.id) : texts('#criteriaList .goal-text'),
       lektioner: [...document.querySelectorAll('#structureList .lesson-group')].map(g => {
         const minutes = parseMinutes(g.querySelector('.lesson-time-pill-value')?.textContent);
         const event = planEvents.get(g.dataset.lessonId);
@@ -3358,8 +3361,13 @@
     if (plan.subject && plan.subject !== current.amne) changes.push(`<div class="ai-change"><span class="ai-change-label">Ämne</span>${escapeHTML(plan.subject)}</div>`);
     if (plan.grade && plan.grade !== current.arskurs) changes.push(`<div class="ai-change"><span class="ai-change-label">Årskurs</span>${escapeHTML(plan.grade)}</div>`);
     const listChange = (label, items, before) => `<div class="ai-change"><span class="ai-change-label">${label} (${items.length} ${items.length === 1 ? 'punkt' : 'punkter'}, ersätter ${before})</span><ul class="ai-preview-list">${items.map(t => `<li>${escapeHTML(t)}</li>`).join('')}</ul></div>`;
-    if (plan.goals.length) changes.push(listChange('Centralt innehåll', plan.goals, current.centraltInnehall.length));
-    if (plan.criteria.length) changes.push(listChange('Betygskriterier', plan.criteria, current.betygskriterier.length));
+    if (plan.curriculum) {
+      const html = aiCurriculumPreviewHTML(plan.curriculum, { fill: !!PlanCurriculum.get() });
+      if (html) changes.push(`<div class="ai-change">${html}</div>`);
+    } else {
+      if (plan.goals.length) changes.push(listChange('Centralt innehåll', plan.goals, current.centraltInnehall.length));
+      if (plan.criteria.length) changes.push(listChange('Betygskriterier', plan.criteria, current.betygskriterier.length));
+    }
 
     let touched = 0;
     plan.lessons.forEach(l => {
@@ -3413,8 +3421,19 @@
     if (plan.description) document.querySelector('.idea-text').innerHTML = textToHTML(plan.description);
     if (plan.subject) document.getElementById('detailSubject').textContent = plan.subject;
     if (plan.grade) document.getElementById('detailGrade').textContent = plan.grade;
-    if (plan.goals.length) document.getElementById('goalsList').innerHTML = buildGoalListHTML('goalsList', plan.goals);
-    if (plan.criteria.length) document.getElementById('criteriaList').innerHTML = buildGoalListHTML('criteriaList', plan.criteria);
+    // Läroplanen: Skolverkets punkter som Lossi hittat (ai-import.js). Det som inte
+    // hittades läggs bara till som egna rader om läraren kryssat i det.
+    const res = plan.curriculum;
+    if (res) {
+      [['content', 'goalsList'], ['criteria', 'criteriaList']].forEach(([kind, listId]) => {
+        const own = aiOwnRows(res, kind);
+        if (own.length) document.getElementById(listId).insertAdjacentHTML('beforeend', buildGoalListHTML(listId, own));
+      });
+      PlanCurriculum.applyFromAi(res);
+    } else {
+      if (plan.goals.length) document.getElementById('goalsList').innerHTML = buildGoalListHTML('goalsList', plan.goals);
+      if (plan.criteria.length) document.getElementById('criteriaList').innerHTML = buildGoalListHTML('criteriaList', plan.criteria);
+    }
 
     const structure = document.getElementById('structureList');
     plan.lessons.forEach(l => {
@@ -3448,7 +3467,7 @@
     saveState();
   }
 
-  const AI_FILL = { current: currentPlanForAi, previewHTML: aiFillPreviewHTML, apply: applyAiFillToPlan };
+  const AI_FILL = { current: currentPlanForAi, previewHTML: aiFillPreviewHTML, apply: applyAiFillToPlan, curriculum: () => PlanCurriculum.get() };
 
   // Läroplanen (curriculum.js): Skolverkets punkter, kopplade till lektionerna
   PlanCurriculum.init({

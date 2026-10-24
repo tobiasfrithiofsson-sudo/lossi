@@ -4011,6 +4011,24 @@ body:not(.edit-mode) .sv-note-btn { display: none; }
   .cov-summary { grid-template-columns: 1fr; }
 }
 
+/* Skapa/Fyll i med AI: läroplanen i förhandsvisningen (ai-import.js) */
+.ai-course { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0; font-size: var(--font-size-md); font-weight: 600; }
+.ai-course svg { width: 15px; height: 15px; color: var(--color-primary); }
+.ai-course-note { font-weight: 400; font-size: var(--font-size-sm); color: #15803d; }
+.ai-sv-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ai-sv-list li { display: flex; flex-direction: column; gap: 2px; font-size: var(--font-size-md); line-height: 1.5; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+.ai-sv-badge { display: inline-flex; align-items: center; gap: 4px; font-size: var(--font-size-xs); font-weight: 600; color: var(--color-primary); }
+.ai-sv-badge svg { width: 12px; height: 12px; }
+.ai-unmatched { margin-top: 6px; padding: 8px 10px; border-radius: var(--radius-sm); background: #fef3c7; color: #92400e; display: flex; flex-direction: column; gap: 6px; }
+[data-theme="dark"] .ai-unmatched { background: rgba(245, 158, 11, 0.14); color: #fcd34d; }
+.ai-unmatched-head { display: flex; align-items: flex-start; gap: 6px; font-size: var(--font-size-sm); font-weight: 600; }
+.ai-unmatched-head svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; }
+.ai-unmatched-row { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: var(--font-size-md); }
+.ai-unmatched-row input { margin: 4px 0 0; accent-color: var(--color-primary); }
+.ai-unmatched-text { display: block; color: var(--color-text-primary); text-decoration: line-through; text-decoration-color: rgba(146, 64, 14, 0.5); }
+.ai-unmatched-row input:checked + span .ai-unmatched-text { text-decoration: none; }
+.ai-unmatched-hint { display: block; font-size: var(--font-size-sm); }
+
 /* Dialog: välj kurs */
 .course-modal .modal-body { gap: var(--space-3); }
 .modal-body p.course-intro { margin: 0; font-size: var(--font-size-base); color: var(--color-text-secondary); line-height: 1.5; }

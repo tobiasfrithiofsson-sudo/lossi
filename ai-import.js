@@ -9,7 +9,13 @@
 // sparas sedan som vilket nytt upplägg som helst (LossiData.createPlan), så
 // databasens regler gäller precis som vanligt.
 //
-// Kräver theme.js, data.js, schedule.js (newLessonId) och plan-markup.js.
+// Läroplanen: AI:n får aldrig skriva läroplanstext som sparas. Den anger
+// kursen och pekar ut punkter (med kod när Lossi gett den listan, annars genom
+// att citera Skolverket). Lossi letar upp dem i Skolverkets text och lägger in
+// originalet (resolveAiCurriculum). Det som inte hittas visas i förhands-
+// visningen och sparas bara som egen rad om läraren kryssar i det.
+//
+// Kräver theme.js, data.js, schedule.js (newLessonId), plan-markup.js och curriculum.js.
 
 const AI_FORMAT_VERSION = 1;
 const AI_LIMITS = {
@@ -33,10 +39,11 @@ const LOSSI_AI_PROMPT = `Du hjälper en lärare att planera ett pedagogiskt uppl
 ## Så ser ett upplägg ut i Lossi
 - titel: kort namn, gärna "Ämne – vinkel", t.ex. "Fotosyntes – från molekyl till ekosystem".
 - amne: t.ex. "Biologi".
-- arskurs: kort, utan "Åk", t.ex. "7", "7–9", "F" eller "Gy 1" för gymnasiet. Lämna tom ("") om det är oklart.
+- arskurs: kort, utan "Åk", t.ex. "7", "7–9", "F" (förskoleklass), "Förskola" eller "Gy 1" för gymnasiet. Lämna tom ("") om det är oklart.
+- kurs: kursen enligt Skolverket. Gymnasiet: ämne och nivå, t.ex. "Samhällskunskap nivå 1b" (GY25) eller "Samhällskunskap 1b" (GY11). Grundskolan: ämnet, t.ex. "Samhällskunskap" (årskursen avgör stadiet). Förskoleklass: "Förskoleklassen". Förskola: "Förskolan". Lämna tom om det är oklart.
 - beskrivning: 2–4 meningar om uppläggets syfte och upplägg.
-- centraltInnehall: 3–6 punkter ur det centrala innehållet (Lgr22 eller GY25) som upplägget behandlar.
-- betygskriterier: de delar av betygskriterierna som upplägget ger eleven chans att visa. Ingen E/C/A-matris – bedömningen är samlad.
+- centraltInnehall: 3–6 punkter ur Skolverkets centrala innehåll för kursen som upplägget behandlar (förskolan: mål ur Lpfö 18). Skriv varje punkt ORDAGRANT som den står hos Skolverket – skriv inte om, sammanfatta eller hitta på. Lossi jämför med Skolverkets text och lägger in originalet; en punkt som inte går att hitta där läggs inte in som läroplan. Är du osäker på lydelsen, ta hellre med färre punkter.
+- betygskriterier: de delar av betygskriterierna som upplägget ger eleven chans att visa, ordagrant som Skolverkets mening för betyget E. Samma regler som ovan. Förskola och förskoleklass har inga betygskriterier – lämna listan tom.
 - lektioner: i ordning. Varje lektion har ett namn ("Lektion 1: …"), längd i minuter och aktiviteter.
 - aktiviteter: typ, titel, minuter och beskrivning. Typ är en av: "Genomgång" (läraren går igenom), "Diskussion" (samtal i par, grupp eller helklass), "Aktivitet" (övning, grupparbete, laboration, skrivande), "Läsning" (eleverna läser) eller "Exit ticket" (kort avstämning i slutet). Aktiviteternas minuter ska tillsammans rymmas i lektionens längd.
 - Skriv inga elevnamn eller andra personuppgifter.
@@ -48,6 +55,7 @@ const LOSSI_AI_PROMPT = `Du hjälper en lärare att planera ett pedagogiskt uppl
   "titel": "…",
   "amne": "…",
   "arskurs": "…",
+  "kurs": "…",
   "beskrivning": "…",
   "centraltInnehall": ["…", "…"],
   "betygskriterier": ["…", "…"],
@@ -65,9 +73,18 @@ const LOSSI_AI_PROMPT = `Du hjälper en lärare att planera ett pedagogiskt uppl
 
 Bekräfta kort att du förstått och fråga sedan läraren vad upplägget ska handla om.`;
 
-// Fyll i med AI: samma regler, plus upplägget som det ser ut nu (med lektionernas koder)
-function buildFillPrompt(current) {
-  return LOSSI_AI_PROMPT
+// Fyll i med AI: samma regler, plus upplägget som det ser ut nu (med lektionernas
+// koder). Har upplägget en kurs får AI:n Skolverkets punkter med koder och svarar
+// med koderna (buildCurriculumListing).
+function buildFillPrompt(current, curriculumListing = '') {
+  let prompt = LOSSI_AI_PROMPT;
+  if (curriculumListing) {
+    prompt = prompt
+      .replace(/- kurs: [^\n]*\n/, '- kurs: upplägget har redan en kurs (se Läroplanen nedan). Ändra den inte.\n')
+      .replace(/- centraltInnehall: [^\n]*\n/, '- centraltInnehall: koderna för de punkter ur listan under Läroplanen som upplägget behandlar, t.ex. ["c2", "c5"]. Skriv aldrig egen text här.\n')
+      .replace(/- betygskriterier: [^\n]*\n/, '- betygskriterier: koderna för de kriterier ur listan under Läroplanen som upplägget ger eleven chans att visa, t.ex. ["k1"]. Skriv aldrig egen text här.\n');
+  }
+  return prompt
     .replace('Du hjälper en lärare att planera ett pedagogiskt upplägg som ska läggas in i Lossi',
       'Du hjälper en lärare att arbeta vidare på ett pedagogiskt upplägg som redan finns i Lossi')
     .replace('Bekräfta kort att du förstått och fråga sedan läraren vad upplägget ska handla om.', `## Upplägget som det ser ut nu
@@ -81,8 +98,31 @@ Varje lektion har en "kod". Det här gäller när du ger Lossi-inmatningen:
 \`\`\`json
 ${JSON.stringify(current, null, 2)}
 \`\`\`
-
+${curriculumListing}
 Bekräfta kort att du förstått och fråga sedan läraren vad hen vill göra med upplägget.`);
+}
+
+// Skolverkets punkter för uppläggets kurs, med koder, till Fyll i-instruktionen
+async function buildCurriculumListing(cur) {
+  if (!cur?.subject) return '';
+  const C = LossiCurriculum;
+  const subj = await C.subject(cur.schoolType, cur.subject).catch(() => null);
+  if (!subj) return '';
+  const content = C.levelOf(subj, cur.level)?.content || [];
+  const criteria = C.criteriaOf(subj, cur.level)?.items || [];
+  const line = (id, text) => `- ${id}: ${C.plainText(text)}`;
+  let out = `
+## Läroplanen
+Upplägget är kopplat till ${C.courseLabel(cur)}${cur.reform ? ` (${cur.reform})` : ''}. Här är Skolverkets text med koder. Använd koderna i Lossi-inmatningen; Lossi lägger in Skolverkets text.
+
+${C.contentTitle(cur)}:
+${content.map(it => line(it.id, (it.lead ? it.lead + ' ' : '') + it.text)).join('\n')}
+`;
+  if (criteria.length) out += `
+Betygskriterier (texten för E):
+${criteria.map(it => line(it.id, C.criterionText(it))).join('\n')}
+`;
+  return out;
 }
 
 // ── Tolka svaret ──
@@ -206,6 +246,7 @@ function parseLossiAi(text, { fill = false } = {}) {
       subject: normalizeChoice(aiText(aiPick(data, 'amne', 'ämne', 'subject'), 60)),
       grade,
       description: aiText(aiPick(data, 'beskrivning', 'description'), AI_LIMITS.text),
+      course: aiText(aiPick(data, 'kurs', 'course'), AI_LIMITS.title),
       goals: aiList(aiPick(data, 'centraltInnehall', 'centraltInnehåll', 'centralt_innehall', 'goals')),
       criteria: aiList(aiPick(data, 'betygskriterier', 'criteria')),
       lessons,
@@ -218,6 +259,67 @@ function parseLossiAi(text, { fill = false } = {}) {
   };
 }
 
+// ── Läroplanen i svaret ──
+// → { course, courseText, courseChanged, has: { content, criteria }, content: { matched, unmatched }, criteria: … }
+// current = uppläggets kurs (Fyll i med AI): då gäller den, och koder ("c3") tillåts.
+async function resolveAiCurriculum(plan, current = null) {
+  const C = LossiCurriculum;
+  const courseText = plan.course || '';
+  let course = current?.subject ? { ...current } : null;
+  if (course) { delete course.content; delete course.criteria; }
+  if (!course && (courseText || plan.goals.length || plan.criteria.length || C.schoolTypeForGrade(plan.grade))) {
+    course = await C.findCourse({ text: courseText || plan.subject, grade: plan.grade }).catch(() => null);
+  }
+  const subj = course ? await C.subject(course.schoolType, course.subject).catch(() => null) : null;
+  const contentItems = subj ? C.levelOf(subj, course.level)?.content || [] : [];
+  const criteriaItems = subj ? C.criteriaOf(subj, course.level)?.items || [] : [];
+  const opts = { allowCodes: !!current?.subject };
+  const label = current?.subject ? C.courseLabel(current).toLowerCase() : '';
+  return {
+    course: subj ? course : null,
+    courseText,
+    // Fyll i: AI:n föreslog en annan kurs än upplägget har (den byts inte)
+    courseChanged: !!(label && courseText && !label.includes(courseText.toLowerCase()) && !courseText.toLowerCase().includes(String(current.subjectName || '').toLowerCase())),
+    has: { content: plan.has ? plan.has.goals : true, criteria: plan.has ? plan.has.criteria : true },
+    content: C.matchItems(plan.goals, contentItems, 'content', opts),
+    criteria: C.matchItems(plan.criteria, criteriaItems, 'criteria', opts),
+  };
+}
+
+// De rader som inte hittades hos Skolverket och som läraren valt att spara som egna rader
+function aiOwnRows(res, kind) {
+  const picked = new Set([...document.querySelectorAll(`#aiPreview input[data-ai-own="${kind}"]:checked`)].map(i => Number(i.value)));
+  return res[kind].unmatched.filter((_, i) => picked.has(i));
+}
+
+// Förhandsvisningens läroplansdel: kursen, Skolverkets punkter och det som inte hittades
+function aiCurriculumPreviewHTML(res, { fill = false } = {}) {
+  const C = LossiCurriculum;
+  const parts = [];
+  if (res.course) {
+    parts.push(`<div class="ai-preview-label">Kurs</div>
+      <p class="ai-course"><i data-lucide="landmark"></i><span>${escapeHTML(C.courseLabel(res.course))}</span>${res.course.reform ? `<span class="course-tag-reform">${escapeHTML(res.course.reform)}</span>` : ''}<span class="ai-course-note">${fill ? 'uppläggets kurs' : 'hittad hos Skolverket'}</span></p>`);
+    if (res.courseChanged) parts.push('<p class="ai-preview-empty">AI:n föreslog en annan kurs. Kursen ändras inte här; byt den själv under Detaljer › Kurs om det behövs.</p>');
+  } else if (res.courseText || res.content.unmatched.length || res.criteria.unmatched.length) {
+    parts.push(`<div class="ai-preview-label">Kurs</div>
+      <p class="ai-preview-empty">${res.courseText ? `"${escapeHTML(res.courseText)}" hittades inte bland Skolverkets kurser.` : 'Ingen kurs angiven.'} Välj kurs i upplägget efteråt (Detaljer › Kurs) och bocka för punkterna där.</p>`);
+  }
+  const section = (kind, label) => {
+    const { matched, unmatched } = res[kind];
+    if (!res.has[kind] || (!matched.length && !unmatched.length)) return '';
+    return `<div class="ai-preview-label">${label}</div>
+      ${matched.length ? `<ul class="ai-sv-list">${matched.map(it => `<li><span class="ai-sv-badge"><i data-lucide="landmark"></i>Skolverkets text</span><span>${kind === 'criteria' ? C.textHTML(C.criterionText(it)) : C.leadHTML(it) + C.textHTML(it.text)}</span></li>`).join('')}</ul>` : ''}
+      ${fill && matched.length ? '<p class="ai-preview-meta">Ersätter de punkter ur Skolverkets text som är valda nu. Anteckningar och lektionskopplingar på punkter som finns kvar följer med.</p>' : ''}
+      ${unmatched.length ? `<div class="ai-unmatched">
+        <div class="ai-unmatched-head"><i data-lucide="triangle-alert"></i><span>${unmatched.length === 1 ? 'En punkt hittades' : `${unmatched.length} punkter hittades`} inte hos Skolverket och läggs inte in som läroplan.</span></div>
+        ${unmatched.map((t, i) => `<label class="ai-unmatched-row"><input type="checkbox" data-ai-own="${kind}" value="${i}" /><span><span class="ai-unmatched-text">${escapeHTML(t)}</span><span class="ai-unmatched-hint">Spara som egen rad (inte Skolverkets text)</span></span></label>`).join('')}
+      </div>` : ''}`;
+  };
+  parts.push(section('content', C.contentTitle(res.course)));
+  if (C.hasCriteria(res.course) || res.criteria.matched.length || res.criteria.unmatched.length) parts.push(section('criteria', 'Betygskriterier'));
+  return parts.join('');
+}
+
 // Ett nytt upplägg (samma form som saveState() i upplag.html) från en tolkad inmatning
 function planStateFromAi(plan, avatar) {
   let next = 1;
@@ -227,17 +329,26 @@ function planStateFromAi(plan, avatar) {
     minutes: l.minutes,
     activities: l.activities.map(a => ({ id: 'act' + next++, type: a.type, title: a.title, time: a.minutes, desc: a.desc })),
   })).join('');
+  const res = plan.curriculum;
+  const C = LossiCurriculum;
+  const whole = res?.course && C.WHOLE_SCHOOL_TYPES[res.course.schoolType];
+  const curriculum = res?.course ? {
+    ...res.course,
+    content: res.content.matched.map(it => C.savedItem(it, 'content')),
+    criteria: res.criteria.matched.map(it => C.savedItem(it, 'criteria')),
+  } : null;
   return {
     title: plan.title,
     description: textToHTML(plan.description),
     klass: '',
-    subject: plan.subject,
-    grade: plan.grade,
+    subject: res?.course && !whole ? res.course.subjectName : plan.subject,
+    grade: whole ? whole.grade : plan.grade,
+    curriculum,
     avatar,
     statusKey: 'status-upcoming',
     statusLabel: 'Kommande',
-    goalsHTML: buildGoalListHTML('goalsList', plan.goals),
-    criteriaHTML: buildGoalListHTML('criteriaList', plan.criteria),
+    goalsHTML: buildGoalListHTML('goalsList', res ? aiOwnRows(res, 'content') : plan.goals),
+    criteriaHTML: buildGoalListHTML('criteriaList', res ? aiOwnRows(res, 'criteria') : plan.criteria),
     structureHTML,
     createdAt: new Date().toISOString(),
   };
@@ -292,7 +403,7 @@ let aiFill = null;
 
 const AI_HELP = {
   create: 'Kopiera instruktionen och klistra in den i Claude, ChatGPT eller den AI du brukar använda. Prata sedan med din AI om upplägget, så länge du vill. När ni är nöjda ber du om <strong>Lossi-inmatningen</strong>.',
-  fill: 'Instruktionen innehåller upplägget som det ser ut nu. Klistra in den i din AI och be den t.ex. fylla lektionerna med aktiviteter eller skriva betygskriterier. När ni är nöjda ber du om <strong>Lossi-inmatningen</strong>.',
+  fill: 'Instruktionen innehåller upplägget som det ser ut nu, och Skolverkets punkter om upplägget har en kurs. Klistra in den i din AI och be den t.ex. fylla lektionerna med aktiviteter eller välja centralt innehåll. När ni är nöjda ber du om <strong>Lossi-inmatningen</strong>.',
 };
 
 function openAiPlanModal() {
@@ -300,9 +411,10 @@ function openAiPlanModal() {
   showAiModal('create', LOSSI_AI_PROMPT);
 }
 
-function openAiFillModal(fill) {
+async function openAiFillModal(fill) {
   aiFill = fill;
-  showAiModal('fill', buildFillPrompt(fill.current()));
+  const listing = await buildCurriculumListing(fill.curriculum?.()).catch(() => '');
+  showAiModal('fill', buildFillPrompt(fill.current(), listing));
 }
 
 function showAiModal(mode, prompt) {
@@ -404,6 +516,16 @@ async function aiNext() {
     return;
   }
   aiParsed = result;
+  const next = document.getElementById('aiNextBtn');
+  next.disabled = true;
+  try {
+    result.plan.curriculum = await resolveAiCurriculum(result.plan, aiFill?.curriculum?.() || null);
+  } catch (e) {
+    console.warn('Kunde inte jämföra med Skolverkets text:', e);
+    result.plan.curriculum = null;
+  } finally {
+    next.disabled = false;
+  }
   if (aiFill) {
     const el = document.getElementById('aiPreview');
     el.innerHTML = aiFill.previewHTML(result);
@@ -429,10 +551,10 @@ async function renderAiPreview({ plan, warnings }) {
       <p class="ai-preview-meta">${escapeHTML(meta || 'Inget ämne angivet')} · ${plan.lessons.length} ${plan.lessons.length === 1 ? 'lektion' : 'lektioner'} · ${activityCount} ${activityCount === 1 ? 'aktivitet' : 'aktiviteter'}${project ? ` · skapas i <strong>${escapeHTML(project.name)}</strong>` : ''}</p>
     </div>
     ${plan.description ? `<p class="ai-preview-desc">${textToHTML(plan.description)}</p>` : ''}
-    <div class="ai-preview-label">Centralt innehåll</div>
+    ${plan.curriculum ? aiCurriculumPreviewHTML(plan.curriculum) : `<div class="ai-preview-label">Centralt innehåll</div>
     ${list(plan.goals, 'Inget angivet')}
     <div class="ai-preview-label">Betygskriterier</div>
-    ${list(plan.criteria, 'Inget angivet')}
+    ${list(plan.criteria, 'Inget angivet')}`}
     <div class="ai-preview-label">Struktur och tidslinje</div>
     ${plan.lessons.map(l => {
       const sum = l.activities.reduce((s, a) => s + (a.minutes || 0), 0);

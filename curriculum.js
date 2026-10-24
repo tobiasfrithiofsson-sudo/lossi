@@ -115,7 +115,108 @@ const LossiCurriculum = (() => {
   // Förskolans mål börjar med "Förskolan ska ge varje barn förutsättningar att utveckla"
   const leadHTML = item => item.lead ? `<span class="sv-lead">${escapeHTML(item.lead)}</span> ` : '';
 
-  return { index, subject, levelOf, criteriaOf, courseLabel, textHTML, plainText, criterionText, compare, sourcePhrase, sourceDoc, contentTitle, leadHTML, hasCriteria, schoolTypeForGrade, WHOLE_SCHOOL_TYPES, SCHOOL_TYPE_NAMES };
+  // En vald punkt som den sparas i upplägget (texten följer med, se överst)
+  function savedItem(it, kind) {
+    if (kind === 'criteria') return it.text ? { id: it.id, text: it.text, lessons: [] } : { id: it.id, E: it.E, C: it.C, A: it.A, lessons: [] };
+    return { id: it.id, heading: it.heading || null, ...(it.lead ? { lead: it.lead } : {}), text: it.text, lessons: [] };
+  }
+
+  // Kursen som den sparas i upplägget (utan punkter)
+  const courseOf = (schoolType, s, l) => ({
+    schoolType, subject: s.code, subjectName: s.name, reform: s.reform || null,
+    version: s.version ?? null, level: l.code, levelName: l.name,
+  });
+
+  // ── Hitta i Skolverkets text (Skapa/Fyll i med AI) ──
+  // AI:n skriver aldrig läroplanstext som sparas. Den anger kursen med ord och
+  // pekar ut punkter, och här letas de upp i Skolverkets text.
+  const norm = s => plainText(s).toLowerCase().normalize('NFC').replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim();
+  const words = s => norm(s).replace(/[^a-zåäöéü0-9 ]/g, ' ').split(' ').filter(w => w.length > 2).map(w => w.slice(0, 6));
+
+  // Kursen ur fri text, t.ex. "Samhällskunskap nivå 1b", "Samhällskunskap 1b" eller
+  // "Samhällskunskap" + årskurs 8. → kurs (som courseOf) eller null
+  async function findCourse({ text, grade }) {
+    const idx = await index();
+    const t = norm(text);
+    const g = String(grade || '').trim();
+    const whole = schoolTypeForGrade(g) || (/förskoleklass/.test(t) ? 'FKLASS' : /förskola|lpfö/.test(t) ? 'FS' : null);
+    if (whole) {
+      const s = idx.schoolTypes[whole]?.subjects[0];
+      return s ? courseOf(whole, s, s.levels[0]) : null;
+    }
+    if (!t) return null;
+    const gradeNum = Number((g.match(/^(\d)(?:\s*[–-]\s*(\d))?$/) || [])[2] || (g.match(/^(\d)$/) || [])[1]) || null;
+    const gyHint = /^gy/i.test(g) || /nivå|gy|\b\d[a-c]\d?\b/.test(t);
+    const order = gradeNum && !gyHint ? ['GR', 'GY'] : ['GY', 'GR'];
+    const wantsOld = /gy11|gy2011/.test(t);
+    for (const st of order) {
+      const subjects = (idx.schoolTypes[st]?.subjects || [])
+        .filter(s => t.includes(norm(s.name)))
+        .sort((a, b) => b.name.length - a.name.length || ((a.reform === 'GY11') - (b.reform === 'GY11')) * (wantsOld ? -1 : 1));
+      for (const s of subjects) {
+        if (st === 'GR') {
+          const n = gradeNum || Number((t.match(/(?:årskurs|åk)\s*(\d)/) || [])[1]) || null;
+          const level = s.levels.find(l => {
+            const r = norm(l.name).match(/(\d)\s*-\s*(\d)/);
+            return r && n && n >= Number(r[1]) && n <= Number(r[2]);
+          }) || (s.levels.length === 1 ? s.levels[0] : null);
+          if (level) return courseOf(st, s, level);
+          continue;
+        }
+        const rest = t.slice(t.indexOf(norm(s.name)) + norm(s.name).length);
+        const key = (rest.match(/(?:nivå\s*)?(\d[a-c]?\d?)\b/) || [])[1];
+        const level = (key && s.levels.find(l => norm(l.name).endsWith(' ' + key)))
+          || s.levels.find(l => norm(l.name).length > 6 && !/^nivå/.test(norm(l.name)) && t.includes(norm(l.name)))
+          || (s.levels.length === 1 ? s.levels[0] : null);
+        if (level) return courseOf(st, s, level);
+      }
+      // Kurser med eget namn (t.ex. "Internationell ekonomi")
+      for (const s of idx.schoolTypes[st]?.subjects || []) {
+        const level = s.levels.find(l => norm(l.name).length > 8 && !/^nivå|^årskurs/.test(norm(l.name)) && t.includes(norm(l.name)));
+        if (level) return courseOf(st, s, level);
+      }
+    }
+    return null;
+  }
+
+  // AI:ns punkter → { matched: [katalogens punkter], unmatched: [AI:ns text] }.
+  // En punkt hittas på sin kod ("c3", "k2"; bara när Lossi gett AI:n listan,
+  // allowCodes) eller på att orden stämmer med Skolverkets text. En omskriven
+  // eller påhittad punkt hittas inte, och då används ingenting av den.
+  function matchItems(list, items, kind, { allowCodes = false } = {}) {
+    const used = new Set();
+    const matched = [];
+    const unmatched = [];
+    const prefix = kind === 'criteria' ? 'k' : 'c';
+    const textsOf = it => kind === 'criteria' ? [it.text, it.E, it.C, it.A].filter(Boolean) : [it.text];
+    list.forEach(raw => {
+      const s = String(raw ?? '').trim();
+      if (!s) return;
+      let hit = null;
+      const code = allowCodes && s.match(/^([ck])?\s*(\d{1,3})$/i);
+      if (code && (!code[1] || code[1].toLowerCase() === prefix)) hit = items.find(it => it.id === prefix + Number(code[2])) || null;
+      if (!hit && !code) {
+        const a = new Set(words(s));
+        let best = 0;
+        items.forEach(it => textsOf(it).forEach(text => {
+          const b = new Set(words(text));
+          let shared = 0;
+          a.forEach(w => { if (b.has(w)) shared++; });
+          const dice = a.size + b.size ? 2 * shared / (a.size + b.size) : 0;
+          // Ett ordagrant utdrag ur en lång punkt räknas också
+          const excerpt = a.size >= 4 && shared / a.size >= 0.9 ? 0.75 : 0;
+          const score = Math.max(dice, excerpt);
+          if (score > best) { best = score; hit = it; }
+        }));
+        if (best < 0.6) hit = null;
+      }
+      if (!hit) unmatched.push(s);
+      else if (!used.has(hit.id)) { used.add(hit.id); matched.push(hit); }
+    });
+    return { matched, unmatched };
+  }
+
+  return { index, subject, levelOf, criteriaOf, courseLabel, textHTML, plainText, criterionText, compare, sourcePhrase, sourceDoc, contentTitle, leadHTML, hasCriteria, schoolTypeForGrade, savedItem, courseOf, findCourse, matchItems, WHOLE_SCHOOL_TYPES, SCHOOL_TYPE_NAMES };
 })();
 
 
@@ -611,6 +712,29 @@ const PlanCurriculum = (() => {
     }
   }
 
+  // Fyll i med AI: punkterna Lossi hittat i Skolverkets text (ai-import.js,
+  // resolveAiCurriculum). Kursen sätts bara om upplägget saknar kurs (eller har
+  // en tom), och en lista ersätts bara när AI:n tog med den. Anteckningar och
+  // lektionskopplingar följer med på punkter som redan var valda.
+  function applyFromAi(res) {
+    if (hooks.readOnly() || !res?.course) return;
+    const empty = !cur || (!cur.content.length && !cur.criteria.length);
+    const same = cur && cur.schoolType === res.course.schoolType && cur.subject === res.course.subject && cur.level === res.course.level;
+    if (!same) {
+      if (!empty) return;
+      cur = { ...res.course, content: [], criteria: [] };
+      catalog = null;
+      catalogKey = '';
+    }
+    ['content', 'criteria'].forEach(kind => {
+      if (!res.has[kind] || !res[kind].matched.length) return;
+      const old = new Map(cur[kind].map(it => [it.id, it]));
+      cur[kind] = res[kind].matched.map(it => old.get(it.id) || C.savedItem(it, kind));
+    });
+    changed();
+    loadCatalog();
+  }
+
   function clearCourse() {
     cur = null;
     catalog = null;
@@ -687,9 +811,7 @@ const PlanCurriculum = (() => {
     // Katalogens ordning; det som redan valts behåller sin text, anteckning och sina lektioner
     cur[kind] = catalogItems(kind).filter(it => picked.has(it.id)).map(it => {
       if (old.has(it.id)) return old.get(it.id);
-      return kind === 'criteria'
-        ? (it.text ? { id: it.id, text: it.text, lessons: [] } : { id: it.id, E: it.E, C: it.C, A: it.A, lessons: [] })
-        : { id: it.id, heading: it.heading || null, ...(it.lead ? { lead: it.lead } : {}), text: it.text, lessons: [] };
+      return C.savedItem(it, kind);
     });
     // Valda punkter som inte längre finns hos Skolverket tas bara bort på raden
     old.forEach((it, id) => { if (!catalogItems(kind).some(c => c.id === id)) cur[kind].push(it); });
@@ -699,6 +821,6 @@ const PlanCurriculum = (() => {
 
   return {
     init, set, get, refreshLessons, openCoursePicker, pickSchoolType, renderCourseOptions, chooseSubject, backToSubjects,
-    chooseLevel, clearCourse, ensureForGrade, openPicker, savePicker, closeModal, remove, useNewText, showStep, focusNote, openLessons,
+    chooseLevel, clearCourse, ensureForGrade, applyFromAi, openPicker, savePicker, closeModal, remove, useNewText, showStep, focusNote, openLessons,
   };
 })();

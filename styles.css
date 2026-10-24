@@ -1821,9 +1821,11 @@ body.is-personal-project .aside-group[data-aside-group="teams"] { display: none;
   transition: background 0.15s, border-color 0.15s;
 }
 
-body.edit-mode .inline-editable-rich:hover {
-  background: rgba(0, 0, 0, 0.03);
+/* Temats hovringsfärg: en svart toning syns inte mot mörkt läges bakgrund */
+body.edit-mode .inline-editable-rich:not(.active):hover {
+  background: var(--color-bg-hover);
 }
+body.edit-mode .inline-editable-rich:not(.active):hover .inline-editable-body { color: var(--color-text-primary); }
 
 body.edit-mode .inline-editable-rich.active {
   border-color: var(--color-border);

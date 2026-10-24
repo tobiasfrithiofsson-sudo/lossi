@@ -448,9 +448,10 @@ const PlanCurriculum = (() => {
     document.getElementById(id)?.classList.remove('open');
   }
 
-  // Gissar skolform ur årskursen (7 → grundskolan, Gy 1 → gymnasiet)
+  // Gissar skolform ur årskursen (Förskola → förskolan, 7 → grundskolan, Gy 1 → gymnasiet)
   function guessSchoolType() {
     const grade = document.getElementById('detailGrade')?.textContent.trim() || '';
+    if (isPreschoolGrade(grade)) return 'FS';
     return /^(F|[1-9])$|^[1-9]\s*[–-]\s*[1-9]$/i.test(grade) ? 'GR' : 'GY';
   }
 
@@ -551,10 +552,43 @@ const PlanCurriculum = (() => {
       // Ämnet i Detaljer följer kursen (förskolan har inga ämnen)
       const subjectEl = document.getElementById('detailSubject');
       if (subjectEl && pickST !== 'FS') subjectEl.textContent = subj.name;
+      // Förskolans läroplan hör till årskursen Förskola
+      const gradeEl = document.getElementById('detailGrade');
+      if (gradeEl && pickST === 'FS') gradeEl.textContent = PRESCHOOL_GRADE;
       changed();
     }
     closeModal('coursePickerModal');
     if (!same) openPicker('content');
+  }
+
+  // Årskursen Förskola hör ihop med förskolans läroplan: utan kurs (eller med
+  // en kurs där inget valts än) kopplas Lpfö 18 in direkt. Byts årskursen från
+  // Förskola tas en tom förskolekoppling bort. Valda punkter tas aldrig bort här.
+  async function ensureForGrade() {
+    if (hooks.readOnly()) return;
+    const preschool = isPreschoolGrade(document.getElementById('detailGrade')?.textContent);
+    const empty = !cur || (!cur.content.length && !cur.criteria.length);
+    if (!preschool) {
+      if (cur?.schoolType === 'FS' && empty) { cur = null; catalog = null; catalogKey = ''; changed(); }
+      return;
+    }
+    if (cur?.schoolType === 'FS' || !empty) return;
+    try {
+      const idx = await C.index();
+      const entry = idx.schoolTypes.FS?.subjects[0];
+      const subj = entry && await C.subject('FS', entry.code);
+      const level = subj?.levels[0];
+      if (!level || cur?.schoolType === 'FS') return;
+      cur = {
+        schoolType: 'FS', subject: subj.code, subjectName: subj.name, reform: subj.reform || null,
+        version: subj.version, level: level.code, levelName: level.name, content: [], criteria: [],
+      };
+      catalog = subj;
+      catalogKey = 'FS/' + subj.code;
+      changed();
+    } catch (e) {
+      console.warn('Kunde inte koppla förskolans läroplan:', e);
+    }
   }
 
   function clearCourse() {
@@ -643,6 +677,6 @@ const PlanCurriculum = (() => {
 
   return {
     init, set, get, refreshLessons, openCoursePicker, pickSchoolType, renderCourseOptions, chooseSubject, backToSubjects,
-    chooseLevel, clearCourse, openPicker, savePicker, closeModal, remove, useNewText, showStep, focusNote, openLessons,
+    chooseLevel, clearCourse, ensureForGrade, openPicker, savePicker, closeModal, remove, useNewText, showStep, focusNote, openLessons,
   };
 })();

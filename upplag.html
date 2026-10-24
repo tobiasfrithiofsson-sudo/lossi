@@ -1787,7 +1787,10 @@
   // Årskurs: förslag F–9, men läraren skriver vad som passar (t.ex. 7–9 eller Gy 1)
   const gradeChoices = initGradeChoices(document.getElementById('gradeInput'), document.getElementById('gradeOptions'), {
     getCurrent: () => document.getElementById('detailGrade').textContent.trim(),
-    onPick: name => setDetailField('detailGrade', normalizeGrade(name)),
+    onPick: name => {
+      setDetailField('detailGrade', normalizeGrade(name));
+      PlanCurriculum.ensureForGrade(); // Förskola → förskolans läroplan (curriculum.js)
+    },
   });
 
   // Projektets klasser och de klasser som används på projektets upplägg (alla medlemmars)
@@ -3524,6 +3527,7 @@
     loadPlanEvents();
     loadPlanFiles();
     loadClassesFromPlans();
+    PlanCurriculum.ensureForGrade(); // t.ex. ett nytt upplägg skapat med årskursen Förskola
     maybeShowPlanTips(); // första gången: tips om lektioner, aktiviteter m.m. (tour.js)
   })();
 </script>

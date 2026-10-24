@@ -296,9 +296,9 @@ const CHOICE_KINDS = {
 };
 const choicesFromPlans = { subjects: [], grades: [] };
 
-// Årskurser i skolordning: F, sedan siffrorna, sedan resten (t.ex. Gy 1)
+// Årskurser i skolordning: Förskola, F (förskoleklass), siffrorna, sedan resten (t.ex. Gy 1)
 function gradeOrder(a, b) {
-  const rank = g => (/^F\b/i.test(g) ? 0 : /^\d/.test(g) ? 1 : 2);
+  const rank = g => (isPreschoolGrade(g) ? 0 : /^F$|^F\s*[–-]/i.test(g) ? 1 : /^\d/.test(g) ? 2 : 3);
   return rank(a) - rank(b) || a.localeCompare(b, 'sv', { numeric: true });
 }
 
@@ -308,6 +308,7 @@ function choiceItems(key) {
   if (key === 'grades') names.sort(gradeOrder);
   return names.map(name => ({
     name,
+    meta: key === 'grades' ? GRADE_META[name] : undefined,
     removable: !suggestions.some(s => sameChoice(s, name)),
   }));
 }
@@ -342,9 +343,16 @@ function initGradeChoices(input, list, options) {
   return initSavedChoices('grades', input, list, options);
 }
 
-// Läraren skriver årskursen själv; "Åk 7" och "årskurs 7" sparas som "7"
+// Läraren skriver årskursen själv; "Åk 7" och "årskurs 7" sparas som "7", "förskola" som "Förskola"
 function normalizeGrade(value) {
-  return normalizeChoice(String(value || '').replace(/^\s*(åk|årskurs)\.?\s*/i, ''));
+  const grade = normalizeChoice(String(value || '').replace(/^\s*(åk|årskurs)\.?\s*/i, ''));
+  return isPreschoolGrade(grade) ? PRESCHOOL_GRADE : grade;
+}
+
+// Förskolan har ingen årskurs men en egen läroplan (Lpfö 18); F är förskoleklassen (Lgr22)
+const PRESCHOOL_GRADE = 'Förskola';
+function isPreschoolGrade(grade) {
+  return /^förskola$/i.test(String(grade || '').trim());
 }
 
 // "7", "7–9" och "F" visas som "Åk 7"; annat (t.ex. "Gy 1") som det är skrivet
@@ -423,7 +431,8 @@ function planAvatarImgHTML(id) {
 // Delas av Skapa-dialogen och Detaljer-panelen i upplag.html.
 const PLAN_SUBJECTS = ['Samhällskunskap', 'Svenska', 'Matematik', 'Biologi', 'Fysik', 'Kemi', 'Engelska', 'Idrott', 'Bild'];
 // Bara förslag: läraren kan skriva in vilken årskurs som helst
-const PLAN_GRADES = ['F', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+const PLAN_GRADES = ['Förskola', 'F', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+const GRADE_META = { 'Förskola': 'Lpfö 18', 'F': 'Förskoleklass' };
 
 // ── Uppläggsregister ──
 // Vilka upplägg som finns och deras innehåll hämtas via LossiData (data.js).

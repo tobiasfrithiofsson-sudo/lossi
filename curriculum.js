@@ -1,4 +1,4 @@
-// ── Läroplan: Skolverkets kurs- och ämnesplaner ──
+// ── Läroplan: Skolverkets kurs- och ämnesplaner (och förskolans läroplan) ──
 // Lossi hittar inte på något eget i läroplanen. Läraren väljer en kurs (eller
 // ett ämne och årskurser i grundskolan) och bockar för punkter ur Skolverkets
 // text; texten visas ordagrant och går inte att ändra. Lärarens egna ord står
@@ -53,6 +53,7 @@ const LossiCurriculum = (() => {
 
   // "Samhällskunskap nivå 1b", "Samhällskunskap 1b" (GY11), "Samhällskunskap, årskurs 4–6"
   function courseLabel({ subjectName, levelName, schoolType }) {
+    if (schoolType === 'FS') return subjectName || 'Läroplan för förskolan';
     if (!levelName || levelName === subjectName) return subjectName || '';
     if (levelName.startsWith(subjectName)) return levelName;
     if (schoolType === 'GR') return `${subjectName}, ${levelName.charAt(0).toLowerCase()}${levelName.slice(1)}`;
@@ -84,9 +85,21 @@ const LossiCurriculum = (() => {
     return { status: 'removed', item: null };
   }
 
-  const SCHOOL_TYPE_NAMES = { GY: 'Gymnasieskola', GR: 'Grundskola' };
+  const SCHOOL_TYPE_NAMES = { GY: 'Gymnasieskola', GR: 'Grundskola', FS: 'Förskola' };
 
-  return { index, subject, levelOf, criteriaOf, courseLabel, textHTML, plainText, criterionText, compare, SCHOOL_TYPE_NAMES };
+  // "Skolverkets ämnesplan för Samhällskunskap nivå 1b", "Skolverkets läroplan för förskolan"
+  function sourcePhrase(c) {
+    if (c.schoolType === 'FS') return 'Skolverkets läroplan för förskolan';
+    return `Skolverkets ${c.schoolType === 'GR' ? 'kursplan' : 'ämnesplan'} för ${courseLabel(c)}`;
+  }
+
+  // Förskolan har mål (strävansmål) i stället för centralt innehåll, och inga betygskriterier
+  const contentTitle = c => c?.schoolType === 'FS' ? 'Mål ur läroplanen' : 'Centralt innehåll';
+
+  // Förskolans mål börjar med "Förskolan ska ge varje barn förutsättningar att utveckla"
+  const leadHTML = item => item.lead ? `<span class="sv-lead">${escapeHTML(item.lead)}</span> ` : '';
+
+  return { index, subject, levelOf, criteriaOf, courseLabel, textHTML, plainText, criterionText, compare, sourcePhrase, contentTitle, leadHTML, SCHOOL_TYPE_NAMES };
 })();
 
 
@@ -224,7 +237,7 @@ const PlanCurriculum = (() => {
         <div class="goal-text sv-text">${C.textHTML(item[step])}</div>`;
     } else {
       textBlock = `${item.heading ? `<div class="sv-heading">${escapeHTML(item.heading)}</div>` : ''}
-        <div class="goal-text sv-text">${C.textHTML(item.text)}</div>`;
+        <div class="goal-text sv-text">${C.leadHTML(item)}${C.textHTML(item.text)}</div>`;
     }
     const note = item.note || '';
     const noteHTML = editable
@@ -253,11 +266,20 @@ const PlanCurriculum = (() => {
     const items = cur ? cur[kind] : [];
     section.classList.toggle('has-course', !!cur);
     section.classList.toggle('has-sv', items.length > 0);
+    if (kind === 'content') {
+      const title = C.contentTitle(cur);
+      const toggle = section.querySelector('.section-toggle');
+      if (toggle?.firstChild?.nodeType === Node.TEXT_NODE) toggle.firstChild.textContent = title;
+      list.dataset.empty = `${cur?.schoolType === 'FS' ? 'Inga mål' : 'Inget centralt innehåll'} valt än. Välj ur Skolverkets text med plusknappen.`;
+    } else {
+      // Förskolan har inga betygskriterier: sektionen syns bara om det finns egna rader
+      section.hidden = cur?.schoolType === 'FS' && !items.length && !document.getElementById('criteriaList')?.children.length;
+    }
     list.innerHTML = items.map(item => rowHTML(item, kind)).join('');
     const source = document.getElementById(cfg.listId + 'Source');
     if (source) {
       source.hidden = !items.length;
-      source.innerHTML = items.length ? `<i data-lucide="landmark"></i>Ordagrann text ur Skolverkets ${cur.schoolType === 'GR' ? 'kursplan' : 'ämnesplan'} för ${escapeHTML(C.courseLabel(cur))}${cur.reform ? ` (${escapeHTML(cur.reform)})` : ''}` : '';
+      source.innerHTML = items.length ? `<i data-lucide="landmark"></i>Ordagrann text ur ${escapeHTML(C.sourcePhrase(cur))}${cur.reform ? ` (${escapeHTML(cur.reform)})` : ''}` : '';
     }
     const hint = document.getElementById(cfg.listId + 'Hint');
     if (hint) hint.hidden = !!cur;
@@ -293,7 +315,8 @@ const PlanCurriculum = (() => {
     if (!r.item) return;
     Object.assign(item, kind === 'criteria'
       ? { E: r.item.E, C: r.item.C, A: r.item.A, text: r.item.text }
-      : { heading: r.item.heading, text: r.item.text });
+      : { heading: r.item.heading, lead: r.item.lead, text: r.item.text });
+    if (!item.lead) delete item.lead;
     if (!item.text) delete item.text;
     cur.version = catalog.version;
     changed();
@@ -370,11 +393,12 @@ const PlanCurriculum = (() => {
       <button class="btn btn-text btn-icon modal-close" onclick="PlanCurriculum.closeModal('coursePickerModal')"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body">
-      <p class="course-intro">Välj kurs ur Skolverkets kurs- och ämnesplaner. Sedan kan du bocka för centralt innehåll och betygskriterier med Skolverkets egen text.</p>
+      <p class="course-intro">Välj kurs ur Skolverkets kurs- och ämnesplaner, eller förskolans läroplan. Sedan kan du bocka för centralt innehåll och betygskriterier, eller förskolans mål, med Skolverkets egen text.</p>
       <div class="course-search-row">
         <div class="filter-toggle" role="group" aria-label="Skolform" id="courseSchoolType">
           <button type="button" data-st="GY" onclick="PlanCurriculum.pickSchoolType('GY')">Gymnasieskola</button>
           <button type="button" data-st="GR" onclick="PlanCurriculum.pickSchoolType('GR')">Grundskola</button>
+          <button type="button" data-st="FS" onclick="PlanCurriculum.pickSchoolType('FS')">Förskola</button>
         </div>
         <div class="choice-search course-search">
           <i data-lucide="search"></i>
@@ -450,6 +474,7 @@ const PlanCurriculum = (() => {
   function pickSchoolType(st) {
     pickST = st;
     pickSubject = null;
+    document.getElementById('courseSearch').value = '';
     renderCourseOptions();
   }
 
@@ -492,7 +517,7 @@ const PlanCurriculum = (() => {
       <button type="button" class="course-option" onclick="PlanCurriculum.chooseSubject('${s.code}')">
         <span class="course-option-name">${escapeHTML(s.name)}</span>
         ${s.reform && pickST === 'GY' ? `<span class="course-tag-reform${s.reform === 'GY11' ? ' is-old' : ''}">${escapeHTML(s.reform)}</span>` : ''}
-        <span class="course-option-meta">${s.levels.length} ${pickST === 'GR' ? (s.levels.length === 1 ? 'del' : 'delar') : (s.levels.length === 1 ? 'kurs' : (s.reform === 'GY25' ? 'nivåer' : 'kurser'))}</span>
+        ${pickST === 'FS' ? `<span class="course-option-meta">${escapeHTML(s.reform || '')}</span>` : `<span class="course-option-meta">${s.levels.length} ${pickST === 'GR' ? (s.levels.length === 1 ? 'del' : 'delar') : (s.levels.length === 1 ? 'kurs' : (s.reform === 'GY25' ? 'nivåer' : 'kurser'))}</span>`}
         <i data-lucide="chevron-right"></i>
       </button>`).join('') + (hits.length > shown.length ? `<p class="course-empty">Visar ${shown.length} av ${hits.length}. Skriv mer för att hitta rätt.</p>` : '')
       : '<p class="course-empty">Inga ämnen matchar. Prova ett annat ord.</p>';
@@ -523,9 +548,9 @@ const PlanCurriculum = (() => {
       };
       catalog = subj;
       catalogKey = pickST + '/' + code;
-      // Ämnet i Detaljer följer kursen
+      // Ämnet i Detaljer följer kursen (förskolan har inga ämnen)
       const subjectEl = document.getElementById('detailSubject');
-      if (subjectEl) subjectEl.textContent = subj.name;
+      if (subjectEl && pickST !== 'FS') subjectEl.textContent = subj.name;
       changed();
     }
     closeModal('coursePickerModal');
@@ -549,9 +574,14 @@ const PlanCurriculum = (() => {
     if (!cur) { openCoursePicker(); return; }
     pickerKind = kind;
     const body = document.getElementById('svPickerBody');
-    document.getElementById('svPickerTitle').textContent = KINDS[kind].title;
+    document.getElementById('svPickerTitle').textContent = kind === 'content' ? C.contentTitle(cur) : KINDS[kind].title;
     document.getElementById('svPickerSub').textContent = C.courseLabel(cur) + (cur.reform ? ` (${cur.reform})` : '');
     body.innerHTML = '<p class="course-empty">Hämtar Skolverkets text…</p>';
+    if (kind === 'criteria' && cur.schoolType === 'FS') {
+      body.innerHTML = '<p class="course-empty">Förskolan har inga betygskriterier. Läroplanens mål anger vad förskolan ska sträva efter, inte vad varje barn ska uppnå.</p>';
+      document.getElementById('svPickerModal').classList.add('open');
+      return;
+    }
     document.getElementById('svPickerModal').classList.add('open');
     try {
       if (!catalog) { catalog = await C.subject(cur.schoolType, cur.subject); catalogKey = cur.schoolType + '/' + cur.subject; }
@@ -559,7 +589,7 @@ const PlanCurriculum = (() => {
       body.innerHTML = '<p class="course-empty">Kunde inte hämta Skolverkets text. Kontrollera uppkopplingen och försök igen.</p>';
       return;
     }
-    document.getElementById('svPickerSource').textContent = `Ordagrant ur Skolverkets ${cur.schoolType === 'GR' ? 'kursplan' : 'ämnesplan'}, version ${catalog.version ?? '–'}, hämtad ${catalog.fetchedAt}`;
+    document.getElementById('svPickerSource').textContent = `Ordagrant ur ${cur.schoolType === 'FS' ? 'Skolverkets läroplan för förskolan' : `Skolverkets ${cur.schoolType === 'GR' ? 'kursplan' : 'ämnesplan'}`}, version ${catalog.version ?? '–'}, hämtad ${catalog.fetchedAt}`;
     const chosen = new Set(cur[kind].map(it => it.id));
     const items = catalogItems(kind);
     if (!items.length) {
@@ -574,7 +604,10 @@ const PlanCurriculum = (() => {
     }
     let lastHeading = null;
     items.forEach(it => {
-      if (it.heading && it.heading !== lastHeading) { html += `<div class="sv-picker-group">${escapeHTML(it.heading)}</div>`; lastHeading = it.heading; }
+      if (it.heading && it.heading !== lastHeading) {
+        html += `<div class="sv-picker-group">${escapeHTML(it.heading)}${it.lead ? `<span class="sv-picker-lead">${escapeHTML(it.lead)} …</span>` : ''}</div>`;
+        lastHeading = it.heading;
+      }
       html += `<label class="sv-picker-option">
         <input type="checkbox" value="${it.id}"${chosen.has(it.id) ? ' checked' : ''} />
         <span>${C.textHTML(kind === 'criteria' ? C.criterionText(it) : it.text)}</span>
@@ -600,7 +633,7 @@ const PlanCurriculum = (() => {
       if (old.has(it.id)) return old.get(it.id);
       return kind === 'criteria'
         ? (it.text ? { id: it.id, text: it.text, lessons: [] } : { id: it.id, E: it.E, C: it.C, A: it.A, lessons: [] })
-        : { id: it.id, heading: it.heading || null, text: it.text, lessons: [] };
+        : { id: it.id, heading: it.heading || null, ...(it.lead ? { lead: it.lead } : {}), text: it.text, lessons: [] };
     });
     // Valda punkter som inte längre finns hos Skolverket tas bara bort på raden
     old.forEach((it, id) => { if (!catalogItems(kind).some(c => c.id === id)) cur[kind].push(it); });

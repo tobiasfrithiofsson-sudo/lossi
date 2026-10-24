@@ -3856,6 +3856,8 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
 .sv-heading { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-text-tertiary); }
 .sv-text { line-height: 1.5; cursor: default; }
 .sv-text strong { font-weight: 700; }
+.sv-lead { color: var(--color-text-tertiary); }
+.sv-picker-lead { display: block; margin-top: 2px; font-weight: 400; font-style: italic; }
 .sv-steps { align-self: flex-start; height: 24px; }
 .sv-steps button { padding: 0 7px; font-size: var(--font-size-sm); font-weight: 600; }
 

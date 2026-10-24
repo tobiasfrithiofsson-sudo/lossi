@@ -22,12 +22,13 @@ Läs den här filen först i en ny session. Detaljer (databas, projekt, filer, n
 
 ## Läroplan (2026-10-24)
 Princip: **Lossi hittar inte på något eget i läroplanen.** Läraren väljer ur Skolverkets ordagranna text; egna ord står bredvid som anteckning.
-- **Källa:** Skolverkets öppna Syllabus API (`api.skolverket.se/syllabus`). API:t tillåter inte anrop från webbläsaren (ingen CORS), så `node scripts/fetch-curriculum.mjs` hämtar allt till `curriculum/` (`index.json` + en fil per ämne, GY: GY25 och GY11 som gäller till 2030, GR: Lgr22; ca 12 MB). Kör om skriptet och committa när Skolverket ändrat något. Förskolan (Lpfö 18) är inte med än.
+- **Källa:** Skolverkets öppna Syllabus API (`api.skolverket.se/syllabus`). API:t tillåter inte anrop från webbläsaren (ingen CORS), så `node scripts/fetch-curriculum.mjs` hämtar allt till `curriculum/` (`index.json` + en fil per ämne, GY: GY25 och GY11 som gäller till 2030, GR: Lgr22, FS: förskolans 33 mål ur Lpfö 18 avsnitt 2.1–2.3; ca 12 MB). Kör om skriptet och committa när Skolverket ändrat något.
+- **Förskolan:** skolformen Förskola i kursväljaren ger "Läroplan för förskolan". Sektionen heter då **Mål ur läroplanen**, varje mål visas med inledningen "Förskolan ska ge varje barn förutsättningar att utveckla" i grått, Betygskriterier döljs (om det inte finns egna rader) och Ämne ändras inte.
 - **Upplägget:** Detaljer › **Kurs** öppnar kursväljaren (Gymnasieskola/Grundskola, sök ämne, välj nivå/kurs/årskurser; Ämne följer med). Plusknappen i Centralt innehåll/Betygskriterier: "Välj ur Skolverkets text" (bocka för punkter) eller "Egen rad" (gamla fritextraderna, visas under rubriken "Egna rader (inte Skolverkets text)"). Skolverkets rader: låst text, mellanrubrik, E/C/A-växel på kriterier, **anteckning**, **Koppla till lektion** (chips "Lektion 2"). Sparas som `state.curriculum` (se kommentaren överst i `curriculum.js`), ingen SQL behövdes.
 - **Versioner:** varje vald punkt sparar sin text. Skiljer den sig från Skolverkets senaste visas "Skolverket har ändrat texten" (Visa/Använd nya texten) eller "finns inte i senaste versionen" (Ta bort). Samma text under nytt id följer med tyst.
 - **Läroplan-sidan** (`laroplan.html`, i sidopanelen under Kalender): välj en kurs som projektets upplägg använder; visar hur många punkter som täcks, vilka upplägg och lektioner som tar upp varje punkt och vad som inte är med än. Alla/Bara mina.
 - Exporten (Word/PowerPoint) tar med Skolverkets rader. "Fyll i med AI" lägger fortfarande in egna rader.
-- Möjliga nästa steg: förskolans mål, visa kopplade punkter från lektionens håll, AI som föreslår punkter ur katalogen (aldrig egen text).
+- Möjliga nästa steg: visa kopplade punkter från lektionens håll, AI som föreslår punkter ur katalogen (aldrig egen text).
 
 ## SQL (Tobias har kört alla; 1–4 bekräftade 2026-10-22, 5 bekräftad 2026-10-23)
 Alla filer går att köra om. Ordning: efter `projects.sql`, `notifications.sql`, `feedback-admin.sql`.

@@ -44,7 +44,7 @@
       <h2>Läroplan</h2>
     </div>
     <div class="section-body">
-      <p class="cov-intro">Se vilket centralt innehåll och vilka betygskriterier uppläggen tar upp i en kurs, och vad som inte är med än. Texten är Skolverkets; valen görs i varje upplägg under Detaljer › Kurs.</p>
+      <p class="cov-intro">Se vilket centralt innehåll och vilka betygskriterier (i förskolan: vilka mål) uppläggen tar upp i en kurs, och vad som inte är med än. Texten är Skolverkets; valen görs i varje upplägg under Detaljer › Kurs.</p>
 
       <div class="filter-bar" id="covFilters" hidden>
         <div class="filter-toggle" id="ownerFilter" role="group" aria-label="Visa upplägg" hidden>
@@ -211,11 +211,11 @@
         let head = '';
         if (it.heading && it.heading !== last) { head = `<div class="cov-group">${escapeHTML(it.heading)}</div>`; last = it.heading; }
         const uses = map.get(it.id);
-        const text = kind === 'criteria' ? (it.text || it[criteriaStep]) : it.text;
+        const text = kind === 'criteria' ? C.textHTML(it.text || it[criteriaStep]) : C.leadHTML(it) + C.textHTML(it.text);
         return `${head}<div class="cov-row${uses.length ? ' is-covered' : ''}">
           <span class="cov-status" title="${uses.length ? 'Finns i minst ett upplägg' : 'Inte med i något upplägg'}"><i data-lucide="${uses.length ? 'circle-check' : 'circle-dashed'}"></i></span>
           <div class="cov-row-main">
-            <div class="cov-text">${C.textHTML(text)}</div>
+            <div class="cov-text">${text}</div>
             ${usesHTML(uses)}
           </div>
         </div>`;
@@ -224,19 +224,21 @@
 
     const meter = (n, total) => `<div class="cov-meter" role="img" aria-label="${n} av ${total}"><span style="width:${total ? Math.round(100 * n / total) : 0}%"></span></div>`;
     const hasSteps = criteriaItems.some(it => !it.text);
+    const preschool = schoolType === 'FS';
+    const contentTitle = C.contentTitle({ schoolType });
 
     body.innerHTML = `
       <div class="cov-summary">
         <div class="cov-card">
-          <div class="cov-card-label">Centralt innehåll</div>
-          <div class="cov-card-value"><strong>${covered(contentCov)}</strong> av ${contentItems.length} punkter</div>
+          <div class="cov-card-label">${contentTitle}</div>
+          <div class="cov-card-value"><strong>${covered(contentCov)}</strong> av ${contentItems.length} ${preschool ? 'mål' : 'punkter'}</div>
           ${meter(covered(contentCov), contentItems.length)}
         </div>
-        <div class="cov-card">
+        ${preschool ? '' : `<div class="cov-card">
           <div class="cov-card-label">Betygskriterier</div>
           <div class="cov-card-value"><strong>${covered(criteriaCov)}</strong> av ${criteriaItems.length} delar</div>
           ${meter(covered(criteriaCov), criteriaItems.length)}
-        </div>
+        </div>`}
         <div class="cov-card">
           <div class="cov-card-label">Upplägg med kursen</div>
           <div class="cov-card-value"><strong>${usingPlans.length}</strong></div>
@@ -244,11 +246,11 @@
       </div>
 
       <div class="cov-block">
-        <div class="cov-block-head"><h3>Centralt innehåll</h3></div>
+        <div class="cov-block-head"><h3>${contentTitle}</h3></div>
         <div class="cov-list">${rowsHTML(contentItems, contentCov, 'content') || '<p class="cov-empty">Skolverket har inget centralt innehåll för kursen.</p>'}</div>
       </div>
 
-      <div class="cov-block">
+      ${preschool ? '' : `<div class="cov-block">
         <div class="cov-block-head">
           <h3>Betygskriterier</h3>
           ${hasSteps ? `<div class="filter-toggle sv-steps" role="group" aria-label="Visa betygssteg">
@@ -257,9 +259,9 @@
         </div>
         ${criteriaGroup?.heading ? `<p class="cov-sub">${escapeHTML(criteriaGroup.heading)}</p>` : ''}
         <div class="cov-list">${rowsHTML(criteriaItems, criteriaCov, 'criteria') || '<p class="cov-empty">Skolverket har inga betygskriterier för kursen.</p>'}</div>
-      </div>
+      </div>`}
 
-      <p class="sv-source"><i data-lucide="landmark"></i>Ordagrann text ur Skolverkets ${schoolType === 'GR' ? 'kursplan' : 'ämnesplan'}, version ${subj.version ?? '–'}, hämtad ${escapeHTML(subj.fetchedAt || '')}.</p>`;
+      <p class="sv-source"><i data-lucide="landmark"></i>Ordagrann text ur ${preschool ? 'Skolverkets läroplan för förskolan' : `Skolverkets ${schoolType === 'GR' ? 'kursplan' : 'ämnesplan'}`}, version ${subj.version ?? '–'}, hämtad ${escapeHTML(subj.fetchedAt || '')}.</p>`;
     lucide.createIcons({ nodes: [body] });
   }
 

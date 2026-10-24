@@ -1952,7 +1952,7 @@
       <h1>${title}</h1>
       <h2>Beskrivning</h2>
       <p>${idea}</p>
-      <h2>Centralt innehåll</h2>
+      <h2>${escapeHTML(document.querySelector('#sec-goals .section-toggle').textContent.trim())}</h2>
       <ul>${goals.map(g => `<li>${g}</li>`).join('')}</ul>
       ${criteria.length ? `<h2>Betygskriterier</h2>
       <ul>${criteria.map(c => `<li>${c}</li>`).join('')}</ul>` : ''}
@@ -2115,7 +2115,7 @@
         y += rowH;
       });
     };
-    addListSlide('Centralt innehåll', plan.goals, '✓', PPTX_BLUE, 'EAF2FE');
+    addListSlide(document.querySelector('#sec-goals .section-toggle').textContent.trim(), plan.goals, '✓', PPTX_BLUE, 'EAF2FE');
     addListSlide('Betygskriterier', plan.criteria, '◎', '7C3AED', 'F2EEFE');
 
     // ── En delare + en slide per aktivitet, per lektion ──

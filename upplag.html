@@ -95,17 +95,11 @@
     </div>
 
     <div class="plan-actions">
-      <div class="popover-wrap" onclick="event.stopPropagation()">
-        <button class="status-btn status-started" id="statusBtn" onclick="toggleAppPopover(this)">
-          <span id="statusLabel">Påbörjad</span>
-          <i data-lucide="chevron-down"></i>
-        </button>
-        <div class="menu-popover" id="statusMenu">
-          <button class="menu-popover-item" onclick="setStatus('started', 'Påbörjad')">Påbörjad</button>
-          <button class="menu-popover-item" onclick="setStatus('finished', 'Avslutad')">Avslutad</button>
-          <button class="menu-popover-item" onclick="setStatus('upcoming', 'Kommande')">Kommande</button>
-        </div>
-      </div>
+      <!-- Planera med AI: läraren fortsätter i sin egen AI utifrån upplägget som det ser ut nu (ai-import.js) -->
+      <button type="button" class="btn ai-continue-btn edit-only" id="aiContinueBtn" onclick="openAiFillModal(AI_FILL)">
+        <i data-lucide="sparkles"></i>
+        Planera med AI
+      </button>
       <div class="popover-wrap" onclick="event.stopPropagation()">
         <button class="btn btn-outline btn-icon" onclick="toggleAppPopover(this)" title="Dela">
           <i data-lucide="share-2"></i>
@@ -148,10 +142,6 @@
           <i data-lucide="ellipsis"></i>
         </button>
         <div class="menu-popover" id="planMoreMenu">
-          <button class="menu-popover-item edit-only" onclick="closeAllMenuPopovers(); openAiFillModal(AI_FILL)">
-            <i data-lucide="sparkles"></i>
-            Fyll i med AI
-          </button>
           <button class="menu-popover-item" onclick="duplicatePlan()">
             <i data-lucide="copy"></i>
             <span class="edit-only">Duplicera upplägg</span>
@@ -850,6 +840,20 @@
       </div>
       <div class="section-body">
         <div class="detail-fields">
+          <div class="read-field">
+            <span class="read-field-label">Status</span>
+            <div class="popover-wrap" onclick="event.stopPropagation()">
+              <button class="status-btn status-btn-sm status-started" id="statusBtn" onclick="toggleAppPopover(this)">
+                <span id="statusLabel">Påbörjad</span>
+                <i data-lucide="chevron-down"></i>
+              </button>
+              <div class="menu-popover" id="statusMenu">
+                <button class="menu-popover-item" onclick="setStatus('started', 'Påbörjad')">Påbörjad</button>
+                <button class="menu-popover-item" onclick="setStatus('finished', 'Avslutad')">Avslutad</button>
+                <button class="menu-popover-item" onclick="setStatus('upcoming', 'Kommande')">Kommande</button>
+              </div>
+            </div>
+          </div>
           <div class="read-field">
             <span class="read-field-label">Klass</span>
             <div class="popover-wrap" onclick="event.stopPropagation()">
@@ -3310,7 +3314,7 @@
     uploadFiles(e.dataTransfer.files, dropActivityId(drop));
   });
 
-  // ── Fyll i med AI (ai-import.js) ──
+  // ── Planera med AI (ai-import.js; hette tidigare Fyll i med AI) ──
   // Läraren ger sin AI upplägget som det ser ut nu (lektionerna med sina
   // koder = data-lesson-id) och klistrar in svaret. Lektioner med känd kod
   // ändras på plats (kalenderkopplingen följer med), lektioner utan kod läggs

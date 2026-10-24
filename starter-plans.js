@@ -56,7 +56,7 @@ const STARTER_PLANS = [
         minutes: 30,
         activities: [
           { type: 'Genomgång', title: 'Skapa med AI', minutes: 10, desc: 'Välj Skapa → Skapa med AI. Lossi ger dig en färdig fråga att klistra in i din egen AI, till exempel ChatGPT eller Copilot. Klistra in svaret, så blir det ett upplägg med lektioner och aktiviteter.' },
-          { type: 'Aktivitet', title: 'Fyll i ett upplägg du redan har', minutes: 10, desc: 'I ett befintligt upplägg väljer du ⋯ → Fyll i med AI för att få förslag på det som saknas.' },
+          { type: 'Aktivitet', title: 'Planera vidare på ett upplägg du redan har', minutes: 10, desc: 'I ett upplägg klickar du på Planera med AI. Din AI får allt du skrivit, föreslår hur du kan fortsätta och blir ditt bollplank.' },
           { type: 'Exit ticket', title: 'Granska alltid förslaget', minutes: 10, desc: 'AI kan ha fel. Läs igenom och justera innan du använder upplägget med eleverna.' },
         ],
       },

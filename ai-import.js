@@ -73,7 +73,7 @@ const LOSSI_AI_PROMPT = `Du hjälper en lärare att planera ett pedagogiskt uppl
 
 Bekräfta kort att du förstått och fråga sedan läraren vad upplägget ska handla om.`;
 
-// Fyll i med AI: samma regler, plus upplägget som det ser ut nu (med lektionernas
+// Planera med AI: samma regler, plus upplägget som det ser ut nu (med lektionernas
 // koder). Har upplägget en kurs får AI:n Skolverkets punkter med koder och svarar
 // med koderna (buildCurriculumListing).
 function buildFillPrompt(current, curriculumListing = '') {
@@ -86,7 +86,9 @@ function buildFillPrompt(current, curriculumListing = '') {
   }
   return prompt
     .replace('Du hjälper en lärare att planera ett pedagogiskt upplägg som ska läggas in i Lossi',
-      'Du hjälper en lärare att arbeta vidare på ett pedagogiskt upplägg som redan finns i Lossi')
+      'Du är lärarens bollplank och hjälper hen att arbeta vidare på ett pedagogiskt upplägg som redan finns i Lossi')
+    .replace(/1\. Prata först med läraren om upplägget:[^\n]*\n/,
+      '1. Utgå från upplägget nedan – det är lärarens eget arbete. Fråga inte om sådant som redan står där, och ändra inte det läraren redan bestämt utan att fråga. Ge förslag, ställ frågor och justera tills läraren är nöjd. Hitta inte på källor, citat eller statistik.\n')
     .replace('Bekräfta kort att du förstått och fråga sedan läraren vad upplägget ska handla om.', `## Upplägget som det ser ut nu
 Varje lektion har en "kod". Det här gäller när du ger Lossi-inmatningen:
 - Behåll koden på de lektioner du ändrar, så att Lossi hittar dem (de kan redan ligga i lärarens kalender).
@@ -99,7 +101,7 @@ Varje lektion har en "kod". Det här gäller när du ger Lossi-inmatningen:
 ${JSON.stringify(current, null, 2)}
 \`\`\`
 ${curriculumListing}
-Bekräfta kort att du förstått och fråga sedan läraren vad hen vill göra med upplägget.`);
+Börja med att kort sammanfatta upplägget som det ser ut nu (2–4 meningar). Peka sedan på det som verkar saknas eller kan utvecklas, till exempel lektioner utan aktiviteter, aktiviteter som inte ryms i lektionstiden, en tom beskrivning eller inget centralt innehåll, och ge 2–3 konkreta förslag på hur ni kan fortsätta. Fråga till sist läraren vad hen vill arbeta vidare med. Ge ingen Lossi-inmatning förrän läraren ber om den.`);
 }
 
 // Skolverkets punkter för uppläggets kurs, med koder, till Fyll i-instruktionen
@@ -398,12 +400,12 @@ function buildAiPlanModalHTML() {
 
 let aiParsed = null;
 let aiPromptText = LOSSI_AI_PROMPT;
-// Fyll i med AI (upplag.html): { current() → upplägget i Lossi-formatet, previewHTML(result), apply(plan) }
+// Planera med AI (upplag.html): { current() → upplägget i Lossi-formatet, previewHTML(result), apply(plan), curriculum() }
 let aiFill = null;
 
 const AI_HELP = {
   create: 'Kopiera instruktionen och klistra in den i Claude, ChatGPT eller den AI du brukar använda. Prata sedan med din AI om upplägget, så länge du vill. När ni är nöjda ber du om <strong>Lossi-inmatningen</strong>.',
-  fill: 'Instruktionen innehåller upplägget som det ser ut nu, och Skolverkets punkter om upplägget har en kurs. Klistra in den i din AI och be den t.ex. fylla lektionerna med aktiviteter eller välja centralt innehåll. När ni är nöjda ber du om <strong>Lossi-inmatningen</strong>.',
+  fill: 'Instruktionen innehåller allt du har skrivit i upplägget, och Skolverkets punkter om upplägget har en kurs. Klistra in den i Claude, ChatGPT eller den AI du brukar använda: den sammanfattar upplägget, föreslår hur du kan fortsätta och blir ditt bollplank. När ni är nöjda ber du om <strong>Lossi-inmatningen</strong> och klistrar in den här.',
 };
 
 function openAiPlanModal() {
@@ -426,7 +428,7 @@ function showAiModal(mode, prompt) {
   }
   aiPromptText = prompt;
   document.getElementById('aiPrompt').value = prompt;
-  document.getElementById('aiModalTitle').textContent = mode === 'fill' ? 'Fyll i med AI' : 'Skapa med AI';
+  document.getElementById('aiModalTitle').textContent = mode === 'fill' ? 'Planera med AI' : 'Skapa med AI';
   document.getElementById('aiHelp').innerHTML = AI_HELP[mode];
   toggleAiPrompt(false);
   document.getElementById('createPlanModal')?.classList.remove('open');

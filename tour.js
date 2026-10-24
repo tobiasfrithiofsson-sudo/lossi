@@ -84,6 +84,11 @@ function continueTourInPlan(row) {
 // Tips första gången man öppnar ett upplägg man får redigera (upplag.html)
 const PLAN_TIPS = [
   {
+    target: ['#aiContinueBtn'], side: 'bottom', icon: 'sparkles',
+    title: 'Planera med AI',
+    text: 'Ta med upplägget till din egen AI. Den får allt du skrivit, föreslår hur du kan fortsätta och blir ditt bollplank. Svaret klistrar du in här.',
+  },
+  {
     target: ['#structureList .lesson-group > .week-row'], side: 'bottom', icon: 'list-ordered',
     title: 'Lektioner',
     text: 'Upplägget består av lektioner. Klicka på namnet för att byta det, och dra i raden för att flytta lektionen.',

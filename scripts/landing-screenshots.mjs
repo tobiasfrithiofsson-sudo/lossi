@@ -73,7 +73,7 @@ try {
 
   // ── Exempeldata ──
   await go('/login.html');
-  await evaluate(`sessionStorage.removeItem('mockDb'); localStorage.setItem('lossi-profile-prompted','true'); localStorage.setItem('lossi-invite-dismissed','true'); localStorage.setItem('lossi-theme','light'); return 1;`);
+  await evaluate(`sessionStorage.removeItem('mockDb'); localStorage.setItem('lossi-profile-prompted','true'); localStorage.setItem('lossi-invite-dismissed','true'); localStorage.setItem('lossi-theme','light'); localStorage.setItem('lossi-plan-tips','1'); localStorage.removeItem('lossi-welcome'); return 1;`); // inga tips eller välkomstdialog i bilderna
   await go('/_mobile-upplag.html?id=1');
   console.log(await evaluate(`
     const pills = () => [...document.querySelectorAll('#structureList .week-pill')];

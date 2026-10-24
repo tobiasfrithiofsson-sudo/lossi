@@ -44,7 +44,7 @@ const LOSSI_AI_PROMPT = `Du hjälper en lärare att planera ett pedagogiskt uppl
 - beskrivning: 2–4 meningar om uppläggets syfte och upplägg.
 - centraltInnehall: 3–6 punkter ur Skolverkets centrala innehåll för kursen som upplägget behandlar (förskolan: mål ur Lpfö 18). Skriv varje punkt ORDAGRANT som den står hos Skolverket – skriv inte om, sammanfatta eller hitta på. Lossi jämför med Skolverkets text och lägger in originalet; en punkt som inte går att hitta där läggs inte in som läroplan. Är du osäker på lydelsen, ta hellre med färre punkter.
 - betygskriterier: de delar av betygskriterierna som upplägget ger eleven chans att visa, ordagrant som Skolverkets mening för betyget E. Samma regler som ovan. Förskola och förskoleklass har inga betygskriterier – lämna listan tom.
-- lektioner: i ordning. Varje lektion har ett namn ("Lektion 1: …"), längd i minuter och aktiviteter.
+- lektioner: i ordning. Varje lektion har ett namn, längd i minuter och aktiviteter. Namnet är fritt (t.ex. "Begrepp och grundidéer" eller "Lektion 1: Begrepp"); läraren bestämmer själv, och har läraren redan namngett en lektion behåller du namnet.
 - aktiviteter: typ, titel, minuter och beskrivning. Typ är en av: "Genomgång" (läraren går igenom), "Diskussion" (samtal i par, grupp eller helklass), "Aktivitet" (övning, grupparbete, laboration, skrivande), "Läsning" (eleverna läser) eller "Exit ticket" (kort avstämning i slutet). Aktiviteternas minuter ska tillsammans rymmas i lektionens längd.
 - Skriv inga elevnamn eller andra personuppgifter.
 
@@ -61,7 +61,7 @@ const LOSSI_AI_PROMPT = `Du hjälper en lärare att planera ett pedagogiskt uppl
   "betygskriterier": ["…", "…"],
   "lektioner": [
     {
-      "namn": "Lektion 1: …",
+      "namn": "…",
       "minuter": 60,
       "aktiviteter": [
         { "typ": "Genomgång", "titel": "…", "minuter": 15, "beskrivning": "…" }
@@ -214,7 +214,8 @@ function parseLossiAi(text, { fill = false } = {}) {
 
   const lessons = lessonList.slice(0, AI_LIMITS.lessons).map((l, i) => {
     let name = aiText(aiPick(l, 'namn', 'name', 'titel', 'title'), AI_LIMITS.title);
-    if (!fill && !/^lektion\b/i.test(name)) name = `Lektion ${i + 1}` + (name ? `: ${name}` : '');
+    // Namnet är lärarens eget; bara en lektion utan namn får "Lektion N"
+    if (!fill && !name) name = `Lektion ${i + 1}`;
     const label = name || `Lektion ${i + 1}`;
     const minutes = aiMinutes(aiPick(l, 'minuter', 'minutes', 'langd', 'längd'));
     const rawActivities = aiPick(l, 'aktiviteter', 'activities', 'moment');

@@ -53,7 +53,7 @@ const LossiCurriculum = (() => {
 
   // "Samhällskunskap nivå 1b", "Samhällskunskap 1b" (GY11), "Samhällskunskap, årskurs 4–6"
   function courseLabel({ subjectName, levelName, schoolType }) {
-    if (schoolType === 'FS') return subjectName || 'Läroplan för förskolan';
+    if (schoolType === 'FS' || schoolType === 'FKLASS') return subjectName || '';
     if (!levelName || levelName === subjectName) return subjectName || '';
     if (levelName.startsWith(subjectName)) return levelName;
     if (schoolType === 'GR') return `${subjectName}, ${levelName.charAt(0).toLowerCase()}${levelName.slice(1)}`;
@@ -85,12 +85,28 @@ const LossiCurriculum = (() => {
     return { status: 'removed', item: null };
   }
 
-  const SCHOOL_TYPE_NAMES = { GY: 'Gymnasieskola', GR: 'Grundskola', FS: 'Förskola' };
+  const SCHOOL_TYPE_NAMES = { GY: 'Gymnasieskola', GR: 'Grundskola', FKLASS: 'Förskoleklass', FS: 'Förskola' };
+
+  // Skolformer utan ämnen och betygskriterier: ett enda val, kopplat till en årskurs
+  // (Förskola → förskolans läroplan, F → förskoleklassens kapitel i Lgr22)
+  const WHOLE_SCHOOL_TYPES = { FS: { grade: 'Förskola' }, FKLASS: { grade: 'F' } };
+  const hasCriteria = c => !c || !WHOLE_SCHOOL_TYPES[c.schoolType];
+
+  // Vilken av dem en årskurs hör till, eller null
+  function schoolTypeForGrade(grade) {
+    grade = String(grade || '').trim();
+    return Object.keys(WHOLE_SCHOOL_TYPES).find(st => WHOLE_SCHOOL_TYPES[st].grade.toLowerCase() === grade.toLowerCase()) || null;
+  }
+
+  // Dokumentet texten kommer ur: "Skolverkets ämnesplan", "Lgr22, kapitel 3 Förskoleklassen" …
+  function sourceDoc(c) {
+    return { FS: 'Skolverkets läroplan för förskolan', FKLASS: 'Skolverkets läroplan för grundskolan, kapitel 3 Förskoleklassen', GR: 'Skolverkets kursplan' }[c.schoolType] || 'Skolverkets ämnesplan';
+  }
 
   // "Skolverkets ämnesplan för Samhällskunskap nivå 1b", "Skolverkets läroplan för förskolan"
   function sourcePhrase(c) {
-    if (c.schoolType === 'FS') return 'Skolverkets läroplan för förskolan';
-    return `Skolverkets ${c.schoolType === 'GR' ? 'kursplan' : 'ämnesplan'} för ${courseLabel(c)}`;
+    if (WHOLE_SCHOOL_TYPES[c.schoolType]) return sourceDoc(c);
+    return `${sourceDoc(c)} för ${courseLabel(c)}`;
   }
 
   // Förskolan har mål (strävansmål) i stället för centralt innehåll, och inga betygskriterier
@@ -99,7 +115,7 @@ const LossiCurriculum = (() => {
   // Förskolans mål börjar med "Förskolan ska ge varje barn förutsättningar att utveckla"
   const leadHTML = item => item.lead ? `<span class="sv-lead">${escapeHTML(item.lead)}</span> ` : '';
 
-  return { index, subject, levelOf, criteriaOf, courseLabel, textHTML, plainText, criterionText, compare, sourcePhrase, contentTitle, leadHTML, SCHOOL_TYPE_NAMES };
+  return { index, subject, levelOf, criteriaOf, courseLabel, textHTML, plainText, criterionText, compare, sourcePhrase, sourceDoc, contentTitle, leadHTML, hasCriteria, schoolTypeForGrade, WHOLE_SCHOOL_TYPES, SCHOOL_TYPE_NAMES };
 })();
 
 
@@ -272,8 +288,8 @@ const PlanCurriculum = (() => {
       if (toggle?.firstChild?.nodeType === Node.TEXT_NODE) toggle.firstChild.textContent = title;
       list.dataset.empty = `${cur?.schoolType === 'FS' ? 'Inga mål' : 'Inget centralt innehåll'} valt än. Välj ur Skolverkets text med plusknappen.`;
     } else {
-      // Förskolan har inga betygskriterier: sektionen syns bara om det finns egna rader
-      section.hidden = cur?.schoolType === 'FS' && !items.length && !document.getElementById('criteriaList')?.children.length;
+      // Förskolan och förskoleklassen har inga betygskriterier: sektionen syns bara om det finns egna rader
+      section.hidden = !C.hasCriteria(cur) && !items.length && !document.getElementById('criteriaList')?.children.length;
     }
     list.innerHTML = items.map(item => rowHTML(item, kind)).join('');
     const source = document.getElementById(cfg.listId + 'Source');
@@ -393,11 +409,12 @@ const PlanCurriculum = (() => {
       <button class="btn btn-text btn-icon modal-close" onclick="PlanCurriculum.closeModal('coursePickerModal')"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body">
-      <p class="course-intro">Välj kurs ur Skolverkets kurs- och ämnesplaner, eller förskolans läroplan. Sedan kan du bocka för centralt innehåll och betygskriterier, eller förskolans mål, med Skolverkets egen text.</p>
+      <p class="course-intro">Välj kurs ur Skolverkets kurs- och ämnesplaner, förskoleklassens kapitel i Lgr22 eller förskolans läroplan. Sedan kan du bocka för centralt innehåll och betygskriterier, eller förskolans mål, med Skolverkets egen text.</p>
       <div class="course-search-row">
         <div class="filter-toggle" role="group" aria-label="Skolform" id="courseSchoolType">
           <button type="button" data-st="GY" onclick="PlanCurriculum.pickSchoolType('GY')">Gymnasieskola</button>
           <button type="button" data-st="GR" onclick="PlanCurriculum.pickSchoolType('GR')">Grundskola</button>
+          <button type="button" data-st="FKLASS" onclick="PlanCurriculum.pickSchoolType('FKLASS')">Förskoleklass</button>
           <button type="button" data-st="FS" onclick="PlanCurriculum.pickSchoolType('FS')">Förskola</button>
         </div>
         <div class="choice-search course-search">
@@ -451,7 +468,8 @@ const PlanCurriculum = (() => {
   // Gissar skolform ur årskursen (Förskola → förskolan, 7 → grundskolan, Gy 1 → gymnasiet)
   function guessSchoolType() {
     const grade = document.getElementById('detailGrade')?.textContent.trim() || '';
-    if (isPreschoolGrade(grade)) return 'FS';
+    const whole = C.schoolTypeForGrade(grade);
+    if (whole) return whole;
     return /^(F|[1-9])$|^[1-9]\s*[–-]\s*[1-9]$/i.test(grade) ? 'GR' : 'GY';
   }
 
@@ -518,7 +536,7 @@ const PlanCurriculum = (() => {
       <button type="button" class="course-option" onclick="PlanCurriculum.chooseSubject('${s.code}')">
         <span class="course-option-name">${escapeHTML(s.name)}</span>
         ${s.reform && pickST === 'GY' ? `<span class="course-tag-reform${s.reform === 'GY11' ? ' is-old' : ''}">${escapeHTML(s.reform)}</span>` : ''}
-        ${pickST === 'FS' ? `<span class="course-option-meta">${escapeHTML(s.reform || '')}</span>` : `<span class="course-option-meta">${s.levels.length} ${pickST === 'GR' ? (s.levels.length === 1 ? 'del' : 'delar') : (s.levels.length === 1 ? 'kurs' : (s.reform === 'GY25' ? 'nivåer' : 'kurser'))}</span>`}
+        ${C.WHOLE_SCHOOL_TYPES[pickST] ? `<span class="course-option-meta">${escapeHTML(s.reform || '')}</span>` : `<span class="course-option-meta">${s.levels.length} ${pickST === 'GR' ? (s.levels.length === 1 ? 'del' : 'delar') : (s.levels.length === 1 ? 'kurs' : (s.reform === 'GY25' ? 'nivåer' : 'kurser'))}</span>`}
         <i data-lucide="chevron-right"></i>
       </button>`).join('') + (hits.length > shown.length ? `<p class="course-empty">Visar ${shown.length} av ${hits.length}. Skriv mer för att hitta rätt.</p>` : '')
       : '<p class="course-empty">Inga ämnen matchar. Prova ett annat ord.</p>';
@@ -551,43 +569,45 @@ const PlanCurriculum = (() => {
       catalogKey = pickST + '/' + code;
       // Ämnet i Detaljer följer kursen (förskolan har inga ämnen)
       const subjectEl = document.getElementById('detailSubject');
-      if (subjectEl && pickST !== 'FS') subjectEl.textContent = subj.name;
-      // Förskolans läroplan hör till årskursen Förskola
+      const whole = C.WHOLE_SCHOOL_TYPES[pickST];
+      if (subjectEl && !whole) subjectEl.textContent = subj.name;
+      // Förskolans läroplan hör till årskursen Förskola, förskoleklassens till F
       const gradeEl = document.getElementById('detailGrade');
-      if (gradeEl && pickST === 'FS') gradeEl.textContent = PRESCHOOL_GRADE;
+      if (gradeEl && whole) gradeEl.textContent = whole.grade;
       changed();
     }
     closeModal('coursePickerModal');
     if (!same) openPicker('content');
   }
 
-  // Årskursen Förskola hör ihop med förskolans läroplan: utan kurs (eller med
-  // en kurs där inget valts än) kopplas Lpfö 18 in direkt. Byts årskursen från
-  // Förskola tas en tom förskolekoppling bort. Valda punkter tas aldrig bort här.
+  // Årskursen Förskola hör ihop med förskolans läroplan och F med förskoleklassens
+  // kapitel i Lgr22: utan kurs (eller med en kurs där inget valts än) kopplas den
+  // in direkt. Byts årskursen tas en tom sådan koppling bort. Valda punkter tas
+  // aldrig bort här.
   async function ensureForGrade() {
     if (hooks.readOnly()) return;
-    const preschool = isPreschoolGrade(document.getElementById('detailGrade')?.textContent);
+    const target = C.schoolTypeForGrade(document.getElementById('detailGrade')?.textContent);
     const empty = !cur || (!cur.content.length && !cur.criteria.length);
-    if (!preschool) {
-      if (cur?.schoolType === 'FS' && empty) { cur = null; catalog = null; catalogKey = ''; changed(); }
+    if (cur?.schoolType === target || !empty) return;
+    if (!target) {
+      if (cur && C.WHOLE_SCHOOL_TYPES[cur.schoolType]) { cur = null; catalog = null; catalogKey = ''; changed(); }
       return;
     }
-    if (cur?.schoolType === 'FS' || !empty) return;
     try {
       const idx = await C.index();
-      const entry = idx.schoolTypes.FS?.subjects[0];
-      const subj = entry && await C.subject('FS', entry.code);
+      const entry = idx.schoolTypes[target]?.subjects[0];
+      const subj = entry && await C.subject(target, entry.code);
       const level = subj?.levels[0];
-      if (!level || cur?.schoolType === 'FS') return;
+      if (!level || cur?.schoolType === target || C.schoolTypeForGrade(document.getElementById('detailGrade')?.textContent) !== target) return;
       cur = {
-        schoolType: 'FS', subject: subj.code, subjectName: subj.name, reform: subj.reform || null,
+        schoolType: target, subject: subj.code, subjectName: subj.name, reform: subj.reform || null,
         version: subj.version, level: level.code, levelName: level.name, content: [], criteria: [],
       };
       catalog = subj;
-      catalogKey = 'FS/' + subj.code;
+      catalogKey = target + '/' + subj.code;
       changed();
     } catch (e) {
-      console.warn('Kunde inte koppla förskolans läroplan:', e);
+      console.warn('Kunde inte koppla läroplanen till årskursen:', e);
     }
   }
 
@@ -611,8 +631,10 @@ const PlanCurriculum = (() => {
     document.getElementById('svPickerTitle').textContent = kind === 'content' ? C.contentTitle(cur) : KINDS[kind].title;
     document.getElementById('svPickerSub').textContent = C.courseLabel(cur) + (cur.reform ? ` (${cur.reform})` : '');
     body.innerHTML = '<p class="course-empty">Hämtar Skolverkets text…</p>';
-    if (kind === 'criteria' && cur.schoolType === 'FS') {
-      body.innerHTML = '<p class="course-empty">Förskolan har inga betygskriterier. Läroplanens mål anger vad förskolan ska sträva efter, inte vad varje barn ska uppnå.</p>';
+    if (kind === 'criteria' && !C.hasCriteria(cur)) {
+      body.innerHTML = cur.schoolType === 'FS'
+        ? '<p class="course-empty">Förskolan har inga betygskriterier. Läroplanens mål anger vad förskolan ska sträva efter, inte vad varje barn ska uppnå.</p>'
+        : '<p class="course-empty">Förskoleklassen har inga betygskriterier.</p>';
       document.getElementById('svPickerModal').classList.add('open');
       return;
     }
@@ -623,7 +645,7 @@ const PlanCurriculum = (() => {
       body.innerHTML = '<p class="course-empty">Kunde inte hämta Skolverkets text. Kontrollera uppkopplingen och försök igen.</p>';
       return;
     }
-    document.getElementById('svPickerSource').textContent = `Ordagrant ur ${cur.schoolType === 'FS' ? 'Skolverkets läroplan för förskolan' : `Skolverkets ${cur.schoolType === 'GR' ? 'kursplan' : 'ämnesplan'}`}, version ${catalog.version ?? '–'}, hämtad ${catalog.fetchedAt}`;
+    document.getElementById('svPickerSource').textContent = `Ordagrant ur ${C.sourceDoc(cur)}, version ${catalog.version ?? '–'}, hämtad ${catalog.fetchedAt}`;
     const chosen = new Set(cur[kind].map(it => it.id));
     const items = catalogItems(kind);
     if (!items.length) {

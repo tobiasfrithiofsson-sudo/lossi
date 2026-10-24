@@ -224,14 +224,14 @@
 
     const meter = (n, total) => `<div class="cov-meter" role="img" aria-label="${n} av ${total}"><span style="width:${total ? Math.round(100 * n / total) : 0}%"></span></div>`;
     const hasSteps = criteriaItems.some(it => !it.text);
-    const preschool = schoolType === 'FS';
+    const preschool = !C.hasCriteria({ schoolType }); // förskolan och förskoleklassen: inga betygskriterier
     const contentTitle = C.contentTitle({ schoolType });
 
     body.innerHTML = `
       <div class="cov-summary">
         <div class="cov-card">
           <div class="cov-card-label">${contentTitle}</div>
-          <div class="cov-card-value"><strong>${covered(contentCov)}</strong> av ${contentItems.length} ${preschool ? 'mål' : 'punkter'}</div>
+          <div class="cov-card-value"><strong>${covered(contentCov)}</strong> av ${contentItems.length} ${schoolType === 'FS' ? 'mål' : 'punkter'}</div>
           ${meter(covered(contentCov), contentItems.length)}
         </div>
         ${preschool ? '' : `<div class="cov-card">
@@ -261,7 +261,7 @@
         <div class="cov-list">${rowsHTML(criteriaItems, criteriaCov, 'criteria') || '<p class="cov-empty">Skolverket har inga betygskriterier för kursen.</p>'}</div>
       </div>`}
 
-      <p class="sv-source"><i data-lucide="landmark"></i>Ordagrann text ur ${preschool ? 'Skolverkets läroplan för förskolan' : `Skolverkets ${schoolType === 'GR' ? 'kursplan' : 'ämnesplan'}`}, version ${subj.version ?? '–'}, hämtad ${escapeHTML(subj.fetchedAt || '')}.</p>`;
+      <p class="sv-source"><i data-lucide="landmark"></i>Ordagrann text ur ${escapeHTML(C.sourceDoc({ schoolType }))}, version ${subj.version ?? '–'}, hämtad ${escapeHTML(subj.fetchedAt || '')}.</p>`;
     lucide.createIcons({ nodes: [body] });
   }
 

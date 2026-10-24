@@ -1,7 +1,8 @@
 // ── Skolverkets kurs- och ämnesplaner till Lossi ──
 // Hämtar centralt innehåll och betygskriterier ur Skolverkets öppna Syllabus
 // API och sparar dem i curriculum/ (index.json + en fil per ämne). Förskolan
-// har inga ämnen: där hämtas målen ur Lpfö 18 (avsnitt 2, rubrikerna "Mål"). API:t
+// har inga ämnen: där hämtas målen ur Lpfö 18 (avsnitt 2, rubrikerna "Mål").
+// Förskoleklassens centrala innehåll står i Lgr22, kapitel 3. API:t
 // tillåter inte anrop direkt från webbläsaren, så Lossi läser de här filerna.
 //
 // Texten sparas ordagrant: bara HTML-taggarna tas bort (fetstil i
@@ -194,6 +195,23 @@ async function fetchPreschool() {
   };
 }
 
+// Förskoleklassen: centralt innehåll ur Lgr22 kapitel 3 (fem områden, inga betygskriterier)
+async function fetchPreschoolClass() {
+  const cur = (await getJSON(`${API}/curriculums/LGR22`)).curriculum;
+  const chapter = cur.sections.find(s => /förskoleklass/i.test(plain(s.heading)));
+  if (!chapter) throw new Error('Hittar inte kapitlet om förskoleklassen i Lgr22');
+  const html = chapter.content;
+  const start = html.search(/<h3\b[^>]*>\s*Centralt innehåll/i);
+  const content = parseContent(html.slice(start).replace(/^<h3\b[^>]*>[\s\S]*?<\/h3>/i, ''))
+    .map(({ heading, text }) => ({ heading, text }));
+  return {
+    schoolType: 'FKLASS', code: 'LGR22', name: 'Förskoleklassen', reform: 'Lgr22', version: cur.version ?? null,
+    modifiedDate: cur.modifiedDate || null, versionInfo: null,
+    levels: [{ code: 'fk', name: 'Förskoleklassen', content: numbered(content, 'c'), criteria: null }],
+    criteria: {},
+  };
+}
+
 async function pool(items, size, fn) {
   const out = new Array(items.length);
   let next = 0;
@@ -230,6 +248,17 @@ for (const [schoolType, label] of Object.entries(SCHOOL_TYPES)) {
     subjects: subjects.filter(s => s && s.levels.some(l => l.content.length))
       .map(s => ({ code: s.code, name: s.name, reform: s.reform, version: s.version, levels: s.levels.map(l => ({ code: l.code, name: l.name })) }))
       .sort((a, b) => a.name.localeCompare(b.name, 'sv') || (a.reform < b.reform ? 1 : -1)),
+  };
+}
+
+for (const [schoolType, name, fetchOne] of [['FKLASS', 'Förskoleklass', fetchPreschoolClass]]) {
+  const one = await fetchOne();
+  console.log(`${name}: ${one.levels[0].content.length} punkter`);
+  await mkdir(join(OUT, schoolType), { recursive: true });
+  await writeFile(join(OUT, schoolType, one.code + '.json'), JSON.stringify({ ...one, fetchedAt: TODAY }));
+  index.schoolTypes[schoolType] = {
+    name,
+    subjects: [{ code: one.code, name: one.name, reform: one.reform, version: one.version, levels: one.levels.map(l => ({ code: l.code, name: l.name })) }],
   };
 }
 

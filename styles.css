@@ -486,9 +486,10 @@ body.plan-loading .plan-loading-view {
 }
 .aside-group-toggle .aside-label { padding: 0; margin: 0; }
 .aside-group-chevron { width: 14px; height: 14px; color: var(--color-text-tertiary); flex-shrink: 0; opacity: 0; transition: transform 0.15s, opacity 0.15s; }
-/* Pilen syns bara när man hovrar över (eller tabbar till) rubriken */
-.aside-group-head:hover .aside-group-chevron,
-.aside-group-head:focus-within .aside-group-chevron { opacity: 1; }
+/* Pilen och rubrikens knapp syns när man hovrar över (eller tabbar till) gruppen:
+   rubriken eller något i den, som i Claude-appens sidopanel */
+.aside-group:hover .aside-group-chevron,
+.aside-group:focus-within .aside-group-chevron { opacity: 1; }
 .aside-group.is-collapsed .aside-group-chevron { transform: rotate(-90deg); }
 .aside-group-action {
   width: 24px;
@@ -504,8 +505,8 @@ body.plan-loading .plan-loading-view {
   transition: opacity 0.15s, background 0.15s, color 0.15s;
 }
 .aside-group-action svg { width: 14px; height: 14px; }
-.aside-group-head:hover .aside-group-action,
-.aside-group-head:focus-within .aside-group-action { opacity: 1; }
+.aside-group:hover .aside-group-action,
+.aside-group:focus-within .aside-group-action { opacity: 1; }
 .aside-group-action:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
 .aside-group-action.is-disabled { cursor: default; }
 .aside-group-action.is-disabled:hover { background: none; color: var(--color-text-tertiary); }

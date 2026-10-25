@@ -695,9 +695,6 @@ function asideNavHTML(active) {
 }
 
 function buildAsideHTML(active) {
-  let inviteDismissed = false;
-  try { inviteDismissed = localStorage.getItem('lossi-invite-dismissed') === 'true'; } catch (e) {}
-
   return `
   <div class="aside-scroll">
     <!-- Projektväljare (renderProjectSwitcher) -->
@@ -726,17 +723,7 @@ function buildAsideHTML(active) {
       </button>` })}
 
     ${asideNavHTML(active)}
-  </div>
-
-  ${inviteDismissed ? '' : `
-  <div class="aside-invite" role="button" tabindex="0" onclick="openInviteOrJoin(event)" onkeydown="if (event.key === 'Enter') openInviteOrJoin(event)">
-    <i data-lucide="user-plus" class="aside-invite-icon"></i>
-    <div class="aside-invite-text">
-      <div class="aside-invite-title" id="asideInviteTitle">Bjud in kollegor</div>
-      <div class="aside-invite-sub" id="asideInviteSub">Samarbeta med ditt team</div>
-    </div>
-    <button class="aside-invite-close" onclick="event.stopPropagation(); dismissInvite()" title="Dölj"><i data-lucide="x"></i></button>
-  </div>`}`;
+  </div>`;
 }
 
 // ── Projektväljaren överst i sidopanelen ──
@@ -814,7 +801,7 @@ async function renderProjectSwitcher(onProjectChange) {
         <i data-lucide="plus" class="project-menu-glyph"></i><span class="project-menu-name">Nytt projekt</span>
       </button>
     </div>`;
-  updateInviteCard(current);
+  markPersonalProject(current);
   // Nyss skapat projekt: visa koden direkt så att man kan bjuda in
   let openInvite = false;
   try { openInvite = sessionStorage.getItem('lossi-open-invite') === '1'; sessionStorage.removeItem('lossi-open-invite'); } catch (e) {}
@@ -984,22 +971,9 @@ document.addEventListener('keydown', e => {
 // Projektens koder är borttagna (supabase/access-codes.sql): kollegor bjuds
 // in med sin e-postadress, och den som saknar konto skapar ett med samma adress.
 
-// Kortet längst ner i sidopanelen: bjud in till valt projekt, eller gå med i ett
-function updateInviteCard(project) {
-  // Den egna ytan kan inte delas: inget Bjud in-kort och ingen Team-grupp (styles.css)
+// Den egna ytan kan inte delas: där döljs gruppen Medlemmar (styles.css)
+function markPersonalProject(project) {
   document.body.classList.toggle('is-personal-project', !!project?.personal);
-  const title = document.getElementById('asideInviteTitle');
-  const sub = document.getElementById('asideInviteSub');
-  if (!title || !sub) return;
-  title.textContent = 'Bjud in kollegor';
-  sub.textContent = project ? `Bjud in till ${project.name}` : 'Samarbeta med ditt team';
-}
-
-async function openInviteOrJoin(e) {
-  if (e?.target.closest('.aside-invite-close')) return;
-  const project = await LossiData.currentProject().catch(() => null);
-  if (project) openInviteModal();
-  else toggleProjectMenu(true);
 }
 
 function buildInviteModalsHTML() {
@@ -1937,11 +1911,6 @@ async function saveProfile() {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && document.getElementById('profileModal')?.classList.contains('open')) closeProfileModal();
 });
-
-function dismissInvite() {
-  try { localStorage.setItem('lossi-invite-dismissed', 'true'); } catch (e) {}
-  document.querySelector('.aside-invite')?.remove();
-}
 
 // ── Användarmeny ──
 // Kom igång (tour.js): välkomstdialogen och rundturen, på översikten direkt,

@@ -559,7 +559,6 @@ body.plan-loading .plan-loading-view {
 .aside-project.is-soon .aside-project-name { flex: 1; min-width: 0; }
 .aside-label-soon { display: flex; align-items: center; gap: 6px; }
 .aside-item.is-soon { opacity: 0.6; }
-.aside-invite.is-soon .aside-invite-title { display: flex; align-items: center; gap: 6px; }
 .topnav-link.is-soon { color: var(--color-text-tertiary); cursor: default; display: inline-flex; align-items: center; gap: 6px; }
 .topnav-link.is-soon:hover { background: none; }
 
@@ -604,43 +603,8 @@ body.plan-loading .plan-loading-view {
 button.aside-item { width: 100%; border: none; background: none; font-family: inherit; text-align: left; cursor: pointer; }
 .aside-more svg { width: 18px; height: 18px; flex-shrink: 0; }
 
-/* "Bjud in kollegor": kort längst ner i sidopanelen, går att dölja */
-/* Den egna ytan kan inte delas (theme.js updateInviteCard) */
-body.is-personal-project .aside-invite,
+/* Den egna ytan kan inte delas (theme.js markPersonalProject) */
 body.is-personal-project .aside-group[data-aside-group="members"] { display: none; }
-
-.aside-invite {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 0 12px 12px;
-  padding: 12px;
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  flex-shrink: 0;
-}
-
-.aside-invite-icon { width: 18px; height: 18px; flex-shrink: 0; color: var(--color-text-secondary); margin-top: 1px; }
-.aside-invite-text { flex: 1; min-width: 0; }
-.aside-invite-title { font-size: var(--font-size-base); font-weight: 500; color: var(--color-text-primary); }
-.aside-invite-sub { font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-top: 2px; }
-
-.aside-invite-close {
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  border: none;
-  background: none;
-  border-radius: var(--radius-xs);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.aside-invite-close:hover { background: var(--color-aside-hover); color: var(--color-text-primary); }
-.aside-invite-close svg { width: 14px; height: 14px; }
 
 /* Antal kollegor som vill redigera ett eget upplägg (sidopanel och översikt) */
 .request-badge {
@@ -666,9 +630,6 @@ body.is-personal-project .aside-group[data-aside-group="members"] { display: non
   white-space: nowrap;
   flex-shrink: 0;
 }
-
-.aside-invite[role="button"] { cursor: pointer; transition: border-color 0.15s; }
-.aside-invite[role="button"]:hover { border-color: var(--color-text-tertiary); }
 
 /* Bjud in (inviteModal i theme.js) */
 .invite-lead { font-size: var(--font-size-base); color: var(--color-text-secondary); line-height: 1.5; }

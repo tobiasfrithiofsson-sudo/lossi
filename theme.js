@@ -762,12 +762,6 @@ function projectIconHTML(project) {
   return projectAvatarHTML(project, project.avatar, 'aside-project-icon');
 }
 
-function projectMetaText(project) {
-  const n = project.members.length;
-  if (n === 1) return 'Bara du';
-  return n ? `${n} medlemmar` : 'Projekt';
-}
-
 function isProjectOwner(project, user) {
   return project.members.some(m => m.userId === user?.id && m.role === 'owner') || (project.personal && !project.members.length);
 }
@@ -800,7 +794,6 @@ async function renderProjectSwitcher(onProjectChange) {
         ${projectAvatarHTML(current, current.avatar, 'project-menu-head-avatar')}
         <span class="project-menu-text">
           <span class="project-menu-head-name">${escapeHTML(current.name)}</span>
-          <span class="project-menu-meta">${escapeHTML(projectMetaText(current))}</span>
         </span>
       </div>
       <button type="button" class="project-menu-item" onclick="toggleProjectMenu(false); openProjectSettings()">
@@ -812,7 +805,7 @@ async function renderProjectSwitcher(onProjectChange) {
       <div class="menu-popover-sep"></div>
       <div class="project-menu-label">Dina projekt</div>
       ${projects.map(p => `
-        <button type="button" class="project-menu-item${p.id === current.id ? ' is-current' : ''}" role="menuitemradio" aria-checked="${p.id === current.id}" data-project-id="${p.id}" title="${escapeHTML(p.name)} · ${escapeHTML(projectMetaText(p))}">
+        <button type="button" class="project-menu-item${p.id === current.id ? ' is-current' : ''}" role="menuitemradio" aria-checked="${p.id === current.id}" data-project-id="${p.id}" title="${escapeHTML(p.name)}">
           ${projectAvatarHTML(p, p.avatar, 'project-menu-avatar')}
           <span class="project-menu-name">${escapeHTML(p.name)}</span>
           ${p.id === current.id ? '<i data-lucide="check" class="project-menu-check"></i>' : ''}

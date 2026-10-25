@@ -329,7 +329,6 @@ body.plan-loading .plan-loading-view {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.project-menu-meta { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
 .project-menu-check { width: 16px; height: 16px; color: var(--color-text-secondary); flex-shrink: 0; }
 
 /* Projektets avatar (projectAvatarHTML i theme.js): ikon eller bokstav på färgtoning */

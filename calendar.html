@@ -45,7 +45,11 @@
         <button class="btn btn-outline" onclick="goToday()">Idag</button>
         <button class="btn btn-outline btn-icon" onclick="shiftPeriod(-1)" title="Föregående" aria-label="Föregående"><i data-lucide="chevron-left"></i></button>
         <button class="btn btn-outline btn-icon" onclick="shiftPeriod(1)" title="Nästa" aria-label="Nästa"><i data-lucide="chevron-right"></i></button>
-        <button class="btn btn-outline cal-weekend-btn" id="weekendBtn" onclick="toggleWeekend()" aria-pressed="false" title="Visa lördag och söndag">Helg</button>
+        <!-- Vy: Arbetsvecka / Vecka / Månad (renderViewPicker) -->
+        <div class="cal-view" id="calView">
+          <button type="button" class="btn btn-subtle cal-view-btn" id="calViewBtn" onclick="toggleViewMenu()" aria-haspopup="menu" aria-expanded="false"></button>
+          <div class="menu-popover cal-view-menu" id="calViewMenu" role="menu" aria-label="Visa"></div>
+        </div>
         <button class="btn btn-solid" onclick="addLesson()"><i data-lucide="plus"></i><span class="cal-add-label">Lägg in lektion</span></button>
       </div>
     </div>
@@ -105,18 +109,29 @@
   lucide.createIcons();
   syncThemeIcons();
 
-  // ── Veckokalender ──
-  // Visar inlagda lektioner (LossiData.listEvents) vecka för vecka, mån–fre
-  // (helgen på begäran). På mobil visas en dag i taget. Klick på en ledig tid
-  // lägger in en lektion där; klick på en lektion öppnar en meny.
+  // ── Kalendern ──
+  // Visar inlagda lektioner (LossiData.listEvents) som Arbetsvecka (mån–fre),
+  // Vecka (mån–sön) eller Månad. I veckovyerna visas en dag i taget på mobil.
+  // Klick på en ledig tid (eller dag i månaden) lägger in en lektion där;
+  // klick på en lektion öppnar en meny.
   const HOUR_PX = 56;
   const DEFAULT_FIRST_HOUR = 7;
   const DEFAULT_LAST_HOUR = 18;
   const SNAP_MIN = 15;
   const mobileQuery = window.matchMedia('(max-width: 760px)');
 
-  let showWeekend = false;
-  try { showWeekend = localStorage.getItem('lossi-cal-weekend') === 'true'; } catch (e) {}
+  const CAL_VIEWS = {
+    workweek: { label: 'Arbetsvecka', icon: 'panel-top' },
+    week: { label: 'Vecka', icon: 'columns-3' },
+    month: { label: 'Månad', icon: 'calendar-days' },
+  };
+  const MONTH_EVENTS_SHOWN = 3; // fler lektioner en dag i månadsvyn: "+2 till"
+  let view = 'workweek';
+  try {
+    const saved = localStorage.getItem('lossi-cal-view');
+    // Före vyväljaren fanns en Helg-knapp (lossi-cal-weekend)
+    view = CAL_VIEWS[saved] ? saved : localStorage.getItem('lossi-cal-weekend') === 'true' ? 'week' : 'workweek';
+  } catch (e) {}
   let anchor = todayAnchor(); // en dag i perioden som visas
   let plans = [];       // upplägg i valt projekt (händelser i andra projekt visas inte)
   let myPlans = [];     // egna upplägg i valt projekt: bara deras lektioner kan läggas in än så länge
@@ -135,11 +150,11 @@
   // Så många prov + inlämningar för en klass samma vecka ger en varning
   const LOAD_WARNING_AT = 3;
 
-  // Idag – men på en helg med dold helg visas kommande vecka
+  // Idag – men en helg i Arbetsvecka visas kommande vecka
   function todayAnchor() {
     const today = startOfDay(new Date());
     const weekendDay = today.getDay() === 0 || today.getDay() === 6;
-    if (weekendDay && !showWeekend && !mobileQuery.matches) return addDays(today, today.getDay() === 6 ? 2 : 1);
+    if (weekendDay && view === 'workweek' && !mobileQuery.matches) return addDays(today, today.getDay() === 6 ? 2 : 1);
     return today;
   }
 
@@ -155,13 +170,21 @@
     return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
   }
 
+  // Dagarna som visas. Månad: hela veckor (mån–sön) från månadens första till sista dag.
   function periodDays() {
+    if (view === 'month') {
+      const first = mondayOf(new Date(anchor.getFullYear(), anchor.getMonth(), 1));
+      const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+      const weeks = Math.ceil(((last - first) / 86400000 + 1) / 7);
+      return Array.from({ length: weeks * 7 }, (_, i) => addDays(first, i));
+    }
     if (mobileQuery.matches) return [startOfDay(anchor)];
     const monday = mondayOf(anchor);
-    return Array.from({ length: showWeekend ? 7 : 5 }, (_, i) => addDays(monday, i));
+    return Array.from({ length: view === 'week' ? 7 : 5 }, (_, i) => addDays(monday, i));
   }
 
   function rangeLabel(days) {
+    if (view === 'month') return anchor.toLocaleDateString('sv-SE', { month: 'long', year: 'numeric' });
     const first = days[0], last = days[days.length - 1];
     if (days.length === 1) {
       return `${first.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · v. ${isoWeek(first)}`;
@@ -201,9 +224,15 @@
     const from = days[0], to = addDays(days[days.length - 1], 1);
     const inPeriod = resolveEvents(allEvents.filter(e => e.start >= from && e.start < to), plans);
     shown = inPeriod.filter(e => (ownerFilter === 'all' || isMine(e)) && (!classFilter || sameChoice(e.klass, classFilter)));
-    // Varningen gäller hela veckan, även när bara en dag visas (mobil) eller helgen är dold
-    const weekStart = mondayOf(anchor), weekEnd = addDays(weekStart, 7);
+    // Varningen gäller hela veckan, även när bara en dag visas (mobil) eller helgen är dold;
+    // i månadsvyn alla veckor som syns
+    const weekStart = view === 'month' ? from : mondayOf(anchor), weekEnd = view === 'month' ? to : addDays(weekStart, 7);
     renderLoadWarning(resolveEvents(allEvents.filter(e => e.start >= weekStart && e.start < weekEnd), plans));
+    document.getElementById('calRange').textContent = rangeLabel(days);
+    renderViewPicker();
+    const grid = document.getElementById('calGrid');
+    grid.classList.toggle('is-month', view === 'month');
+    if (view === 'month') return renderMonth(days);
 
     // Visa hela dagen 07–18, eller mer om något ligger utanför
     let firstHour = DEFAULT_FIRST_HOUR, lastHour = DEFAULT_LAST_HOUR;
@@ -214,12 +243,6 @@
     });
     lastHour = Math.min(lastHour, 24);
 
-    document.getElementById('calRange').textContent = rangeLabel(days);
-    const weekendBtn = document.getElementById('weekendBtn');
-    weekendBtn.classList.toggle('is-active', showWeekend);
-    weekendBtn.setAttribute('aria-pressed', String(showWeekend));
-
-    const grid = document.getElementById('calGrid');
     grid.style.setProperty('--cal-days', days.length);
     grid.style.setProperty('--hour-px', HOUR_PX + 'px');
 
@@ -245,6 +268,55 @@
     });
     drawNowLine(days, firstHour, lastHour);
     lucide.createIcons({ nodes: [body] });
+  }
+
+  // ── Månadsvyn ──
+  // En ruta per dag (mån–sön); lektionerna som små rader med tid och namn.
+  function renderMonth(days) {
+    const today = startOfDay(new Date()).getTime();
+    const month = anchor.getMonth();
+    document.getElementById('calHeadRow').innerHTML = days.slice(0, 7).map(d => `
+      <div class="cal-day-head"><span class="cal-day-name">${d.toLocaleDateString('sv-SE', { weekday: 'short' })}</span></div>`).join('');
+    const body = document.getElementById('calBody');
+    body.style.height = '';
+    body.style.setProperty('--cal-weeks', days.length / 7);
+    body.innerHTML = days.map((d, i) => {
+      const next = addDays(d, 1);
+      const events = shown.filter(e => e.start >= d && e.start < next).sort((a, b) => a.start - b.start);
+      const more = events.length - MONTH_EVENTS_SHOWN;
+      return `
+        <div class="cal-month-cell${d.getMonth() !== month ? ' is-outside' : ''}${d.getTime() === today ? ' is-today' : ''}" data-day="${i}" title="Klicka för att lägga in en lektion">
+          <span class="cal-month-num">${d.getDate()}</span>
+          ${events.slice(0, more > 0 ? MONTH_EVENTS_SHOWN - 1 : MONTH_EVENTS_SHOWN).map(monthEventHTML).join('')}
+          ${more > 0 ? `<button type="button" class="cal-month-more" data-day="${i}">+${more + 1} till</button>` : ''}
+        </div>`;
+    }).join('');
+    body.querySelectorAll('.cal-month-cell').forEach((cell, i) => {
+      cell.addEventListener('click', e => {
+        const chip = e.target.closest('.cal-chip');
+        if (chip) return openPopover(chip);
+        // "+2 till": visa den veckan
+        if (e.target.closest('.cal-month-more')) {
+          anchor = days[i];
+          return setView(days[i].getDay() === 0 || days[i].getDay() === 6 ? 'week' : 'workweek');
+        }
+        const start = new Date(days[i]);
+        start.setHours(8, 0, 0, 0);
+        addLesson(start);
+      });
+    });
+    lucide.createIcons({ nodes: [body] });
+  }
+
+  function monthEventHTML(e) {
+    const mine = isMine(e);
+    const assessment = LESSON_ASSESSMENTS[e.assessment];
+    return `
+      <button type="button" class="cal-chip${mine ? '' : ' is-other'}" data-event-id="${e.id}"${assessment ? ` data-assessment="${e.assessment}"` : ''}
+        title="${escapeHTML([assessment?.label, e.lessonName, e.klass, e.plan.title, mine ? '' : 'Inlagd av ' + ownerName(e)].filter(Boolean).join(' · '))} · ${formatTime(e.start)}–${formatTime(eventEnd(e))}">
+        <span class="cal-chip-time">${formatTime(e.start)}</span>
+        <span class="cal-chip-title">${assessment ? `<span class="cal-event-badge">${assessment.label}</span>` : ''}${escapeHTML(e.lessonName)}</span>
+      </button>`;
   }
 
   // Lektioner som överlappar delar på bredden
@@ -398,9 +470,10 @@
   }
 
   document.addEventListener('click', e => {
-    if (!e.target.closest('#calPopover, .cal-event')) closePopover();
+    if (!e.target.closest('#calPopover, .cal-event, .cal-chip')) closePopover();
+    if (!e.target.closest('#calView')) toggleViewMenu(false);
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePopover(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePopover(); toggleViewMenu(false); } });
   document.getElementById('calScroll').addEventListener('scroll', closePopover);
 
   // ── Vems lektioner och vilken klass ──
@@ -466,7 +539,9 @@
 
   // ── Navigering ──
   function shiftPeriod(step) {
-    anchor = addDays(anchor, step * (mobileQuery.matches ? 1 : 7));
+    anchor = view === 'month'
+      ? new Date(anchor.getFullYear(), anchor.getMonth() + step, 1)
+      : addDays(anchor, step * (mobileQuery.matches ? 1 : 7));
     render();
   }
 
@@ -475,10 +550,35 @@
     render();
   }
 
-  function toggleWeekend() {
-    showWeekend = !showWeekend;
-    try { localStorage.setItem('lossi-cal-weekend', String(showWeekend)); } catch (e) {}
+  // ── Vyväljaren ──
+  function setView(next) {
+    // Står man på idag följer man med till den nya vyns "idag" (Arbetsvecka hoppar över helgen)
+    const onToday = anchor.getTime() === startOfDay(new Date()).getTime();
+    view = next;
+    if (onToday) anchor = todayAnchor();
+    try { localStorage.setItem('lossi-cal-view', next); } catch (e) {}
+    toggleViewMenu(false);
     render();
+  }
+
+  function toggleViewMenu(open) {
+    const menu = document.getElementById('calViewMenu');
+    const show = open ?? !menu.classList.contains('open');
+    menu.classList.toggle('open', show);
+    document.getElementById('calViewBtn').setAttribute('aria-expanded', String(show));
+  }
+
+  function renderViewPicker() {
+    const current = CAL_VIEWS[view];
+    const btn = document.getElementById('calViewBtn');
+    btn.innerHTML = `<i data-lucide="${current.icon}"></i><span class="cal-view-label">${current.label}</span><i data-lucide="chevron-down" class="cal-view-chevron"></i>`;
+    const menu = document.getElementById('calViewMenu');
+    menu.innerHTML = Object.entries(CAL_VIEWS).map(([id, v]) => `
+      <button type="button" class="menu-popover-item cal-view-item" role="menuitemradio" aria-checked="${id === view}" onclick="setView('${id}')">
+        <span class="cal-view-check">${id === view ? '<i data-lucide="check"></i>' : ''}</span>
+        <i data-lucide="${v.icon}"></i>${v.label}
+      </button>`).join('');
+    lucide.createIcons({ nodes: [btn, menu] });
   }
 
   mobileQuery.addEventListener('change', render);

@@ -236,7 +236,7 @@ async function obLoadProjectStep() {
   obSetLoading(false);
   obState.ownProject = projects.find(p => p.personal) || projects[0] || null;
   const own = obState.ownProject;
-  obEl('obOwnProject').innerHTML = own ? obProjectRowHTML(own, 'Bara du') : '<p class="ob-help">Din yta skapas när du startar.</p>';
+  obEl('obOwnProject').innerHTML = own ? obProjectRowHTML(own) : '<p class="ob-help">Din yta skapas när du startar.</p>';
   const invites = notes.filter(n => n.kind === 'project_invite' && n.pending);
   obEl('obInvites').hidden = !invites.length;
   obEl('obInviteList').innerHTML = invites.map(n => `
@@ -255,12 +255,11 @@ async function obLoadProjectStep() {
   obRenderApp();
 }
 
-function obProjectRowHTML(project, meta) {
+function obProjectRowHTML(project) {
   return `
     ${projectAvatarHTML(project, project.avatar, 'ob-project-avatar')}
     <span class="ob-project-text">
       <span class="ob-project-name">${escapeHTML(project.name)}</span>
-      <span class="ob-project-meta">${escapeHTML(meta)}</span>
     </span>`;
 }
 
@@ -297,7 +296,7 @@ function obStart() {
 // Högerytan i steg 3: en liten Lossi med projektväljaren utfälld
 function obRenderApp() {
   const own = obState.ownProject || { id: 0, name: 'Din yta' };
-  const projects = [{ ...own, meta: 'Bara du', current: true }, ...obState.joined.map(p => ({ ...p, meta: 'Delat projekt' }))];
+  const projects = [{ ...own, current: true }, ...obState.joined];
   obEl('obApp').innerHTML = `
     <div class="ob-app-window">
       <div class="ob-app-bar"><span></span><span></span><span></span></div>

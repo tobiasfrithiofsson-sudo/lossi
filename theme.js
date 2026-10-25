@@ -474,12 +474,8 @@ function escapeHTML(text) {
 // Sidan anropar renderAppShell() först i sitt script, före lucide.createIcons().
 // Sidopanelen är personlig: den visar den inloggades egna upplägg i valt
 // projekt (projektväljaren överst) och egna kalenderhändelser, aldrig andras.
-// Team och inbjudan är platshållare. Gruppen Kalender fylls från kalendern
-// av renderAsideEvents() i schedule.js.
-const APP_TEAMS = [
-  { name: 'Astronomerna', emoji: '🚀' },
-  { name: 'Dricka kaffe?', emoji: '☕' },
-];
+// Gruppen Kalender fylls från kalendern av renderAsideEvents() i schedule.js;
+// Medlemmar (de andra i valt projekt + Bjud in) av renderAsideMembers().
 const ASIDE_PLAN_LIMIT = 4;
 
 function renderAppShell(options = {}) {
@@ -497,6 +493,7 @@ function renderAppShell(options = {}) {
     paintAsideFromCache(aside, options.currentPlanId);
     renderProjectSwitcher(options.onProjectChange);
     renderAsidePlans(options.currentPlanId).catch(e => console.warn('Kunde inte hämta upplägg till sidopanelen:', e));
+    renderAsideMembers();
     if (typeof renderAsideEvents === 'function') renderAsideEvents();
   }
 
@@ -647,10 +644,13 @@ function asideCollapsedGroups() {
   try { return JSON.parse(localStorage.getItem(ASIDE_COLLAPSED_KEY) || '[]'); } catch (e) { return []; }
 }
 
-function asideGroupHTML({ id, label, href, actionLabel, soon = false, body }) {
+// href: pilen går till en sida; onAction: pilen gör något på sidan (t.ex. öppnar en dialog)
+function asideGroupHTML({ id, label, href, onAction, actionLabel, soon = false, body }) {
   const collapsed = asideCollapsedGroups().includes(id);
   const action = href
     ? `<a class="aside-group-action" href="${href}" title="${escapeHTML(actionLabel)}" aria-label="${escapeHTML(actionLabel)}"><i data-lucide="arrow-right"></i></a>`
+    : onAction
+    ? `<button type="button" class="aside-group-action" onclick="${onAction}" title="${escapeHTML(actionLabel)}" aria-label="${escapeHTML(actionLabel)}"><i data-lucide="arrow-right"></i></button>`
     : `<span class="aside-group-action is-disabled" title="${escapeHTML(actionLabel)}" aria-hidden="true"><i data-lucide="arrow-right"></i></span>`;
   return `
     <div class="aside-group${collapsed ? ' is-collapsed' : ''}" data-aside-group="${id}">
@@ -718,12 +718,12 @@ function buildAsideHTML(active) {
         <span class="aside-item-text">Skapa</span>
       </button>` })}
 
-    ${asideGroupHTML({ id: 'teams', label: 'Team', soon: true, actionLabel: 'Team kommer snart',
-      body: APP_TEAMS.map(t => `
-        <div class="aside-item is-placeholder is-soon" title="Team kommer snart – exempel på hur det kan se ut">
-          <span class="aside-dot"></span>
-          <span class="aside-item-text">${escapeHTML(t.name)} ${t.emoji}</span>
-        </div>`).join('') })}
+    ${asideGroupHTML({ id: 'members', label: 'Medlemmar', onAction: "openProjectSettings('members')", actionLabel: 'Visa alla medlemmar',
+      body: `<div class="aside-member-list"></div>
+      <button type="button" class="aside-item aside-more" onclick="openInviteModal()">
+        <i data-lucide="user-plus"></i>
+        <span class="aside-item-text">Bjud in</span>
+      </button>` })}
 
     ${asideNavHTML(active)}
   </div>
@@ -829,6 +829,7 @@ async function renderProjectSwitcher(onProjectChange) {
       const project = projects.find(p => p.id === id);
       renderProjectSwitcher(onProjectChange);
       renderAsidePlans();
+      renderAsideMembers();
       if (typeof renderAsideEvents === 'function') renderAsideEvents();
       onProjectChange(project);
     } else {
@@ -1669,6 +1670,7 @@ function paintAsideFromCache(aside, currentPlanId) {
   fill('#projectSwitcher', cache.project);
   fill('.aside-events-list', cache.events);
   fill('.aside-plan-list', cache.plans);
+  fill('.aside-member-list', cache.members);
   aside.querySelectorAll('[data-aside-plan]').forEach(a => {
     a.classList.toggle('active', a.dataset.asidePlan === String(currentPlanId));
   });
@@ -1708,6 +1710,35 @@ async function renderAsidePlans(currentPlanId) {
       ${editRequestBadgeHTML(requests.get(p.id))}
     </a>`).join('');
   rememberAsidePart('plans', list.innerHTML);
+}
+
+// Medlemmar i sidopanelen: de andra i valt projekt (den egna ytan har inga,
+// där döljs gruppen, styles.css). Pilen öppnar Inställningar › Medlemmar.
+async function renderAsideMembers() {
+  const list = document.querySelector('.aside-member-list');
+  if (!list) return;
+  const [project, user] = await Promise.all([
+    LossiData.currentProject().catch(() => null),
+    LossiAuth.getUser().catch(() => null),
+  ]);
+  if (!project || project.personal) return;
+  const nameOf = m => profileName({ displayName: m.displayName, email: m.email || '' }) || 'Medlem';
+  const others = project.members
+    .filter(m => m.userId !== user?.id)
+    .sort((a, b) => (b.role === 'owner') - (a.role === 'owner') || nameOf(a).localeCompare(nameOf(b), 'sv'));
+  list.innerHTML = others.length
+    ? others.map(m => {
+      const profile = { displayName: m.displayName, avatar: m.avatar, email: m.email || '' };
+      const name = nameOf(m);
+      return `
+      <div class="aside-item aside-member" title="${escapeHTML(name)}${m.role === 'owner' ? ' · Ägare' : ''}">
+        <span class="aside-member-avatar">${userAvatarHTML(profile)}</span>
+        <span class="aside-item-text">${escapeHTML(name)}</span>
+      </div>`;
+    }).join('')
+    : '<div class="aside-item is-placeholder aside-empty">Inga andra medlemmar än</div>';
+  if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [list] });
+  rememberAsidePart('members', list.innerHTML);
 }
 
 // Uppdatera ett uppläggs titel/bild i asiden utan att bygga om allt

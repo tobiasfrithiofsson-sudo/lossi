@@ -557,10 +557,6 @@ function buildTopbarHTML(active) {
           <div class="app-switcher-icon app-icon-lossi"><i data-lucide="layers"></i></div>
           <span class="app-switcher-name">Lossi</span>
         </a>
-        <a href="calendar.html" class="app-switcher-item">
-          <div class="app-switcher-icon app-icon-calendar"><i data-lucide="calendar-days"></i></div>
-          <span class="app-switcher-name">Kalender</span>
-        </a>
         <div class="app-switcher-item is-disabled" title="Kommer senare">
           <div class="app-switcher-icon app-icon-grades"><i data-lucide="graduation-cap"></i></div>
           <span class="app-switcher-name">Betygssystem</span>

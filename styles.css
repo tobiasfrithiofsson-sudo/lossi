@@ -873,7 +873,6 @@ body.is-personal-project .aside-group[data-aside-group="teams"] { display: none;
 .app-switcher-icon svg { width: 15px; height: 15px; }
 
 .app-icon-lossi    { background: var(--color-primary); }
-.app-icon-calendar { background: var(--color-avatar-6); }
 .app-icon-grades   { background: var(--color-avatar-5); }
 .app-icon-contact  { background: var(--color-avatar-2); }
 

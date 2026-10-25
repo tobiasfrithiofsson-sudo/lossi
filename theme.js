@@ -1700,17 +1700,16 @@ async function renderAsideMembers() {
   const others = project.members
     .filter(m => m.userId !== user?.id)
     .sort((a, b) => (b.role === 'owner') - (a.role === 'owner') || nameOf(a).localeCompare(nameOf(b), 'sv'));
-  list.innerHTML = others.length
-    ? others.map(m => {
-      const profile = { displayName: m.displayName, avatar: m.avatar, email: m.email || '' };
-      const name = nameOf(m);
-      return `
+  // Ensam i projektet: bara Bjud in syns
+  list.innerHTML = others.map(m => {
+    const profile = { displayName: m.displayName, avatar: m.avatar, email: m.email || '' };
+    const name = nameOf(m);
+    return `
       <div class="aside-item aside-member" title="${escapeHTML(name)}${m.role === 'owner' ? ' · Ägare' : ''}">
         <span class="aside-member-avatar">${userAvatarHTML(profile)}</span>
         <span class="aside-item-text">${escapeHTML(name)}</span>
       </div>`;
-    }).join('')
-    : '<div class="aside-item is-placeholder aside-empty">Inga andra medlemmar än</div>';
+  }).join('');
   if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [list] });
   rememberAsidePart('members', list.innerHTML);
 }

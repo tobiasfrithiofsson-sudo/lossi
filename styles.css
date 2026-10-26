@@ -3850,7 +3850,10 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
 }
 .sv-hint-link:hover { text-decoration: underline; }
 
-.sv-item { align-items: flex-start; }
+.sv-item { align-items: flex-start; cursor: pointer; }
+/* Den punkt som visas i panelen (PlanCurriculum.openItem) */
+.sv-item.active, .sv-item.active:hover { background: var(--color-primary-light); }
+.sv-item .sv-text { cursor: inherit; }
 .sv-item .goal-check { padding-top: 1px; }
 .sv-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .sv-heading { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-text-tertiary); }
@@ -3874,8 +3877,6 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
 .sv-note[contenteditable="true"]:empty::before { content: attr(data-placeholder); color: var(--color-text-tertiary); }
 .sv-note[contenteditable="true"]:focus { border-left-color: var(--color-primary); }
 
-.sv-row-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.sv-row-foot:empty { display: none; }
 .sv-lessons { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .sv-lesson-chip {
   padding: 0 7px;
@@ -3886,28 +3887,50 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
   font-weight: 600;
   line-height: 20px;
 }
-.sv-link-btn, .sv-note-btn {
+/* Antal kopplade lektioner/aktiviteter på raden; själva kopplingarna visas i panelen */
+.sv-link-count {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 22px;
-  padding: 0 6px;
-  border: none;
-  border-radius: var(--radius-xs);
-  background: none;
-  font: inherit;
+  gap: 3px;
+  flex-shrink: 0;
+  height: 20px;
+  margin-top: 1px;
+  padding: 0 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
   font-size: var(--font-size-sm);
-  color: var(--color-text-tertiary);
+  font-weight: 600;
+}
+.sv-link-count svg { width: 12px; height: 12px; }
+
+/* Panelen för en punkt (aktivitetspanelen, curriculum.js panelBody) */
+.sv-panel { display: flex; flex-direction: column; gap: 20px; padding: var(--space-4); }
+.sv-panel-section { display: flex; flex-direction: column; gap: 8px; }
+.sv-panel-section .field-label { margin: 0; }
+.sv-panel .sv-text { font-size: var(--font-size-md); }
+.sv-panel-source { font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
+.sv-panel-source:empty { display: none; }
+.sv-panel-note { min-height: 22px; }
+.sv-panel-empty { margin: 0; font-size: var(--font-size-base); color: var(--color-text-tertiary); }
+.sv-panel-links { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.sv-panel .sv-lesson-chip { display: inline-flex; align-items: center; gap: 2px; padding-right: 3px; }
+.sv-chip-remove {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
   cursor: pointer;
 }
-.sv-link-btn svg, .sv-note-btn svg { width: 13px; height: 13px; }
-.sv-link-btn:hover, .sv-note-btn:hover { background: var(--color-bg-secondary); color: var(--color-text-primary); }
-body:not(.edit-mode) .sv-note-btn { display: none; }
-/* Knapparna syns när man pekar på raden, utom kopplingen när raden saknar lektioner */
-@media (hover: hover) {
-  .sv-item .sv-note-btn, .sv-item .sv-lesson-chip + .popover-wrap .sv-link-btn { opacity: 0; transition: opacity 0.15s; }
-  .sv-item:hover .sv-note-btn, .sv-item:hover .sv-link-btn, .sv-item:focus-within .sv-note-btn, .sv-item:focus-within .sv-link-btn { opacity: 1; }
-}
+.sv-chip-remove svg { width: 11px; height: 11px; }
+.sv-chip-remove:hover { background: color-mix(in srgb, var(--color-primary) 18%, transparent); }
+.activity-panel-icon.sv-panel-icon { background: var(--color-primary-light); color: var(--color-primary); }
+.activity-panel-icon.sv-panel-icon.is-criteria { background: color-mix(in srgb, #7c3aed 12%, transparent); color: #7c3aed; }
 
 /* Läroplanstagg på lektions- och aktivitetsraden: ikon + antal punkter (renderTags) */
 .sv-tag {

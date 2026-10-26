@@ -1448,6 +1448,8 @@
       returnActivityContent(openActivityId);
       document.getElementById(openActivityId)?.classList.remove('active');
     }
+    leaveSidePanel();
+    document.getElementById('activityPanelTitle').contentEditable = 'true';
 
     const wrapper = document.getElementById(id);
     if (!wrapper) return;
@@ -1545,17 +1547,65 @@
   function closeActivity(id) {
     returnActivityContent(id);
     document.getElementById(id)?.classList.remove('active');
+    openActivityId = null;
+    hideActivityPanel();
+  }
+
+  function hideActivityPanel() {
     const panel = document.getElementById('activityPanel');
     panel.classList.remove('open', 'fullscreen');
     resetActivityPanelExpandIcon();
     panel.style.width = '';
     document.body.classList.remove('activity-panel-open', 'activity-panel-fullscreen');
     document.documentElement.style.setProperty('--activity-panel-current-w', '0px');
-    openActivityId = null;
   }
 
   function closeActivityPanel() {
     if (openActivityId) closeActivity(openActivityId);
+    else if (sidePanel) closeSidePanel();
+  }
+
+  // ── Samma panel för annat än aktiviteter ──
+  // T.ex. en punkt ur läroplanen (curriculum.js): titel och ikon i huvudet,
+  // innehållet i panelens kropp. onClose körs när panelen stängs eller när
+  // något annat öppnas i den.
+  let sidePanel = null;
+
+  function openSidePanel({ title, iconHTML = '', iconClass = '', body, onClose }) {
+    if (openActivityId) {
+      returnActivityContent(openActivityId);
+      document.getElementById(openActivityId)?.classList.remove('active');
+      openActivityId = null;
+    }
+    leaveSidePanel();
+    const titleEl = document.getElementById('activityPanelTitle');
+    titleEl.textContent = title;
+    titleEl.contentEditable = 'false';
+    const icon = document.getElementById('activityPanelIcon');
+    icon.className = 'activity-panel-icon' + (iconClass ? ' ' + iconClass : '');
+    icon.innerHTML = iconHTML;
+    const panelBody = document.getElementById('activityPanelBody');
+    panelBody.innerHTML = '';
+    panelBody.appendChild(body);
+    lucide.createIcons({ nodes: [icon, panelBody] });
+    sidePanel = { onClose };
+    document.getElementById('activityPanel').classList.add('open');
+    document.body.classList.add('activity-panel-open');
+    syncActivityPanelWidthVar();
+  }
+
+  function leaveSidePanel() {
+    if (!sidePanel) return;
+    const { onClose } = sidePanel;
+    sidePanel = null;
+    document.getElementById('activityPanelBody').innerHTML = '';
+    onClose?.();
+  }
+
+  function closeSidePanel() {
+    if (!sidePanel) return;
+    leaveSidePanel();
+    hideActivityPanel();
   }
 
   function toggleActivityPanelFullscreen() {
@@ -1578,7 +1628,7 @@
 
   document.addEventListener('keydown', e => {
     // En öppen dialog (t.ex. förhandsvisning av en fil) stängs först
-    if (e.key === 'Escape' && openActivityId && !document.querySelector('.modal-overlay.open')) closeActivityPanel();
+    if (e.key === 'Escape' && (openActivityId || sidePanel) && !document.querySelector('.modal-overlay.open, .menu-popover.open')) closeActivityPanel();
   });
 
   // Manuell breddändring: dra i handtaget på panelens vänsterkant
@@ -3523,6 +3573,8 @@
   PlanCurriculum.init({
     save: () => saveState(),
     readOnly: () => planReadOnly,
+    openPanel: openSidePanel,
+    closePanel: closeSidePanel,
     lessons: () => [...document.querySelectorAll('#structureList .lesson-group')]
       .filter(g => g.dataset.lessonId)
       .map(g => ({

@@ -11,6 +11,8 @@
 //     criteria: [{ id, E, C, A } | { id, text }, + note, lessons, activities] }
 // En punkt kan kopplas till hela lektioner och/eller enskilda aktiviteter;
 // lektions- och aktivitetsraderna visar en tagg med antalet (renderTags).
+// Raden visar bara texten (och anteckningen); klick på raden öppnar
+// aktivitetspanelen med texten, anteckningen och kopplingarna (openItem).
 // Texten sparas med, så att upplägget går att läsa och exportera även om
 // Skolverket ändrar något. Ändrar Skolverket en punkt visas det på raden.
 // Kräver escapeHTML (theme.js).
@@ -251,11 +253,12 @@ const PlanCurriculum = (() => {
   let catalog = null;      // ämnet ur curriculum/ (för versionskontroll och väljaren)
   let catalogKey = '';
   // lessons() → [{ id, name, activities: [{ id, title }] }] i uppläggets ordning
-  let hooks = { save() {}, readOnly: () => false, lessons: () => [] };
+  let hooks = { save() {}, readOnly: () => false, lessons: () => [], openPanel() {}, closePanel() {} };
+  let openKey = null;      // { kind, id } för punkten som visas i panelen
   const shownStep = new Map(); // kriterium-id → visat betygssteg (bara på sidan)
   const KINDS = {
-    content:  { listId: 'contentSv',  sectionId: 'sec-goals',    icon: 'list-checks', iconClass: '',                    title: 'Centralt innehåll' },
-    criteria: { listId: 'criteriaSv', sectionId: 'sec-criteria', icon: 'target',       iconClass: 'goal-check-criteria', title: 'Betygskriterier' },
+    content:  { listId: 'contentSv',  sectionId: 'sec-goals',    icon: 'list-checks', iconClass: '',                    title: 'Centralt innehåll', one: 'Centralt innehåll' },
+    criteria: { listId: 'criteriaSv', sectionId: 'sec-criteria', icon: 'target',       iconClass: 'goal-check-criteria', title: 'Betygskriterier', one: 'Betygskriterium' },
   };
 
   function init(h) {
@@ -315,6 +318,7 @@ const PlanCurriculum = (() => {
     renderCourseField();
     Object.keys(KINDS).forEach(renderList);
     renderTags();
+    renderPanel();
   }
 
   function renderCourseField() {
@@ -336,25 +340,38 @@ const PlanCurriculum = (() => {
   // Kort text för en aktivitet i ett chip
   const shortTitle = t => (t = String(t || '').trim()).length > 28 ? t.slice(0, 27).trimEnd() + '…' : t;
 
-  function lessonChipsHTML(item, kind) {
-    const lessons = hooks.lessons();
-    const chips = [];
-    lessons.forEach((l, i) => {
-      if ((item.lessons || []).includes(l.id)) chips.push(`<span class="sv-lesson-chip" title="${escapeHTML(l.name)}">Lektion ${i + 1}</span>`);
+  // Lektionerna och aktiviteterna en punkt är kopplad till, i uppläggets ordning
+  function linksOf(item) {
+    const links = [];
+    hooks.lessons().forEach((l, i) => {
+      if ((item.lessons || []).includes(l.id)) links.push({ type: 'lesson', id: l.id, label: `Lektion ${i + 1}`, title: l.name });
       l.activities.forEach(a => {
-        if ((item.activities || []).includes(a.id)) chips.push(`<span class="sv-lesson-chip is-activity" title="${escapeHTML(`${l.name} › ${a.title}`)}">Lektion ${i + 1} › ${escapeHTML(shortTitle(a.title))}</span>`);
+        if ((item.activities || []).includes(a.id)) links.push({ type: 'activity', id: a.id, label: `Lektion ${i + 1} › ${shortTitle(a.title)}`, title: `${l.name} › ${a.title}` });
       });
     });
-    const linkedCount = chips.length;
+    return links;
+  }
+
+  // På raden: bara antalet kopplingar
+  function linkCountHTML(item) {
+    const n = linksOf(item).length;
+    if (!n) return '';
+    return `<span class="sv-link-count" title="Kopplad till ${n} ${n === 1 ? 'lektion eller aktivitet' : 'lektioner och aktiviteter'}"><i data-lucide="link"></i>${n}</span>`;
+  }
+
+  // I panelen: en tagg per koppling (× tar bort) och en knapp för att koppla fler
+  function panelLinksHTML(item, kind) {
     const editable = !hooks.readOnly();
-    const button = editable && lessons.length ? `
-      <div class="popover-wrap" onclick="event.stopPropagation()">
-        <button type="button" class="sv-link-btn" onclick="PlanCurriculum.openLessons(this, '${kind}', '${item.id}')" title="Koppla till lektioner och aktiviteter">
-          <i data-lucide="link"></i>${linkedCount ? '' : '<span>Koppla till lektion</span>'}
-        </button>
+    const links = linksOf(item);
+    const tags = links.map(l => `
+      <span class="sv-lesson-chip${l.type === 'activity' ? ' is-activity' : ''}" title="${escapeHTML(l.title)}">${escapeHTML(l.label)}${editable
+        ? `<button type="button" class="sv-chip-remove" onclick="PlanCurriculum.unlink('${kind}', '${item.id}', '${l.type}', '${escapeHTML(l.id)}')" aria-label="Ta bort kopplingen till ${escapeHTML(l.label)}"><i data-lucide="x"></i></button>` : ''}</span>`).join('');
+    const add = editable && hooks.lessons().length ? `
+      <div class="popover-wrap">
+        <button type="button" class="btn btn-outline btn-xs" onclick="PlanCurriculum.openLessons(this, '${kind}', '${item.id}')"><i data-lucide="plus"></i>Koppla till lektion</button>
         <div class="menu-popover sv-lessons-menu"></div>
       </div>` : '';
-    return linkedCount || button ? `<div class="sv-lessons">${chips.join('')}${button}</div>` : '';
+    return `${links.length ? `<div class="sv-lessons">${tags}</div>` : `<p class="sv-panel-empty">Inte kopplad till någon lektion än.</p>`}${add}`;
   }
 
   function flagHTML(item, kind) {
@@ -372,39 +389,106 @@ const PlanCurriculum = (() => {
       ${editable ? `<button type="button" class="btn btn-text btn-xs" onclick="PlanCurriculum.useNewText('${kind}', '${item.id}')">Använd nya texten</button>` : ''}</div>`;
   }
 
-  function rowHTML(item, kind) {
-    const cfg = KINDS[kind];
-    const editable = !hooks.readOnly();
-    let textBlock;
+  // Skolverkets text: kriterier med E/C/A-väljare, annars rubrik + text
+  function textBlockHTML(item, kind) {
     if (kind === 'criteria' && !item.text) {
       const step = shownStep.get(item.id) || 'E';
-      textBlock = `
+      return `
         <div class="sv-steps filter-toggle" role="group" aria-label="Visa betygssteg">
           ${['E', 'C', 'A'].map(s => `<button type="button" aria-pressed="${s === step}" onclick="PlanCurriculum.showStep('${item.id}', '${s}')">${s}</button>`).join('')}
         </div>
         <div class="goal-text sv-text">${C.textHTML(item[step])}</div>`;
-    } else {
-      textBlock = `${item.heading ? `<div class="sv-heading">${escapeHTML(item.heading)}</div>` : ''}
-        <div class="goal-text sv-text">${C.leadHTML(item)}${C.textHTML(item.text)}</div>`;
     }
+    return `${item.heading ? `<div class="sv-heading">${escapeHTML(item.heading)}</div>` : ''}
+        <div class="goal-text sv-text">${C.leadHTML(item)}${C.textHTML(item.text)}</div>`;
+  }
+
+  function rowHTML(item, kind) {
+    const cfg = KINDS[kind];
+    const editable = !hooks.readOnly();
     const note = item.note || '';
-    const noteHTML = editable
-      ? `<div class="sv-note${note ? '' : ' is-empty'}" contenteditable="true" data-placeholder="Din anteckning, t.ex. hur ni arbetar med det här" data-kind="${kind}" data-id="${item.id}">${escapeHTML(note)}</div>`
-      : (note ? `<div class="sv-note">${escapeHTML(note)}</div>` : '');
-    return `<div class="goal-item sv-item" data-id="${item.id}">
+    const active = openKey && openKey.kind === kind && openKey.id === item.id;
+    return `<div class="goal-item sv-item${active ? ' active' : ''}" data-id="${item.id}" data-kind="${kind}" title="Öppna">
       <div class="goal-check ${cfg.iconClass}"><i data-lucide="${cfg.icon}"></i></div>
       <div class="sv-main">
-        ${textBlock}
-        ${noteHTML}
-        <div class="sv-row-foot">
-          ${lessonChipsHTML(item, kind)}
-          ${editable && !note ? `<button type="button" class="sv-note-btn" onclick="PlanCurriculum.focusNote(this)"><i data-lucide="pencil-line"></i><span>Anteckning</span></button>` : ''}
-        </div>
+        ${textBlockHTML(item, kind)}
+        ${note ? `<div class="sv-note">${escapeHTML(note)}</div>` : ''}
         ${flagHTML(item, kind)}
       </div>
+      ${linkCountHTML(item)}
       ${editable ? `<button class="goal-delete" onclick="PlanCurriculum.remove('${kind}', '${item.id}')" title="Ta bort"><i data-lucide="x"></i></button>` : ''}
     </div>`;
   }
+
+  // ── Panelen (aktivitetspanelen i upplag.html) ──
+  function panelBody(item, kind) {
+    const editable = !hooks.readOnly();
+    const note = item.note || '';
+    const body = document.createElement('div');
+    body.className = 'sv-panel';
+    body.innerHTML = `
+      <section class="sv-panel-section">
+        ${textBlockHTML(item, kind)}
+        <div class="sv-panel-source">${cur ? `Ordagrant ur ${escapeHTML(C.sourcePhrase(cur))}` : ''}</div>
+        ${flagHTML(item, kind)}
+      </section>
+      <section class="sv-panel-section">
+        <label class="field-label">Anteckning</label>
+        ${editable
+          ? `<div class="sv-note sv-panel-note" contenteditable="true" data-placeholder="Din anteckning, t.ex. hur ni arbetar med det här" data-kind="${kind}" data-id="${item.id}">${escapeHTML(note)}</div>`
+          : `<p class="sv-panel-empty">${note ? escapeHTML(note) : 'Ingen anteckning.'}</p>`}
+      </section>
+      <section class="sv-panel-section">
+        <label class="field-label">Lektioner och aktiviteter</label>
+        <div class="sv-panel-links">${panelLinksHTML(item, kind)}</div>
+      </section>`;
+    return body;
+  }
+
+  function openItem(kind, id) {
+    const item = find(kind, id);
+    if (!item) return;
+    openKey = { kind, id };
+    hooks.openPanel({
+      title: KINDS[kind].one,
+      iconHTML: `<i data-lucide="${KINDS[kind].icon}"></i>`,
+      iconClass: 'sv-panel-icon' + (kind === 'criteria' ? ' is-criteria' : ''),
+      body: panelBody(item, kind),
+      onClose: () => {
+        openKey = null;
+        document.querySelectorAll('.sv-item.active').forEach(el => el.classList.remove('active'));
+      },
+    });
+    document.querySelectorAll('.sv-item.active').forEach(el => el.classList.remove('active'));
+    document.querySelector(`#${KINDS[kind].listId} .sv-item[data-id="${CSS.escape(id)}"]`)?.classList.add('active');
+  }
+
+  // Ritar om panelens innehåll (inte medan man skriver anteckningen)
+  function renderPanel() {
+    if (!openKey) return;
+    const item = find(openKey.kind, openKey.id);
+    if (!item) { hooks.closePanel(); return; }
+    const panel = document.querySelector('.sv-panel');
+    if (!panel || panel.contains(document.activeElement) && document.activeElement.matches('.sv-note')) return;
+    const fresh = panelBody(item, openKey.kind);
+    panel.replaceWith(fresh);
+    lucide.createIcons({ nodes: [fresh] });
+  }
+
+  function unlink(kind, id, type, targetId) {
+    const item = find(kind, id);
+    if (!item) return;
+    if (type === 'lesson') item.lessons = (item.lessons || []).filter(x => x !== targetId);
+    else item.activities = (item.activities || []).filter(x => x !== targetId);
+    changed();
+  }
+
+  // Klick på en rad (utom på knappar och E/C/A) öppnar panelen
+  document.addEventListener('click', e => {
+    const row = e.target.closest?.('.sv-item[data-kind]');
+    if (!row || e.target.closest('button, a, summary, details, input, label')) return;
+    openItem(row.dataset.kind, row.dataset.id);
+  });
 
   function renderList(kind) {
     const cfg = KINDS[kind];
@@ -519,13 +603,7 @@ const PlanCurriculum = (() => {
   function showStep(id, step) {
     shownStep.set(id, step);
     renderList('criteria');
-  }
-
-  function focusNote(btn) {
-    const note = btn.closest('.sv-main').querySelector('.sv-note');
-    note.classList.remove('is-empty');
-    btn.remove();
-    note.focus();
+    renderPanel();
   }
 
   function openLessons(btn, kind, id) {
@@ -552,11 +630,12 @@ const PlanCurriculum = (() => {
       renderTags();
     };
     toggleAppPopover(btn);
-    // Raden ritas om när menyn stängs, så att kopplingarna syns
+    // Raden och panelen ritas om när menyn stängs, så att kopplingarna syns
     const onClose = new MutationObserver(() => {
       if (menu.classList.contains('open')) return;
       onClose.disconnect();
       renderList(kind);
+      renderPanel();
     });
     onClose.observe(menu, { attributes: true, attributeFilter: ['class'] });
   }
@@ -568,7 +647,7 @@ const PlanCurriculum = (() => {
     const item = find(field.dataset.kind, field.dataset.id);
     if (!item) return;
     const text = field.textContent.replace(/\s+/g, ' ').trim();
-    if ((item.note || '') === text) { if (!text) renderList(field.dataset.kind); return; }
+    if ((item.note || '') === text) return;
     if (text) item.note = text; else delete item.note;
     changed();
   });
@@ -920,6 +999,6 @@ const PlanCurriculum = (() => {
 
   return {
     init, set, get, refreshLessons, openCoursePicker, pickSchoolType, renderCourseOptions, chooseSubject, backToSubjects,
-    chooseLevel, clearCourse, ensureForGrade, applyFromAi, forgetActivities, openPicker, savePicker, closeModal, remove, useNewText, showStep, focusNote, openLessons,
+    chooseLevel, clearCourse, ensureForGrade, applyFromAi, forgetActivities, openPicker, savePicker, closeModal, remove, useNewText, showStep, openLessons, openItem, unlink,
   };
 })();

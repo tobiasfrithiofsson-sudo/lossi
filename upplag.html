@@ -1781,12 +1781,7 @@
     const menu = btn.nextElementSibling;
     const isOpen = menu.classList.contains('open');
     closeAllMenuPopovers();
-    if (!isOpen) {
-      const rect = btn.getBoundingClientRect();
-      menu.style.top = rect.bottom + 6 + 'px';
-      menu.style.right = window.innerWidth - rect.right + 'px';
-      menu.classList.add('open');
-    }
+    if (!isOpen) placePopover(menu, btn);
   }
 
   function closeAllMenuPopovers() {
@@ -2262,12 +2257,7 @@
     if (isOpen) return;
     const current = document.getElementById('planIcon').dataset.avatar;
     planAvatarPopover.querySelectorAll('.avatar-picker-btn').forEach(b => b.classList.toggle('selected', b.dataset.avatar === current));
-    // Vänsterjusterad under avataren (toggleAppPopover högerjusterar)
-    const rect = document.getElementById('planIcon').getBoundingClientRect();
-    planAvatarPopover.style.top = rect.bottom + 6 + 'px';
-    planAvatarPopover.style.left = rect.left + 'px';
-    planAvatarPopover.style.right = 'auto';
-    planAvatarPopover.classList.add('open');
+    placePopover(planAvatarPopover, document.getElementById('planIcon'), { align: 'start' });
   }
 
   function onPlanAvatarPicked(avatarId) {
@@ -3066,11 +3056,7 @@
       // Menyn står kvar öppen (under knappen, som flyttats ner) så att man kan välja fler
       const trigger = document.querySelector('#coEditorAdd .class-picker-trigger');
       const menu = document.getElementById('coEditorMenu');
-      if (menu.classList.contains('open')) {
-        const rect = trigger.getBoundingClientRect();
-        menu.style.top = rect.bottom + 6 + 'px';
-        menu.style.right = window.innerWidth - rect.right + 'px';
-      }
+      if (menu.classList.contains('open')) placePopover(menu, trigger);
       coEditorChoices.reset();
       document.getElementById('coEditorInput').focus();
       renderAsidePlans(planKey).catch(() => {});

@@ -35,7 +35,9 @@ body {
   padding: 0 8px;
   position: sticky;
   top: 0;
-  z-index: 30;
+  /* Över aktivitetspanelen (100), så att användarmenyn, notiserna och
+     appväxlaren (som ligger i topbaren) hamnar ovanpå den */
+  z-index: 150;
 }
 
 .app-topbar-start {
@@ -2628,7 +2630,9 @@ body.edit-mode .activity-more-btn { display: grid; }
 
 /* Skuggan bara när panelen är öppen – annars syns den som en grå kant till höger */
 .activity-panel:not(.open) { box-shadow: none; }
-.activity-panel.open { transform: translateX(0); }
+/* Öppen: ingen transform alls (inte ens translateX(0)), annars placeras
+   menyer med position: fixed inuti panelen relativt panelen och klipps av den */
+.activity-panel.open { transform: none; }
 
 /* No transition while actively dragging the resize handle */
 .activity-panel.resizing { transition: none; }

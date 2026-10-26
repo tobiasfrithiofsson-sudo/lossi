@@ -67,6 +67,37 @@ function syncThemeIcons() {
   });
 }
 
+// ── Menyer som svävar (popovrar) ──
+// Alla menyer med position: fixed placeras här: under knappen, högerkanterna
+// i linje, eller vänsterkanterna när menyn annars skulle sticka ut till
+// vänster om knappens yta (sidan, eller aktivitetspanelen när knappen ligger
+// där). Får menyn inte plats nedåt öppnas den uppåt; den hålls alltid inom
+// fönstret och blir rullbar om den är högre än utrymmet. Öppnar menyn.
+// align: 'start' = vänsterkanterna i linje från början (t.ex. uppläggets bild).
+function placePopover(menu, anchor, { align = 'end', gap = 6, margin = 8 } = {}) {
+  Object.assign(menu.style, { left: '0px', top: '0px', right: 'auto', maxHeight: '', visibility: 'hidden' });
+  menu.classList.add('open');
+  const a = anchor.getBoundingClientRect();
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const area = anchor.closest('.activity-panel')?.getBoundingClientRect() || { left: 0 };
+  const w = menu.offsetWidth;
+  let left = align === 'start' ? a.left : a.right - w;
+  if (left < area.left + margin) left = a.left;
+  left = Math.max(margin, Math.min(left, vw - w - margin));
+  const below = vh - a.bottom - gap - margin, above = a.top - gap - margin;
+  const h = menu.scrollHeight;
+  const up = h > below && above > below;
+  const room = up ? above : below;
+  if (h > room) menu.style.maxHeight = room + 'px';
+  const height = Math.min(h, room);
+  Object.assign(menu.style, {
+    left: left + 'px',
+    top: (up ? a.top - gap - height : a.bottom + gap) + 'px',
+    overflowY: h > room ? 'auto' : '',
+    visibility: '',
+  });
+}
+
 // ── Appväxlare (platshållare) ──
 // Popover i headern som pekar mot framtida appar i Lossi-familjen
 // (kalender, betygssystem, föräldrakontakt m.fl.). Navigerar inte
@@ -75,14 +106,8 @@ function toggleAppSwitcher() {
   const popover = document.getElementById('appSwitcherPopover');
   const btn = document.getElementById('appSwitcherBtn');
   if (!popover || !btn) return;
-  const isOpen = popover.classList.contains('open');
-  if (!isOpen) {
-    const rect = btn.getBoundingClientRect();
-    popover.style.top = rect.bottom + 6 + 'px';
-    popover.style.right = 'auto';
-    popover.style.left = rect.left + 'px';
-  }
-  popover.classList.toggle('open');
+  if (popover.classList.contains('open')) popover.classList.remove('open');
+  else placePopover(popover, btn);
 }
 
 document.addEventListener('click', e => {
@@ -235,7 +260,26 @@ function createChoiceList({ input, list, getItems, getCurrent = () => '', onPick
     if (inline) { input.value = o.name; close(); }
   }
 
-  function open() { if (inline) list.hidden = false; render(); }
+  function open() {
+    if (inline) list.hidden = false;
+    render();
+    if (inline) fitDropdown();
+  }
+
+  // Listan under fältet (Skapa-dialogen): öppnas uppåt om det är trångt nedåt
+  // i dialogen eller fönstret, och blir rullbar om den inte får plats
+  function fitDropdown() {
+    const r = input.getBoundingClientRect();
+    const box = input.closest('.modal')?.getBoundingClientRect() || { top: 0, bottom: window.innerHeight };
+    const below = Math.min(box.bottom, window.innerHeight) - r.bottom - 12;
+    const above = r.top - Math.max(box.top, 0) - 12;
+    list.style.maxHeight = '';
+    const h = list.scrollHeight;
+    const up = h > below && above > below;
+    list.classList.toggle('opens-up', up);
+    list.style.maxHeight = Math.max(120, up ? above : below) + 'px';
+    list.style.overflowY = 'auto';
+  }
   function close() { if (inline) list.hidden = true; }
 
   input.addEventListener('input', () => { highlight = 0; open(); });
@@ -1922,13 +1966,8 @@ function openOnboarding() {
 function toggleUserMenu() {
   const dropdown = document.getElementById('userMenuDropdown');
   const badge = document.getElementById('userBadge');
-  const isOpen = dropdown.classList.contains('open');
-  if (!isOpen) {
-    const rect = badge.getBoundingClientRect();
-    dropdown.style.top = rect.bottom + 6 + 'px';
-    dropdown.style.right = window.innerWidth - rect.right + 'px';
-  }
-  dropdown.classList.toggle('open');
+  if (dropdown.classList.contains('open')) dropdown.classList.remove('open');
+  else placePopover(dropdown, badge);
 }
 
 document.addEventListener('click', e => {
@@ -1999,7 +2038,7 @@ function buildCreatePlanModalHTML() {
           <div class="choice-field">
             <input class="field-input" type="text" id="createPlanGrade" maxlength="${CHOICE_MAX_LENGTH}" autocomplete="off"
               placeholder="Välj eller skriv in en årskurs" role="combobox" aria-controls="createPlanGradeList" aria-autocomplete="list" />
-            <div class="choice-options choice-dropdown opens-up" id="createPlanGradeList" role="listbox" aria-label="Årskurser" hidden></div>
+            <div class="choice-options choice-dropdown" id="createPlanGradeList" role="listbox" aria-label="Årskurser" hidden></div>
           </div>
         </div>
       </div>

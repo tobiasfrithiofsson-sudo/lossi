@@ -1035,7 +1035,7 @@ const PlanCurriculum = (() => {
     closeAllMenuPopovers();
     const body = document.createElement('div');
     body.className = 'sv-panel sv-ai-panel';
-    body.innerHTML = '<div class="sv-ai-mascot" aria-hidden="true"></div><div class="sv-ai-content"></div>';
+    body.innerHTML = '<div class="sv-ai-mascot-wrap"><div class="sv-ai-mascot" aria-hidden="true"></div></div><div class="sv-ai-content"></div>';
     hooks.openPanel({
       title: 'Föreslå kopplingar',
       iconHTML: '<i data-lucide="sparkles"></i>',
@@ -1044,33 +1044,17 @@ const PlanCurriculum = (() => {
       onClose: () => {
         if (ai?.body !== body) return;
         ai.timers.forEach(clearInterval);
+        ai.mascot.setThinking(false);
         document.removeEventListener('pointermove', ai.follow);
         ai = null;
       },
     });
-    const mascot = createMascot(body.querySelector('.sv-ai-mascot'));
-    // Maskoten följer pekaren, utom medan den letar (lookAround)
-    const follow = e => { if (!ai?.look) mascot.lookAt(e.clientX, e.clientY); };
+    const mascot = createMascot(body.querySelector('.sv-ai-mascot'), { mouthScale: 1.7 });
+    // Maskoten följer pekaren, utom medan den tänker (setThinking)
+    const follow = e => mascot.lookAt(e.clientX, e.clientY);
     document.addEventListener('pointermove', follow);
     ai = { body, mascot, follow, suggestions: [], timers: [setInterval(() => mascot.blink(), 4500)] };
     renderAi('intro');
-  }
-
-  // Ögonen letar fram och tillbaka medan Haiku arbetar
-  function lookAround(on) {
-    if (!ai) return;
-    clearInterval(ai.look);
-    if (!on) { if (ai.look) ai.mascot.center(); ai.look = null; return; }
-    let left = true;
-    const look = () => {
-      const box = ai?.mascot.host.getBoundingClientRect();
-      if (!box) return;
-      ai.mascot.lookAt(box.left + (left ? -200 : box.width + 200), box.top + box.height * 0.7);
-      left = !left;
-    };
-    look();
-    ai.look = setInterval(look, 900);
-    ai.timers.push(ai.look);
   }
 
   function renderAi(state, data = {}) {
@@ -1082,7 +1066,7 @@ const PlanCurriculum = (() => {
     const button = (label, onclick, { icon = '', solid = true } = {}) =>
       `<button type="button" class="btn ${solid ? 'btn-solid' : 'btn-outline'}" onclick="${onclick}">${icon ? `<i data-lucide="${icon}"></i>` : ''}${escapeHTML(label)}</button>`;
     body.classList.toggle('is-compact', state === 'results');
-    lookAround(state === 'loading');
+    mascot.setThinking(state === 'loading');
     mascot.setLove(state === 'done');
     mascot.setMood({ intro: 'normal', loading: 'curious', results: 'happy', done: 'happy', none: 'normal', error: 'sad' }[state] || 'normal');
 

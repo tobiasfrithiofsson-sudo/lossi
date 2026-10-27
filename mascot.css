@@ -47,6 +47,25 @@
 .mascot-mouth { transition: d 0.25s; }
 .mascot.is-happy .mascot-face { animation: mascot-hop 0.45s ease; }
 @keyframes mascot-hop { 40% { transform: translateY(-10px); } }
+/* Tänker (setThinking): munnen byter lutning långsamt, och tecknen svävar upp
+   ovanför maskoten och bleknar bort. Lagret ligger i maskotens förälder. */
+.mascot.is-thinking .mascot-mouth { transition: d 0.6s ease-in-out; }
+.mascot-thoughts { position: absolute; left: -56px; right: -56px; bottom: calc(100% + 2px); height: 72px; pointer-events: none; }
+.mascot-thought {
+  position: absolute;
+  bottom: 0;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--color-text-primary, #2b2b2b);
+  opacity: 0;
+  animation: mascot-thought 3s ease-out forwards;
+}
+@keyframes mascot-thought {
+  from { opacity: 0; transform: translate(-50%, 8px) rotate(var(--rot)); }
+  25% { opacity: 1; }
+  to { opacity: 0; transform: translate(calc(-50% + var(--dx)), -56px) rotate(calc(var(--rot) + 10deg)); }
+}
 @media (prefers-reduced-motion: reduce) {
   .mascot-pupil, .mascot-eye, .mascot-face, .mascot-arm, .mascot-eyeball { transition: none; }
   .mascot.is-happy .mascot-face, .mascot.is-love .mascot-mouth { animation: none; }

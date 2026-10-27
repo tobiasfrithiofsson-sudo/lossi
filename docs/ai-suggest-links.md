@@ -29,7 +29,7 @@ from ai_requests group by user_id order by forslag desc;
 
 ## Felmeddelanden i panelen
 - "AI-förslagen är inte påslagna än." betyder att tabellen saknas (steg 3).
-- "AI-förslagen gick inte att hämta." betyder oftast att funktionen saknas (steg 4) eller att nyckeln är fel (steg 2). Läs loggen under Edge Functions › suggest-links › Logs.
+- "Förslagen gick inte att hämta." betyder oftast att funktionen saknas (steg 4) eller att nyckeln är fel (steg 2). Läs loggen under Edge Functions › suggest-links › Logs.
 - "Du har använt dagens 30 förslag." visas när gränsen är nådd. Ändra `DAILY_LIMIT` om det behövs.
 
 ## Inte byggt än

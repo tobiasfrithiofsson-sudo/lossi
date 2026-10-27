@@ -340,13 +340,22 @@ const PlanCurriculum = (() => {
   // Kort text för en aktivitet i ett chip
   const shortTitle = t => (t = String(t || '').trim()).length > 28 ? t.slice(0, 27).trimEnd() + '…' : t;
 
-  // Lektionerna och aktiviteterna en punkt är kopplad till, i uppläggets ordning
+  // Grupperingarna numrerade i ordning (fria aktiviteter ligger i en del
+  // utan id och nummer, free: true, från upplag.html)
+  function numberedLessons() {
+    let n = 0;
+    return hooks.lessons().map(l => ({ ...l, number: l.free ? null : ++n }));
+  }
+
+  // Grupperingarna och aktiviteterna en punkt är kopplad till, i uppläggets ordning
   function linksOf(item) {
     const links = [];
-    hooks.lessons().forEach((l, i) => {
-      if ((item.lessons || []).includes(l.id)) links.push({ type: 'lesson', id: l.id, label: `Lektion ${i + 1}`, title: l.name });
+    numberedLessons().forEach(l => {
+      if (!l.free && (item.lessons || []).includes(l.id)) links.push({ type: 'lesson', id: l.id, label: `Gruppering ${l.number}`, title: l.name });
       l.activities.forEach(a => {
-        if ((item.activities || []).includes(a.id)) links.push({ type: 'activity', id: a.id, label: `Lektion ${i + 1} › ${shortTitle(a.title)}`, title: `${l.name} › ${a.title}` });
+        if ((item.activities || []).includes(a.id)) links.push(l.free
+          ? { type: 'activity', id: a.id, label: shortTitle(a.title), title: a.title }
+          : { type: 'activity', id: a.id, label: `Gruppering ${l.number} › ${shortTitle(a.title)}`, title: `${l.name} › ${a.title}` });
       });
     });
     return links;
@@ -356,7 +365,7 @@ const PlanCurriculum = (() => {
   function linkCountHTML(item) {
     const n = linksOf(item).length;
     if (!n) return '';
-    return `<span class="sv-link-count" title="Kopplad till ${n} ${n === 1 ? 'lektion eller aktivitet' : 'lektioner och aktiviteter'}"><i data-lucide="link"></i>${n}</span>`;
+    return `<span class="sv-link-count" title="Kopplad till ${n} ${n === 1 ? 'gruppering eller aktivitet' : 'grupperingar och aktiviteter'}"><i data-lucide="link"></i>${n}</span>`;
   }
 
   // I panelen: en tagg per koppling (× tar bort) och en knapp för att koppla fler
@@ -368,10 +377,10 @@ const PlanCurriculum = (() => {
         ? `<button type="button" class="sv-chip-remove" onclick="PlanCurriculum.unlink('${kind}', '${item.id}', '${l.type}', '${escapeHTML(l.id)}')" aria-label="Ta bort kopplingen till ${escapeHTML(l.label)}"><i data-lucide="x"></i></button>` : ''}</span>`).join('');
     const add = editable && hooks.lessons().length ? `
       <div class="popover-wrap">
-        <button type="button" class="btn btn-outline btn-xs" onclick="PlanCurriculum.openLessons(this, '${kind}', '${item.id}')"><i data-lucide="plus"></i>Koppla till lektion</button>
+        <button type="button" class="btn btn-outline btn-xs" onclick="PlanCurriculum.openLessons(this, '${kind}', '${item.id}')"><i data-lucide="plus"></i>Koppla till aktivitet</button>
         <div class="menu-popover sv-lessons-menu"></div>
       </div>` : '';
-    return `${links.length ? `<div class="sv-lessons">${tags}</div>` : `<p class="sv-panel-empty">Inte kopplad till någon lektion än.</p>`}${add}`;
+    return `${links.length ? `<div class="sv-lessons">${tags}</div>` : `<p class="sv-panel-empty">Inte kopplad till någon aktivitet än.</p>`}${add}`;
   }
 
   function flagHTML(item, kind) {
@@ -439,7 +448,7 @@ const PlanCurriculum = (() => {
           : `<p class="sv-panel-empty">${note ? escapeHTML(note) : 'Ingen anteckning.'}</p>`}
       </section>
       <section class="sv-panel-section">
-        <label class="field-label">Lektioner och aktiviteter</label>
+        <label class="field-label">Grupperingar och aktiviteter</label>
         <div class="sv-panel-links">${panelLinksHTML(item, kind)}</div>
       </section>`;
     return body;
@@ -522,7 +531,7 @@ const PlanCurriculum = (() => {
   function refreshLessons() {
     if (!cur) { renderTags(); return; }
     const lessons = hooks.lessons();
-    const lessonIds = new Set(lessons.map(l => l.id));
+    const lessonIds = new Set(lessons.filter(l => !l.free).map(l => l.id));
     const activityIds = new Set(lessons.flatMap(l => l.activities.map(a => a.id)));
     let pruned = false;
     ['content', 'criteria'].forEach(kind => cur[kind].forEach(item => {
@@ -566,7 +575,7 @@ const PlanCurriculum = (() => {
     lessons.forEach(l => {
       const group = document.querySelector(`#structureList .lesson-group[data-lesson-id="${CSS.escape(l.id)}"]`);
       const pill = group?.querySelector('.week-row .week-pill');
-      const html = tagHTML(linkedTo({ lessonId: l.id, activityIds: l.activities.map(a => a.id) }), 'i lektionen');
+      const html = tagHTML(linkedTo({ lessonId: l.id, activityIds: l.activities.map(a => a.id) }), 'i grupperingen');
       if (pill && html) { pill.insertAdjacentHTML('afterend', html); nodes.push(pill.nextElementSibling); }
       l.activities.forEach(a => {
         const time = document.getElementById(a.id)?.querySelector('.activity-row .activity-time');
@@ -610,14 +619,16 @@ const PlanCurriculum = (() => {
     const item = find(kind, id);
     const menu = btn.nextElementSibling;
     if (!item || !menu) return;
-    const lessons = hooks.lessons();
+    const lessons = numberedLessons();
     const linked = new Set(item.lessons || []);
     const linkedActs = new Set(item.activities || []);
-    menu.innerHTML = `<div class="sv-lessons-title">Var tas det här upp? Välj hela lektionen eller enskilda aktiviteter.</div>` + lessons.map((l, i) => `
+    const nameOnly = name => name.replace(/^(lektion|gruppering) \d+\s*[:–-]?\s*/i, '');
+    menu.innerHTML = `<div class="sv-lessons-title">Var tas det här upp? Välj hela grupperingen eller enskilda aktiviteter.</div>` + lessons.map(l => `
+      ${l.free ? '<div class="sv-lessons-free">Utan gruppering</div>' : `
       <label class="sv-lesson-option">
         <input type="checkbox" data-lesson="${escapeHTML(l.id)}"${linked.has(l.id) ? ' checked' : ''} />
-        <span><strong>Lektion ${i + 1}</strong>${l.name && !/^lektion \d+$/i.test(l.name) ? ` <span class="sv-lesson-name">${escapeHTML(l.name.replace(/^lektion \d+\s*[:–-]\s*/i, ''))}</span>` : ''}</span>
-      </label>
+        <span><strong>Gruppering ${l.number}</strong>${nameOnly(l.name) ? ` <span class="sv-lesson-name">${escapeHTML(nameOnly(l.name))}</span>` : ''}</span>
+      </label>`}
       ${l.activities.map(a => `
       <label class="sv-lesson-option is-activity">
         <input type="checkbox" data-activity="${escapeHTML(a.id)}"${linkedActs.has(a.id) ? ' checked' : ''} />

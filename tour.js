@@ -13,7 +13,7 @@
 const WELCOME_STEPS = [
   {
     title: 'Välkommen till Lossi',
-    body: `<p>Lossi är en tjänst där du planerar dina pedagogiska upplägg. Du beskriver vad eleverna ska arbeta med och vilka betygskriterier de får visa. Sedan bygger du upp lektionerna med aktiviteter och tider. Upplägget kan du dela med kollegor i ett gemensamt projekt och lägga in lektionerna i kalendern.</p>
+    body: `<p>Lossi är en tjänst där du planerar dina pedagogiska upplägg. Du beskriver vad eleverna ska arbeta med och vilka betygskriterier de får visa. Sedan bygger du upp aktiviteter med tider, gärna samlade i grupperingar. Upplägget kan du dela med kollegor i ett gemensamt projekt och lägga in grupperingarna i kalendern.</p>
       <p>Lossi är i betaversion. Det betyder att du är en av de första som använder tjänsten. Funktioner kan ändras, och ibland fungerar något inte som det ska. Använd feedbackknappen när något krånglar eller när du har en idé. Vi läser allt.</p>`,
     props: [
       { icon: 'roller-coaster', x: 14, y: 16, rot: -10 },
@@ -32,7 +32,7 @@ const WELCOME_STEPS = [
   },
   {
     title: 'Få en rundtur',
-    body: `<p>Vill du ha hjälp att komma igång? Rundturen visar steg för steg hur du skapar ett upplägg, lägger till lektioner och aktiviteter och delar med kollegor. Den tar bara ett par minuter, och du kan avbryta när du vill.</p>`,
+    body: `<p>Vill du ha hjälp att komma igång? Rundturen visar steg för steg hur du skapar ett upplägg, lägger till aktiviteter och grupperingar och delar med kollegor. Den tar bara ett par minuter, och du kan avbryta när du vill.</p>`,
     props: [{ icon: 'map', x: 24, y: 22, rot: -8, big: true }],
     look: 'prop',
     mood: 'happy',
@@ -57,7 +57,7 @@ const TOUR_STEPS = [
   {
     target: ['.aside-nav a[href="calendar.html"]'], wide: true, side: 'right', icon: 'calendar-days',
     title: 'Kalender',
-    text: 'Lägg in lektionerna i kalendern och markera prov och inlämningar. Med Alla i projektet ser du kollegornas lektioner och får en varning när en klass får mycket samma vecka.',
+    text: 'Lägg in grupperingarna i kalendern och markera prov och inlämningar. Med Alla i projektet ser du kollegornas grupperingar och får en varning när en klass får mycket samma vecka.',
   },
   {
     target: ['.feedback-btn'], side: 'bottom', icon: 'message-square-heart',
@@ -67,7 +67,7 @@ const TOUR_STEPS = [
   {
     target: ['#planList .plan-row[data-mine="true"]:not([style*="none"])'], side: 'bottom', icon: 'roller-coaster',
     title: 'Öppna ett upplägg',
-    text: 'Här finns alla upplägg i projektet. Öppna ett, så visar vi hur du bygger lektioner med aktiviteter. Exemplen får du ändra i och ta bort.',
+    text: 'Här finns alla upplägg i projektet. Öppna ett, så visar vi hur du bygger upp det med aktiviteter. Exemplen får du ändra i och ta bort.',
     nextLabel: 'Öppna upplägget',
     action: continueTourInPlan,
   },
@@ -90,23 +90,23 @@ const PLAN_TIPS = [
   },
   {
     target: ['#structureList .lesson-group > .week-row'], side: 'bottom', icon: 'list-ordered',
-    title: 'Lektioner',
-    text: 'Upplägget består av lektioner. Klicka på namnet för att byta det, och dra i raden för att flytta lektionen.',
+    title: 'Grupperingar',
+    text: 'Aktiviteter kan samlas i grupperingar, till exempel en lektion. Klicka på namnet för att byta det, och dra i raden för att flytta grupperingen.',
   },
   {
     target: ['#structureList .activity-row'], side: 'bottom', icon: 'grip-vertical',
     title: 'Aktiviteter',
-    text: 'Aktiviteterna är det som händer på lektionen. Klicka för att fylla i, och dra i prickarna för att flytta dem, även till en annan lektion.',
+    text: 'Aktiviteterna är det eleverna gör. Klicka för att fylla i, och dra för att flytta dem, in i eller ut ur en gruppering.',
   },
   {
     target: ['#structureList .lesson-more-btn'], side: 'bottom', icon: 'ellipsis',
-    title: 'Lektionens meny',
-    text: 'Här lägger du till aktiviteter, duplicerar lektionen och markerar den som prov eller inlämning.',
+    title: 'Grupperingens meny',
+    text: 'Här lägger du till aktiviteter, duplicerar grupperingen och markerar den som prov eller inlämning.',
   },
   {
     target: ['#structureList .lesson-schedule-btn'], side: 'bottom', icon: 'calendar-plus',
     title: 'Lägg in i kalendern',
-    text: 'Välj dag och tid för lektionen. Då syns den i kalendern och under Kommande på översikten.',
+    text: 'Välj dag och tid för grupperingen. Då syns den i kalendern och under Kommande på översikten.',
   },
   {
     target: ['#sec-files .section-head'], side: 'top', icon: 'paperclip',

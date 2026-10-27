@@ -30,7 +30,7 @@ function lessonDuration(group) {
 function lessonsFromState(state) {
   return [...parseStructure(state).content.querySelectorAll('.lesson-group')].map((g, i) => ({
     id: g.dataset.lessonId || null,
-    name: g.querySelector('.week-pill')?.textContent.trim() || `Lektion ${i + 1}`,
+    name: g.querySelector('.week-pill')?.textContent.trim() || `Gruppering ${i + 1}`,
     durationMin: lessonDuration(g),
     assessment: LESSON_ASSESSMENTS[g.dataset.assessment] ? g.dataset.assessment : null,
   }));
@@ -121,7 +121,7 @@ function resolveEvents(events, plans) {
       durationMin: lesson?.durationMin || e.durationMin,
       plan: summary,
       klass: plan.state?.klass || '',
-      lessonName: lesson?.name || 'Lektion',
+      lessonName: lesson?.name || 'Gruppering',
       assessment: lesson?.assessment || null,
     }];
   });
@@ -205,7 +205,7 @@ function buildScheduleModalHTML() {
         </div>
       </div>
       <div class="field-group" id="scheduleLessonGroup">
-        <label class="field-label" for="scheduleLesson">Lektion</label>
+        <label class="field-label" for="scheduleLesson">Gruppering</label>
         <div class="field-group-content">
           <select class="field-input" id="scheduleLesson" onchange="syncScheduleDuration()"></select>
           <p class="schedule-hint" id="scheduleLessonHint" hidden></p>
@@ -265,7 +265,7 @@ function openScheduleModal(ctx) {
   document.getElementById('scheduleModalTitle').textContent = ctx.event ? 'Ändra tid' : 'Lägg in i kalendern';
   document.getElementById('scheduleTarget').hidden = picking;
   document.getElementById('scheduleTarget').innerHTML = picking ? '' : `
-    <span class="schedule-target-lesson">${escapeHTML(ctx.lessonName || 'Lektion')}</span>
+    <span class="schedule-target-lesson">${escapeHTML(ctx.lessonName || 'Gruppering')}</span>
     <span class="schedule-target-plan">${escapeHTML(ctx.planTitle || '')}</span>`;
   document.getElementById('schedulePlanGroup').hidden = !picking;
   document.getElementById('scheduleLessonGroup').hidden = !picking;
@@ -311,8 +311,8 @@ function fillScheduleLessons() {
   select.disabled = !lessons.length;
   hint.hidden = !!lessons.length;
   hint.textContent = plan?.state?.demo
-    ? 'Öppna upplägget en gång så blir dess lektioner valbara här.'
-    : 'Upplägget har inga lektioner än.';
+    ? 'Öppna upplägget en gång så blir dess grupperingar valbara här.'
+    : 'Upplägget har inga grupperingar än.';
   syncScheduleDuration();
 }
 
@@ -325,7 +325,7 @@ function syncScheduleDuration() {
   const hint = document.getElementById('scheduleLessonHint');
   if (lesson) {
     hint.hidden = !booked;
-    hint.textContent = booked ? 'Lektionen ligger redan i kalendern och flyttas till den nya tiden.' : '';
+    hint.textContent = booked ? 'Grupperingen ligger redan i kalendern och flyttas till den nya tiden.' : '';
   }
 }
 
@@ -353,7 +353,7 @@ function updateScheduleLengthHint() {
   const start = timeToMinutes(document.getElementById('scheduleTime').value);
   const end = timeToMinutes(document.getElementById('scheduleEnd').value);
   document.getElementById('scheduleLengthHint').textContent =
-    start !== null && end !== null && end > start ? `Lektionen blir ${formatLength(end - start)}` : '';
+    start !== null && end !== null && end > start ? `Grupperingen blir ${formatLength(end - start)}` : '';
 }
 
 function setScheduleLength(min) {
@@ -381,7 +381,7 @@ function readScheduleForm() {
   if (!date || start === null || end === null) return { error: 'Välj datum, starttid och sluttid.' };
   if (end <= start) return { error: 'Sluttiden behöver vara efter starttiden.' };
   const durationMin = end - start;
-  if (durationMin < 5 || durationMin > 600) return { error: 'Lektionen behöver vara mellan 5 minuter och 10 timmar.' };
+  if (durationMin < 5 || durationMin > 600) return { error: 'Grupperingen behöver vara mellan 5 minuter och 10 timmar.' };
   const [y, mo, d] = date.split('-').map(Number);
   return { start: new Date(y, mo - 1, d, Math.floor(start / 60), start % 60), durationMin };
 }
@@ -398,7 +398,7 @@ async function saveSchedule() {
       // Från kalendern: lektionen behöver ett fast id och rätt längd i upplägget
       const plan = scheduleCtx.plans.find(p => p.id === document.getElementById('schedulePlan').value);
       const index = Number(document.getElementById('scheduleLesson').value);
-      if (!plan || !lessonsFromState(plan.state)[index]) throw new Error('Välj en lektion.');
+      if (!plan || !lessonsFromState(plan.state)[index]) throw new Error('Välj en gruppering.');
       let { state } = withLessonIds(plan.state);
       lessonId = lessonsFromState(state)[index].id;
       state = withLessonDuration(state, lessonId, form.durationMin);
@@ -414,7 +414,7 @@ async function saveSchedule() {
     done?.(event);
   } catch (e) {
     console.warn('Kunde inte lägga in lektionen:', e);
-    showScheduleError(e.message === 'Välj en lektion.' ? e.message
+    showScheduleError(e.message === 'Välj en gruppering.' ? e.message
       // PGRST205: tabellen lesson_events finns inte (supabase/calendar.sql har inte körts)
       : e.code === 'PGRST205' ? 'Kalendern är inte aktiverad i databasen än. Kör supabase/calendar.sql i Supabase.'
       : 'Kunde inte spara i kalendern. Försök igen om en stund.');

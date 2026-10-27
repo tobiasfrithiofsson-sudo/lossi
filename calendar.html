@@ -50,13 +50,13 @@
           <button type="button" class="btn btn-subtle cal-view-btn" id="calViewBtn" onclick="toggleViewMenu()" aria-haspopup="menu" aria-expanded="false"></button>
           <div class="menu-popover cal-view-menu" id="calViewMenu" role="menu" aria-label="Visa"></div>
         </div>
-        <button class="btn btn-solid" onclick="addLesson()"><i data-lucide="plus"></i><span class="cal-add-label">Lägg in lektion</span></button>
+        <button class="btn btn-solid" onclick="addLesson()"><i data-lucide="plus"></i><span class="cal-add-label">Lägg in gruppering</span></button>
       </div>
     </div>
 
     <!-- Vems lektioner och vilken klass (feedback #9). Alla/Mina syns bara när fler är med i projektet. -->
     <div class="filter-bar cal-filters">
-      <div class="filter-toggle" id="calOwnerFilter" role="group" aria-label="Visa lektioner" hidden>
+      <div class="filter-toggle" id="calOwnerFilter" role="group" aria-label="Visa grupperingar" hidden>
         <button type="button" data-owner="mine" aria-pressed="true" onclick="setOwnerFilter('mine')">Mina</button>
         <button type="button" data-owner="all" aria-pressed="false" onclick="setOwnerFilter('all')">Alla i projektet</button>
       </div>
@@ -259,7 +259,7 @@
     body.innerHTML = `
       <div class="cal-times">${hours.map(h => `<div class="cal-time"><span>${String(h).padStart(2, '0')}:00</span></div>`).join('')}</div>
       ${days.map((d, i) => `
-        <div class="cal-day${d.getTime() === today ? ' is-today' : ''}" data-day="${i}" title="Klicka för att lägga in en lektion">
+        <div class="cal-day${d.getTime() === today ? ' is-today' : ''}" data-day="${i}" title="Klicka för att lägga in en gruppering">
           ${dayEventsHTML(d, firstHour)}
         </div>`).join('')}`;
     body.dataset.firstHour = firstHour;
@@ -285,7 +285,7 @@
       const events = shown.filter(e => e.start >= d && e.start < next).sort((a, b) => a.start - b.start);
       const more = events.length - MONTH_EVENTS_SHOWN;
       return `
-        <div class="cal-month-cell${d.getMonth() !== month ? ' is-outside' : ''}${d.getTime() === today ? ' is-today' : ''}" data-day="${i}" title="Klicka för att lägga in en lektion">
+        <div class="cal-month-cell${d.getMonth() !== month ? ' is-outside' : ''}${d.getTime() === today ? ' is-today' : ''}" data-day="${i}" title="Klicka för att lägga in en gruppering">
           <span class="cal-month-num">${d.getDate()}</span>
           ${events.slice(0, more > 0 ? MONTH_EVENTS_SHOWN - 1 : MONTH_EVENTS_SHOWN).map(monthEventHTML).join('')}
           ${more > 0 ? `<button type="button" class="cal-month-more" data-day="${i}">+${more + 1} till</button>` : ''}
@@ -391,7 +391,7 @@
 
   // Från kalendern: välj upplägg och lektion
   async function addLesson(start) {
-    if (!myPlans.length) return alert('Skapa ett upplägg i det här projektet först, så kan du lägga in dess lektioner här.');
+    if (!myPlans.length) return alert('Skapa ett upplägg i det här projektet först, så kan du lägga in dess grupperingar här.');
     if (!start) {
       start = new Date(Math.max(periodDays()[0].getTime(), Date.now()));
       start.setMinutes(0, 0, 0);
@@ -465,7 +465,7 @@
       afterChange();
     } catch (err) {
       console.warn('Kunde inte ta bort från kalendern:', err);
-      alert('Kunde inte ta bort lektionen från kalendern. Försök igen om en stund.');
+      alert('Kunde inte ta bort grupperingen från kalendern. Försök igen om en stund.');
     }
   }
 

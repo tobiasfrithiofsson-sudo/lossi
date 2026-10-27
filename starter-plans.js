@@ -1,5 +1,5 @@
 // ── Startupplägg för nya konton ──
-// En ny lärare får två upplägg som visar hur Lossi fungerar, och en lektion
+// En ny lärare får två upplägg som visar hur Lossi fungerar, och en gruppering
 // inlagd i kalendern nästa vardag (så att kalendern inte är tom).
 // data.js (ensureDemoPlans) lägger in dem en gång per konto, i den egna ytan.
 // Uppläggen är vanliga upplägg (samma form som Skapa med AI, planStateFromAi
@@ -19,24 +19,28 @@ const STARTER_PLANS = [
       'Tryck Enter för att lägga till en ny rad',
     ],
     criteria: ['Här skriver du vilka delar av betygskriterierna eleverna får chans att visa'],
+    // Aktiviteter utan gruppering (läggs sist)
+    free: [
+      { type: 'Aktivitet', title: 'En idé utan gruppering', minutes: null, desc: 'En aktivitet behöver inte ligga i en gruppering. Skriv ner en tanke här och flytta in den i en gruppering när det passar.' },
+    ],
     lessons: [
       {
-        name: 'Lektion 1: Så är ett upplägg uppbyggt',
+        name: 'Gruppering 1: Så är ett upplägg uppbyggt',
         minutes: 60,
         scheduled: true, // läggs in i kalendern
         activities: [
-          { type: 'Genomgång', title: 'Upplägg, lektioner och aktiviteter', minutes: 10, desc: 'Ett upplägg är ett arbetsområde. Det består av lektioner, och varje lektion består av aktiviteter med typ och tid. Lossi räknar ihop tiden och varnar om aktiviteterna tar längre tid än lektionen.' },
+          { type: 'Genomgång', title: 'Upplägg, aktiviteter och grupperingar', minutes: 10, desc: 'Ett upplägg är ett arbetsområde. Det består av aktiviteter med typ och tid, som kan samlas i grupperingar, till exempel en lektion. Lossi räknar ihop tiden och varnar om aktiviteterna tar längre tid än grupperingen.' },
           { type: 'Aktivitet', title: 'Öppna en aktivitet', minutes: 15, desc: 'Klicka på en aktivitet för att ändra titel, typ, tid och beskrivning. Här kan du också bifoga filer, till exempel en bild eller ett arbetsblad.' },
-          { type: 'Aktivitet', title: 'Dra och släpp', minutes: 15, desc: 'Ta tag i prickarna till vänster om en aktivitet och dra den till en ny plats – även till en annan lektion.' },
-          { type: 'Aktivitet', title: 'Lektionen i kalendern', minutes: 20, desc: 'Den här lektionen ligger redan i din kalender. Med kalenderknappen på lektionsraden flyttar du den eller lägger in andra lektioner.' },
+          { type: 'Aktivitet', title: 'Dra och släpp', minutes: 15, desc: 'Dra en aktivitet till en ny plats – in i en gruppering, ut ur den eller till en annan.' },
+          { type: 'Aktivitet', title: 'Grupperingen i kalendern', minutes: 20, desc: 'Den här grupperingen ligger redan i din kalender. Med kalenderknappen på grupperingens rad flyttar du den eller lägger in andra.' },
         ],
       },
       {
-        name: 'Lektion 2: Gör upplägget till ditt',
+        name: 'Gruppering 2: Gör upplägget till ditt',
         minutes: 30,
         activities: [
           { type: 'Aktivitet', title: 'Byt titel, ämne och årskurs', minutes: 10, desc: 'Klicka på titeln för att ändra den. Ämne, årskurs och klass väljer du under Detaljer till höger.' },
-          { type: 'Aktivitet', title: 'Lägg till en lektion', minutes: 15, desc: 'Plusknappen vid Struktur och tidslinje lägger till en lektion eller aktivitet. Lektionens ⋯-meny har fler val.' },
+          { type: 'Aktivitet', title: 'Lägg till aktiviteter', minutes: 15, desc: 'Plusknappen vid Aktivitet lägger till en aktivitet eller en gruppering. En aktivitet behöver inte ligga i en gruppering. Grupperingens ⋯-meny har fler val.' },
           { type: 'Exit ticket', title: 'Ta bort exemplet', minutes: 5, desc: 'När du är klar tar du bort upplägget via ⋯ längst upp till höger.' },
         ],
       },
@@ -52,16 +56,16 @@ const STARTER_PLANS = [
     criteria: [],
     lessons: [
       {
-        name: 'Lektion 1: Låt AI göra första utkastet',
+        name: 'Gruppering 1: Låt AI göra första utkastet',
         minutes: 30,
         activities: [
-          { type: 'Genomgång', title: 'Skapa med AI', minutes: 10, desc: 'Välj Skapa → Skapa med AI. Lossi ger dig en färdig fråga att klistra in i din egen AI, till exempel ChatGPT eller Copilot. Klistra in svaret, så blir det ett upplägg med lektioner och aktiviteter.' },
+          { type: 'Genomgång', title: 'Skapa med AI', minutes: 10, desc: 'Välj Skapa → Skapa med AI. Lossi ger dig en färdig fråga att klistra in i din egen AI, till exempel ChatGPT eller Copilot. Klistra in svaret, så blir det ett upplägg med grupperingar och aktiviteter.' },
           { type: 'Aktivitet', title: 'Planera vidare på ett upplägg du redan har', minutes: 10, desc: 'I ett upplägg klickar du på Planera med AI. Din AI får allt du skrivit, föreslår hur du kan fortsätta och blir ditt bollplank.' },
           { type: 'Exit ticket', title: 'Granska alltid förslaget', minutes: 10, desc: 'AI kan ha fel. Läs igenom och justera innan du använder upplägget med eleverna.' },
         ],
       },
       {
-        name: 'Lektion 2: Planera tillsammans',
+        name: 'Gruppering 2: Planera tillsammans',
         minutes: 30,
         activities: [
           { type: 'Genomgång', title: 'Skapa ett projekt', minutes: 10, desc: 'Din egen yta är bara din. Skapa ett nytt projekt i projektväljaren uppe till vänster och bjud in kollegor med deras e-postadress.' },
@@ -70,11 +74,11 @@ const STARTER_PLANS = [
         ],
       },
       {
-        name: 'Lektion 3: Prov',
+        name: 'Gruppering 3: Prov',
         minutes: 40,
         assessment: 'prov',
         activities: [
-          { type: 'Aktivitet', title: 'Markera prov och inlämningar', minutes: 30, desc: 'Den här lektionen är markerad som prov. Det gör du i lektionens ⋯-meny, och då syns den som prov i kalendern.' },
+          { type: 'Aktivitet', title: 'Markera prov och inlämningar', minutes: 30, desc: 'Den här grupperingen är markerad som prov. Det gör du i grupperingens ⋯-meny, och då syns den som prov i kalendern.' },
           { type: 'Aktivitet', title: 'Exportera', minutes: 10, desc: 'Med Exportera uppe till höger får du upplägget som Word eller PowerPoint, eller skriver ut det.' },
         ],
       },
@@ -100,6 +104,12 @@ function buildStarterPlans() {
     const state = planStateFromAi(plan, avatar);
     // Lektionernas id finns i structureHTML i samma ordning som plan.lessons
     const ids = [...state.structureHTML.matchAll(/data-lesson-id="([^"]+)"/g)].map(m => m[1]);
+    // Fria aktiviteter sist, med id efter grupperingarnas (act1, act2 …)
+    let next = (state.structureHTML.match(/class="activity-wrapper"/g) || []).length + 1;
+    (plan.free || []).forEach(a => {
+      const id = 'act' + next++;
+      state.structureHTML += `<div class="activity-wrapper is-free" id="${id}">${buildActivityMarkup(id, { type: a.type, title: a.title, time: a.minutes, desc: a.desc })}</div>`;
+    });
     plan.lessons.forEach((lesson, j) => {
       if (lesson.assessment) {
         state.structureHTML = state.structureHTML.replace(`data-lesson-id="${ids[j]}"`, `data-lesson-id="${ids[j]}" data-assessment="${lesson.assessment}"`);

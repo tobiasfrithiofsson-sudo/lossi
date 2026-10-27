@@ -207,7 +207,7 @@
         return `<a class="cov-plan" href="upplag.html?id=${encodeURIComponent(u.plan.id)}">
           <span class="cov-plan-icon">${planAvatarImgHTML(resolvePlanAvatarId(u.plan.id, u.plan.avatar))}</span>
           <span class="cov-plan-title">${escapeHTML(u.plan.title)}</span>
-          ${nums.length ? `<span class="cov-plan-lessons">${nums.length === 1 ? 'Lektion' : 'Lektion'} ${nums.join(', ')}</span>` : ''}
+          ${nums.length ? `<span class="cov-plan-lessons">Gruppering ${nums.join(', ')}</span>` : ''}
           ${u.older ? '<span class="cov-plan-older" title="Upplägget har en äldre formulering av punkten">äldre text</span>' : ''}
         </a>`;
       }).join('')}</div>`;

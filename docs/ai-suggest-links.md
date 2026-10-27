@@ -1,13 +1,13 @@
 # Föreslå kopplingar med AI (Claude Haiku)
 
-Läraren väljer **Centralt innehåll › plus › Föreslå kopplingar till aktiviteter**. Lossi skickar kursens hela centrala innehåll (Skolverkets text ur `curriculum/`) och uppläggets aktiviteter (namn, typ, gruppering, beskrivning) till serverfunktionen `suggest-links`. Funktionen frågar Claude Haiku (`claude-haiku-5-5`), och dialogen visar förslagen per aktivitet med en kort motivering. Inget kopplas förrän läraren väljer **Koppla**. Punkter som inte var valda än läggs då till under Centralt innehåll, med Skolverkets text.
+Läraren väljer **Centralt innehåll › plus › Föreslå kopplingar till aktiviteter**. Sidopanelen öppnas med maskoten och frågar om läraren vill ha förslag; först när läraren väljer **Föreslå kopplingar** där skickar Lossi kursens hela centrala innehåll (Skolverkets text ur `curriculum/`) och uppläggets aktiviteter (namn, typ, gruppering, beskrivning) till serverfunktionen `suggest-links`. Funktionen frågar Claude Haiku (`claude-haiku-5-5`), och panelen visar förslagen per aktivitet med en kort motivering. Inget kopplas förrän läraren väljer **Koppla**. Punkter som inte var valda än läggs då till under Centralt innehåll, med Skolverkets text.
 
 Principen gäller fortfarande: **AI:n skriver ingen läroplanstext.** Den får bara välja bland punkternas id, och funktionen sorterar bort id som inte finns.
 
 ## Filer
 - `supabase/functions/suggest-links/index.ts`: serverfunktionen (Deno). Kontrollerar inloggningen och gränsen på 30 förslag per lärare och dygn (`DAILY_LIMIT`), anropar Claude med ett fast JSON-schema (structured outputs) och loggar tokens i `ai_requests`.
 - `supabase/ai.sql`: tabellen `ai_requests`. RLS är på utan regler, så bara funktionen kommer åt den.
-- `curriculum.js`: `suggestLinks()` och `acceptSuggestions()` i `PlanCurriculum` samt dialogen `#svAiModal`.
+- `curriculum.js`: `suggestLinks()` (öppnar panelen), `runSuggestions()` (anropet), `acceptSuggestions()` och `renderAi(läge)` i `PlanCurriculum`. Lägen: intro → loading → results (eller error/none) → done. Stilar under "Sidopanelen: Föreslå kopplingar" i styles.css.
 - `upplag.html`: menyvalet, och `lessons()`-kroken skickar med aktivitetens typ och beskrivning.
 
 ## Driftsättning (görs en gång)
@@ -27,7 +27,7 @@ select user_id, count(*) as forslag, sum(input_tokens) as in_tokens, sum(output_
 from ai_requests group by user_id order by forslag desc;
 ```
 
-## Felmeddelanden i dialogen
+## Felmeddelanden i panelen
 - "AI-förslagen är inte påslagna än." betyder att tabellen saknas (steg 3).
 - "AI-förslagen gick inte att hämta." betyder oftast att funktionen saknas (steg 4) eller att nyckeln är fel (steg 2). Läs loggen under Edge Functions › suggest-links › Logs.
 - "Du har använt dagens 30 förslag." visas när gränsen är nådd. Ändra `DAILY_LIMIT` om det behövs.

@@ -4157,11 +4157,25 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
 .sv-picker-option input { margin: 4px 0 0; flex-shrink: 0; accent-color: var(--color-primary); width: 15px; height: 15px; }
 .sv-picker-option:has(input:checked) { background: var(--color-primary-light); }
 
-/* Dialog: Föreslå kopplingar (AI) */
+/* Sidopanelen: Föreslå kopplingar (AI, curriculum.js suggestLinks) med maskoten.
+   Maskoten krymper när förslagen visas (is-compact). */
+.sv-ai-panel { flex: 1 0 auto; gap: 16px; }
+.sv-ai-mascot { flex-shrink: 0; height: 150px; border-radius: var(--radius-lg); --face: 112px; transition: height 0.3s; }
+.sv-ai-panel.is-compact .sv-ai-mascot { height: 84px; --face: 68px; }
+.sv-ai-content { flex: 1 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.sv-ai-title { margin: 0; font-size: var(--font-size-lg); font-weight: 600; color: var(--color-text-primary); }
+.sv-ai-text { margin: 0; font-size: var(--font-size-md); line-height: 1.5; color: var(--color-text-secondary); }
+.sv-ai-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.sv-ai-tip, .sv-ai-note { display: flex; gap: 8px; margin: 0; line-height: 1.5; }
+.sv-ai-tip { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--color-bg-secondary); font-size: var(--font-size-base); color: var(--color-text-secondary); }
+.sv-ai-note { font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
+.sv-ai-tip svg, .sv-ai-note svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; }
+.sv-ai-list { display: flex; flex-direction: column; gap: 2px; }
+.sv-ai-list .sv-picker-group:first-child { padding-top: 4px; }
 .sv-ai-option-text { display: flex; flex-direction: column; gap: 2px; }
 .sv-ai-reason { font-size: var(--font-size-sm); color: var(--color-text-secondary); font-style: italic; }
 .sv-ai-new { font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
-.modal-body p.sv-ai-note { margin: 12px 0 0; font-size: var(--font-size-sm); color: var(--color-text-tertiary); line-height: 1.5; }
+.sv-ai-panel .form-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* ============================================================
    KNAPPAR I APPEN – själva knappsystemet (.btn, varianter, storlekar)

@@ -4576,3 +4576,7 @@ body.market-mode #readBanner { display: none !important; }
 .page-toast.is-visible { pointer-events: auto; }
 .page-toast svg { width: 16px; height: 16px; flex-shrink: 0; color: #4ADE80; }
 .page-toast a { color: inherit; font-weight: 700; text-decoration: underline; }
+/* Publicerat upplägg (marknadsplatsen): status och klass hör till författarens
+   eget upplägg och följer inte med, så raderna döljs */
+body.market-mode .detail-fields .read-field:has(#statusBtn),
+body.market-mode .detail-fields .read-field:has(#classPickerTrigger) { display: none; }

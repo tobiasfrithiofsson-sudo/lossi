@@ -4162,8 +4162,7 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
 .sv-ai-panel { flex: 1 0 auto; gap: 16px; }
 /* Allt utom förslagslistan står centrerat mitt i panelen */
 .sv-ai-panel:not(.is-compact) { justify-content: center; align-items: center; text-align: center; padding-bottom: 15vh; }
-.sv-ai-panel .sv-ai-mascot { flex-shrink: 0; align-self: center; width: 126px; height: 126px; border-radius: 16px; --face: 92px; transition: width 0.3s, height 0.3s; }
-.sv-ai-panel.is-compact .sv-ai-mascot { width: 72px; height: 72px; border-radius: 12px; --face: 52px; }
+.sv-ai-panel .sv-ai-mascot { flex-shrink: 0; align-self: center; width: 64px; height: 64px; border-radius: 12px; --face: 47px; }
 .sv-ai-content { display: flex; flex-direction: column; gap: 8px; max-width: 360px; }
 .sv-ai-panel.is-compact .sv-ai-content { flex: 1 0 auto; max-width: none; }
 .sv-ai-title { margin: 0; font-size: var(--font-size-xl); font-weight: 600; color: var(--color-text-primary); }

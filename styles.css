@@ -4177,6 +4177,7 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
 .sv-ai-reason { font-size: var(--font-size-sm); color: var(--color-text-secondary); font-style: italic; }
 .sv-ai-new { font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
 .sv-ai-panel .form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.sv-ai-panel .form-actions .sv-ai-again { margin-right: auto; }
 
 /* ============================================================
    KNAPPAR I APPEN – själva knappsystemet (.btn, varianter, storlekar)

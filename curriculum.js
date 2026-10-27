@@ -1025,6 +1025,48 @@ const PlanCurriculum = (() => {
     return 'Förslagen gick inte att hämta. Försök igen om en stund.';
   }
 
+  // Förslagen sparas per upplägg och kurs i webbläsaren, så att de som inte
+  // kopplades finns kvar nästa gång panelen öppnas (tills läraren söker igen)
+  function savedKey() {
+    const id = new URLSearchParams(location.search).get('id');
+    return id && cur ? 'lossi-ai-links:' + id : null;
+  }
+  const courseKey = () => `${cur.schoolType}/${cur.subject}/${cur.level || ''}`;
+  function loadSaved() {
+    try {
+      const saved = savedKey() && JSON.parse(localStorage.getItem(savedKey()) || 'null');
+      return saved?.course === courseKey() ? saved.suggestions : [];
+    } catch (_) { return []; }
+  }
+  function storeSaved(suggestions) {
+    try {
+      if (!savedKey()) return;
+      if (suggestions.length) localStorage.setItem(savedKey(), JSON.stringify({ course: courseKey(), suggestions }));
+      else localStorage.removeItem(savedKey());
+    } catch (_) { /* privat läge e.d.: förslagen sparas bara inte */ }
+  }
+
+  // Det som redan är kopplat, eller vars aktivitet eller punkt inte finns längre, visas inte
+  function stillOpen(list) {
+    const itemIds = new Set(catalogItems('content').map(it => it.id));
+    const actIds = new Set(aiActivities().acts.map(a => a.id));
+    return list.filter(s => itemIds.has(s.itemId) && actIds.has(s.activityId)
+      && !(find('content', s.itemId)?.activities || []).includes(s.activityId));
+  }
+
+  // Öppnas panelen igen visas förslagen som är kvar från förra sökningen direkt
+  async function showEarlier() {
+    if (!ai || !cur) return;
+    const mine = ai;
+    try {
+      if (!catalog) { catalog = await C.subject(cur.schoolType, cur.subject); catalogKey = cur.schoolType + '/' + cur.subject; }
+    } catch (_) { return; }
+    const rest = stillOpen(loadSaved());
+    if (ai !== mine || !rest.length) return;
+    ai.suggestions = rest;
+    renderAi('results', { earlier: true });
+  }
+
   function aiActivities() {
     const lessons = numberedLessons();
     return { lessons, acts: lessons.flatMap(l => l.activities.map(a => ({ ...a, lesson: l.free ? '' : l.name }))) };
@@ -1055,6 +1097,7 @@ const PlanCurriculum = (() => {
     document.addEventListener('pointermove', follow);
     ai = { body, mascot, follow, suggestions: [], timers: [setInterval(() => mascot.blink(), 4500)] };
     renderAi('intro');
+    showEarlier();
   }
 
   function renderAi(state, data = {}) {
@@ -1089,15 +1132,20 @@ const PlanCurriculum = (() => {
       html = title('Jag hittade inga nya kopplingar', 'Antingen är det som passar redan kopplat, eller så säger aktiviteterna för lite. Skriv gärna en beskrivning på aktiviteterna och försök igen.')
         + `<div class="sv-ai-actions">${button('Försök igen', 'PlanCurriculum.runSuggestions()', { icon: 'rotate-ccw', solid: false })}</div>`;
     } else if (state === 'results') {
-      html = title(`Jag hittade ${ai.suggestions.length} ${ai.suggestions.length === 1 ? 'koppling' : 'kopplingar'}`, 'Bocka ur det som inte stämmer och välj Koppla.')
-        + `<div class="sv-ai-list">${aiResultsHTML()}</div>`
+      const n = ai.suggestions.length;
+      html = (data.earlier
+        ? title(`${n} förslag kvar från förra gången`, 'Bocka för det du vill koppla, eller sök igen för nya förslag.')
+        : title(`Jag hittade ${n} ${n === 1 ? 'koppling' : 'kopplingar'}`, 'Bocka ur det som inte stämmer och välj Koppla.'))
+        + `<div class="sv-ai-list">${aiResultsHTML(!data.earlier)}</div>`
         + `<div class="form-actions">
+            ${data.earlier ? '<button type="button" class="btn btn-outline sv-ai-again" onclick="PlanCurriculum.runSuggestions()"><i data-lucide="rotate-ccw"></i>Sök igen</button>' : ''}
             <button type="button" class="btn btn-outline" onclick="PlanCurriculum.closeSuggestions()">Avbryt</button>
             <button type="button" class="btn btn-solid" id="svAiSave" onclick="PlanCurriculum.acceptSuggestions()">Koppla</button>
           </div>`;
     } else if (state === 'done') {
       html = title('Klart!', `${data.count === 1 ? 'En koppling är gjord' : `${data.count} kopplingar är gjorda`}. Du ser dem som taggar på aktiviteterna och under ${escapeHTML(C.contentTitle(cur))}.`)
-        + `<div class="sv-ai-actions">${button('Stäng', 'PlanCurriculum.closeSuggestions()', { solid: false })}</div>`;
+        + `<div class="sv-ai-actions">${data.rest ? button(`Visa övriga förslag (${data.rest})`, 'PlanCurriculum.showEarlier()') : ''}${
+          button('Stäng', 'PlanCurriculum.closeSuggestions()', { solid: false })}</div>`;
     }
     content.innerHTML = html;
     if (state === 'results') {
@@ -1116,7 +1164,7 @@ const PlanCurriculum = (() => {
     if (state === 'done' || state === 'results') mascot.blink();
   }
 
-  function aiResultsHTML() {
+  function aiResultsHTML(checked) {
     const byId = new Map(catalogItems('content').map(it => [it.id, it]));
     let html = '';
     aiActivities().lessons.forEach(l => l.activities.forEach(a => {
@@ -1126,7 +1174,7 @@ const PlanCurriculum = (() => {
       mine.forEach(({ s, i }) => {
         const it = byId.get(s.itemId);
         html += `<label class="sv-picker-option">
-          <input type="checkbox" value="${i}" checked />
+          <input type="checkbox" value="${i}"${checked ? ' checked' : ''} />
           <span class="sv-ai-option-text">
             <span>${C.leadHTML(it)}${C.textHTML(it.text)}</span>
             ${s.reason ? `<span class="sv-ai-reason">${escapeHTML(s.reason)}</span>` : ''}
@@ -1171,11 +1219,8 @@ const PlanCurriculum = (() => {
     }
     if (ai !== mine) return; // panelen stängdes medan Haiku arbetade
 
-    // Det som redan är kopplat visas inte igen
-    const itemIds = new Set(items.map(it => it.id));
-    const actIds = new Set(acts.map(a => a.id));
-    ai.suggestions = (res?.suggestions || []).filter(s =>
-      itemIds.has(s.itemId) && actIds.has(s.activityId) && !(find('content', s.itemId)?.activities || []).includes(s.activityId));
+    ai.suggestions = stillOpen(res?.suggestions || []);
+    storeSaved(ai.suggestions);
     renderAi(ai.suggestions.length ? 'results' : 'none');
   }
 
@@ -1197,7 +1242,9 @@ const PlanCurriculum = (() => {
     const order = new Map(items.map((it, i) => [it.id, i]));
     cur.content.sort((a, b) => (order.get(a.id) ?? 1e9) - (order.get(b.id) ?? 1e9));
     changed();
-    renderAi('done', { count: picked.length });
+    const rest = stillOpen(ai.suggestions);
+    storeSaved(rest);
+    renderAi('done', { count: picked.length, rest: rest.length });
   }
 
   function closeSuggestions() {
@@ -1207,6 +1254,6 @@ const PlanCurriculum = (() => {
   return {
     init, set, get, refreshLessons, openCoursePicker, pickSchoolType, renderCourseOptions, chooseSubject, backToSubjects,
     chooseLevel, clearCourse, ensureForGrade, applyFromAi, forgetActivities, openPicker, savePicker, closeModal, remove, useNewText, showStep, openLessons, openItem, unlink,
-    suggestLinks, runSuggestions, acceptSuggestions, closeSuggestions,
+    suggestLinks, runSuggestions, acceptSuggestions, closeSuggestions, showEarlier,
   };
 })();

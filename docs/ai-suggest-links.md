@@ -2,6 +2,8 @@
 
 Läraren väljer **Centralt innehåll › plus › Föreslå kopplingar till aktiviteter**. Sidopanelen öppnas med maskoten (som följer pekaren, och tänker med siffror och tecken ovanför sig medan Haiku arbetar: `setThinking` i mascot.js) och frågar om läraren vill koppla läroplanen; först när läraren väljer **Koppla** där skickar Lossi kursens hela centrala innehåll (Skolverkets text ur `curriculum/`) och uppläggets aktiviteter (namn, typ, gruppering, beskrivning) till serverfunktionen `suggest-links`. Funktionen frågar Claude Haiku (`claude-haiku-5-5`), och panelen visar förslagen per aktivitet med en kort motivering. Inget kopplas förrän läraren väljer **Koppla**. Punkter som inte var valda än läggs då till under Centralt innehåll, med Skolverkets text.
 
+Förslag som inte kopplas sparas i webbläsaren (localStorage `lossi-ai-links:<upplägg-id>`, per kurs). Öppnas panelen igen visas de direkt, obockade, med **Sök igen** för en ny sökning. De följer alltså inte med till en annan dator eller till medskapare.
+
 Principen gäller fortfarande: **AI:n skriver ingen läroplanstext.** Den får bara välja bland punkternas id, och funktionen sorterar bort id som inte finns.
 
 ## Filer

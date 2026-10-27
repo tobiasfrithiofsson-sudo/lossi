@@ -4160,16 +4160,17 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
 /* Sidopanelen: Föreslå kopplingar (AI, curriculum.js suggestLinks) med maskoten.
    Maskoten krymper när förslagen visas (is-compact). */
 .sv-ai-panel { flex: 1 0 auto; gap: 16px; }
-.sv-ai-mascot { flex-shrink: 0; height: 150px; border-radius: var(--radius-lg); --face: 112px; transition: height 0.3s; }
-.sv-ai-panel.is-compact .sv-ai-mascot { height: 84px; --face: 68px; }
-.sv-ai-content { flex: 1 0 auto; display: flex; flex-direction: column; gap: 12px; }
-.sv-ai-title { margin: 0; font-size: var(--font-size-lg); font-weight: 600; color: var(--color-text-primary); }
-.sv-ai-text { margin: 0; font-size: var(--font-size-md); line-height: 1.5; color: var(--color-text-secondary); }
-.sv-ai-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-.sv-ai-tip, .sv-ai-note { display: flex; gap: 8px; margin: 0; line-height: 1.5; }
-.sv-ai-tip { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--color-bg-secondary); font-size: var(--font-size-base); color: var(--color-text-secondary); }
-.sv-ai-note { font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
-.sv-ai-tip svg, .sv-ai-note svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; }
+/* Allt utom förslagslistan står centrerat mitt i panelen */
+.sv-ai-panel:not(.is-compact) { justify-content: center; align-items: center; text-align: center; padding-bottom: 15vh; }
+.sv-ai-panel .sv-ai-mascot { flex-shrink: 0; align-self: center; width: 126px; height: 126px; border-radius: 16px; --face: 92px; transition: width 0.3s, height 0.3s; }
+.sv-ai-panel.is-compact .sv-ai-mascot { width: 72px; height: 72px; border-radius: 12px; --face: 52px; }
+.sv-ai-content { display: flex; flex-direction: column; gap: 8px; max-width: 360px; }
+.sv-ai-panel.is-compact .sv-ai-content { flex: 1 0 auto; max-width: none; }
+.sv-ai-title { margin: 0; font-size: var(--font-size-xl); font-weight: 600; color: var(--color-text-primary); }
+.sv-ai-panel.is-compact .sv-ai-title { font-size: var(--font-size-lg); text-align: center; }
+.sv-ai-panel.is-compact .sv-ai-title + .sv-ai-text { text-align: center; }
+.sv-ai-text { margin: 0; font-size: var(--font-size-md); line-height: 1.5; color: var(--color-text-primary); }
+.sv-ai-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
 .sv-ai-list { display: flex; flex-direction: column; gap: 2px; }
 .sv-ai-list .sv-picker-group:first-child { padding-top: 4px; }
 .sv-ai-option-text { display: flex; flex-direction: column; gap: 2px; }

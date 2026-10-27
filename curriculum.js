@@ -1041,10 +1041,18 @@ const PlanCurriculum = (() => {
       iconHTML: '<i data-lucide="sparkles"></i>',
       iconClass: 'sv-panel-icon',
       body,
-      onClose: () => { if (ai?.body === body) { ai.timers.forEach(clearInterval); ai = null; } },
+      onClose: () => {
+        if (ai?.body !== body) return;
+        ai.timers.forEach(clearInterval);
+        document.removeEventListener('pointermove', ai.follow);
+        ai = null;
+      },
     });
     const mascot = createMascot(body.querySelector('.sv-ai-mascot'));
-    ai = { body, mascot, suggestions: [], timers: [setInterval(() => mascot.blink(), 4500)] };
+    // Maskoten följer pekaren, utom medan den letar (lookAround)
+    const follow = e => { if (!ai?.look) mascot.lookAt(e.clientX, e.clientY); };
+    document.addEventListener('pointermove', follow);
+    ai = { body, mascot, follow, suggestions: [], timers: [setInterval(() => mascot.blink(), 4500)] };
     renderAi('intro');
   }
 
@@ -1052,7 +1060,7 @@ const PlanCurriculum = (() => {
   function lookAround(on) {
     if (!ai) return;
     clearInterval(ai.look);
-    if (!on) { ai.mascot.center(); return; }
+    if (!on) { if (ai.look) ai.mascot.center(); ai.look = null; return; }
     let left = true;
     const look = () => {
       const box = ai?.mascot.host.getBoundingClientRect();
@@ -1073,7 +1081,6 @@ const PlanCurriculum = (() => {
     const title = (t, text) => `<h3 class="sv-ai-title">${escapeHTML(t)}</h3>${text ? `<p class="sv-ai-text">${text}</p>` : ''}`;
     const button = (label, onclick, { icon = '', solid = true } = {}) =>
       `<button type="button" class="btn ${solid ? 'btn-solid' : 'btn-outline'}" onclick="${onclick}">${icon ? `<i data-lucide="${icon}"></i>` : ''}${escapeHTML(label)}</button>`;
-    const privacy = '<p class="sv-ai-note"><i data-lucide="info"></i><span>Aktiviteternas namn och beskrivningar skickas till Anthropic (Claude Haiku). Skriv inte elevers namn i aktiviteterna.</span></p>';
     body.classList.toggle('is-compact', state === 'results');
     lookAround(state === 'loading');
     mascot.setLove(state === 'done');
@@ -1086,12 +1093,9 @@ const PlanCurriculum = (() => {
     } else if (state === 'intro' && !acts.length) {
       html = title('Lägg till aktiviteter först', 'När upplägget har aktiviteter kan jag föreslå vilka punkter ur läroplanen de passar.');
     } else if (state === 'intro') {
-      const missing = acts.filter(a => !a.desc).length;
-      html = title('Vill du att jag kopplar läroplanen?',
-        `Jag läser ${acts.length === 1 ? 'din aktivitet' : `dina ${acts.length} aktiviteter`} och ${escapeHTML(C.contentTitle(cur).toLowerCase())} i ${escapeHTML(C.courseLabel(cur))}, och föreslår vilka punkter som passar. Du väljer själv vad som kopplas.`)
-        + (missing ? `<p class="sv-ai-tip"><i data-lucide="lightbulb"></i><span>${missing === acts.length ? 'Aktiviteterna saknar beskrivning' : `${missing} av ${acts.length} aktiviteter saknar beskrivning`}. Med beskrivningar blir förslagen träffsäkrare.</span></p>` : '')
-        + `<div class="sv-ai-actions">${button('Föreslå kopplingar', 'PlanCurriculum.runSuggestions()', { icon: 'sparkles' })}</div>`
-        + privacy;
+      html = title('Koppla läroplanen till aktiviteter',
+        `Jag läser ${acts.length === 1 ? 'din aktivitet' : `dina ${acts.length} aktiviteter`} och mål ur läroplanen, och föreslår vilka punkter som passar.`)
+        + `<div class="sv-ai-actions">${button('Koppla', 'PlanCurriculum.runSuggestions()')}</div>`;
     } else if (state === 'loading') {
       html = title('Jag läser…', 'Aktiviteterna och Skolverkets text. Det tar oftast några sekunder.');
     } else if (state === 'error') {

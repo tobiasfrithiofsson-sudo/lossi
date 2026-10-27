@@ -4157,6 +4157,12 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
 .sv-picker-option input { margin: 4px 0 0; flex-shrink: 0; accent-color: var(--color-primary); width: 15px; height: 15px; }
 .sv-picker-option:has(input:checked) { background: var(--color-primary-light); }
 
+/* Dialog: Föreslå kopplingar (AI) */
+.sv-ai-option-text { display: flex; flex-direction: column; gap: 2px; }
+.sv-ai-reason { font-size: var(--font-size-sm); color: var(--color-text-secondary); font-style: italic; }
+.sv-ai-new { font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
+.modal-body p.sv-ai-note { margin: 12px 0 0; font-size: var(--font-size-sm); color: var(--color-text-tertiary); line-height: 1.5; }
+
 /* ============================================================
    KNAPPAR I APPEN – själva knappsystemet (.btn, varianter, storlekar)
    finns i buttons.css, som alla sidor laddar före sina egna stilar.

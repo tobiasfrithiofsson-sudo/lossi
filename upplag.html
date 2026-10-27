@@ -223,6 +223,10 @@
               <i data-lucide="graduation-cap"></i>
               Välj ur Skolverkets text
             </button>
+            <button class="menu-popover-item" onclick="PlanCurriculum.suggestLinks()">
+              <i data-lucide="sparkles"></i>
+              Föreslå kopplingar till aktiviteter
+            </button>
             <button class="menu-popover-item" onclick="closeAllMenuPopovers(); addGoal('goalsList')">
               <i data-lucide="pencil-line"></i>
               Egen rad
@@ -3828,9 +3832,17 @@
     readOnly: () => planReadOnly,
     openPanel: openSidePanel,
     closePanel: closeSidePanel,
-    // Grupperingarna, och sist de fria aktiviteterna som en del utan id (free)
+    // Grupperingarna, och sist de fria aktiviteterna som en del utan id (free).
+    // Typ och beskrivning används av Föreslå kopplingar (PlanCurriculum.suggestLinks).
     lessons: () => {
-      const activity = w => ({ id: w.id, title: w.querySelector('.activity-title')?.textContent.trim() || '' });
+      const activity = w => ({
+        id: w.id,
+        title: w.querySelector('.activity-title')?.textContent.trim() || '',
+        type: w.querySelector('.activity-icon')?.title || '',
+        desc: [...w.querySelectorAll('.activity-read .read-field')]
+          .find(f => f.querySelector('.read-field-label')?.textContent.trim() === 'Beskrivning')
+          ?.querySelector('.read-field-value')?.textContent.trim() || '',
+      });
       const groups = [...document.querySelectorAll('#structureList .lesson-group')]
         .filter(g => g.dataset.lessonId)
         .map(g => ({

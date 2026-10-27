@@ -724,17 +724,34 @@ const PlanCurriculum = (() => {
       <button class="btn btn-solid" id="svPickerSave" onclick="PlanCurriculum.savePicker()">Spara</button>
     </div>
   </div>
+</div>
+<div class="modal-overlay" id="svAiModal">
+  <div class="modal modal-md sv-picker-modal" role="dialog" aria-modal="true" aria-labelledby="svAiTitle">
+    <div class="modal-header">
+      <div>
+        <h3 id="svAiTitle">Föreslagna kopplingar</h3>
+        <p class="sv-picker-sub" id="svAiSub"></p>
+      </div>
+      <button class="btn btn-text btn-icon modal-close" onclick="PlanCurriculum.closeModal('svAiModal')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body sv-picker-body" id="svAiBody"></div>
+    <div class="modal-footer">
+      <span class="course-source">Förslag från Claude Haiku. Kontrollera innan du kopplar.</span>
+      <button class="btn btn-outline" onclick="PlanCurriculum.closeModal('svAiModal')">Avbryt</button>
+      <button class="btn btn-solid" id="svAiSave" onclick="PlanCurriculum.acceptSuggestions()" hidden>Koppla</button>
+    </div>
+  </div>
 </div>`);
-    ['coursePickerModal', 'svPickerModal'].forEach(id => {
+    ['coursePickerModal', 'svPickerModal', 'svAiModal'].forEach(id => {
       document.getElementById(id).addEventListener('click', e => { if (e.target.id === id) closeModal(id); });
     });
     document.addEventListener('keydown', e => {
       if (e.key !== 'Escape') return;
-      ['svPickerModal', 'coursePickerModal'].forEach(id => {
+      ['svAiModal', 'svPickerModal', 'coursePickerModal'].forEach(id => {
         if (document.getElementById(id)?.classList.contains('open')) closeModal(id);
       });
     });
-    lucide.createIcons({ nodes: [document.getElementById('coursePickerModal'), document.getElementById('svPickerModal')] });
+    lucide.createIcons({ nodes: ['coursePickerModal', 'svPickerModal', 'svAiModal'].map(id => document.getElementById(id)) });
   }
 
   function closeModal(id) {
@@ -1008,8 +1025,121 @@ const PlanCurriculum = (() => {
     changed();
   }
 
+  // ── Föreslå kopplingar (Claude Haiku, supabase/functions/suggest-links) ──
+  // AI:n får kursens hela centrala innehåll och uppläggets aktiviteter och
+  // föreslår par (aktivitet, punkt) med en motivering. Inget kopplas förrän
+  // läraren har godkänt det; punkter som inte är valda än läggs till då.
+  let aiSuggestions = [];
+
+  async function aiErrorText(e) {
+    try {
+      const body = await e?.context?.json();
+      if (body?.error) return body.error;
+    } catch (_) { /* inget svar att läsa */ }
+    return 'AI-förslagen gick inte att hämta. Försök igen om en stund.';
+  }
+
+  async function suggestLinks() {
+    if (hooks.readOnly()) return;
+    closeAllMenuPopovers();
+    if (!cur) { openCoursePicker(); return; }
+    const body = document.getElementById('svAiBody');
+    const save = document.getElementById('svAiSave');
+    const message = text => { body.innerHTML = `<p class="course-empty">${escapeHTML(text)}</p>`; };
+    document.getElementById('svAiSub').textContent = C.courseLabel(cur) + (cur.reform ? ` (${cur.reform})` : '');
+    save.hidden = true;
+    aiSuggestions = [];
+    document.getElementById('svAiModal').classList.add('open');
+
+    const lessons = numberedLessons();
+    const acts = lessons.flatMap(l => l.activities.map(a => ({ ...a, lesson: l.free ? '' : l.name })));
+    if (!acts.length) return message('Lägg till aktiviteter först, så föreslår AI:n vilket centralt innehåll de passar.');
+    message('Läser aktiviteterna och Skolverkets text… Det tar oftast några sekunder.');
+    try {
+      if (!catalog) { catalog = await C.subject(cur.schoolType, cur.subject); catalogKey = cur.schoolType + '/' + cur.subject; }
+    } catch (e) {
+      return message('Kunde inte hämta Skolverkets text. Kontrollera uppkopplingen och försök igen.');
+    }
+    const items = catalogItems('content');
+    if (!items.length) return message(`Skolverket har inget centralt innehåll för ${C.courseLabel(cur)}.`);
+
+    let res;
+    try {
+      const { data, error } = await LossiAuth.client.functions.invoke('suggest-links', {
+        body: {
+          course: C.courseLabel(cur),
+          items: items.map(it => ({ id: it.id, heading: it.heading || '', text: C.plainText((it.lead ? it.lead + ' ' : '') + it.text) })),
+          activities: acts.map(a => ({ id: a.id, title: a.title, type: a.type || '', desc: a.desc || '', lesson: a.lesson })),
+        },
+      });
+      if (error) throw error;
+      res = data;
+    } catch (e) {
+      console.warn('Föreslå kopplingar:', e);
+      return message(await aiErrorText(e));
+    }
+    if (!document.getElementById('svAiModal').classList.contains('open')) return;
+
+    // Det som redan är kopplat visas inte igen
+    const byId = new Map(items.map(it => [it.id, it]));
+    const actIds = new Set(acts.map(a => a.id));
+    aiSuggestions = (res?.suggestions || []).filter(s =>
+      byId.has(s.itemId) && actIds.has(s.activityId) && !(find('content', s.itemId)?.activities || []).includes(s.activityId));
+    if (!aiSuggestions.length) return message('AI:n hittade inga nya kopplingar att föreslå. Prova att skriva en beskrivning på aktiviteterna, så blir förslagen bättre.');
+
+    let html = '<p class="sv-picker-help">Bocka ur det som inte stämmer och välj Koppla.</p>';
+    lessons.forEach(l => l.activities.forEach(a => {
+      const mine = aiSuggestions.map((s, i) => ({ s, i })).filter(({ s }) => s.activityId === a.id);
+      if (!mine.length) return;
+      html += `<div class="sv-picker-group">${escapeHTML(l.free ? a.title : `Gruppering ${l.number} › ${a.title}`)}</div>`;
+      mine.forEach(({ s, i }) => {
+        const it = byId.get(s.itemId);
+        html += `<label class="sv-picker-option">
+          <input type="checkbox" value="${i}" checked />
+          <span class="sv-ai-option-text">
+            <span>${C.leadHTML(it)}${C.textHTML(it.text)}</span>
+            ${s.reason ? `<span class="sv-ai-reason">${escapeHTML(s.reason)}</span>` : ''}
+            ${find('content', it.id) ? '' : `<span class="sv-ai-new">Läggs till under ${escapeHTML(C.contentTitle(cur))}</span>`}
+          </span>
+        </label>`;
+      });
+    }));
+    html += '<p class="sv-ai-note">Aktiviteternas namn och beskrivningar skickades till Anthropic för förslaget. Skriv inte elevers namn i aktiviteterna.</p>';
+    body.innerHTML = html;
+    save.hidden = false;
+    const count = () => {
+      const n = body.querySelectorAll('input:checked').length;
+      save.textContent = n ? `Koppla (${n})` : 'Koppla';
+      save.disabled = !n;
+    };
+    body.onchange = count;
+    count();
+  }
+
+  function acceptSuggestions() {
+    if (!cur || !catalog || hooks.readOnly()) return;
+    const items = catalogItems('content');
+    const picked = [...document.querySelectorAll('#svAiBody input:checked')].map(i => aiSuggestions[Number(i.value)]).filter(Boolean);
+    picked.forEach(s => {
+      let item = find('content', s.itemId);
+      if (!item) {
+        const fromCatalog = items.find(it => it.id === s.itemId);
+        if (!fromCatalog) return;
+        item = C.savedItem(fromCatalog, 'content');
+        cur.content.push(item);
+      }
+      item.activities = [...new Set([...(item.activities || []), s.activityId])];
+    });
+    // Katalogens ordning, som när man bockar för själv (punkter som inte finns hos Skolverket sist)
+    const order = new Map(items.map((it, i) => [it.id, i]));
+    cur.content.sort((a, b) => (order.get(a.id) ?? 1e9) - (order.get(b.id) ?? 1e9));
+    closeModal('svAiModal');
+    changed();
+  }
+
   return {
     init, set, get, refreshLessons, openCoursePicker, pickSchoolType, renderCourseOptions, chooseSubject, backToSubjects,
     chooseLevel, clearCourse, ensureForGrade, applyFromAi, forgetActivities, openPicker, savePicker, closeModal, remove, useNewText, showStep, openLessons, openItem, unlink,
+    suggestLinks, acceptSuggestions,
   };
 })();

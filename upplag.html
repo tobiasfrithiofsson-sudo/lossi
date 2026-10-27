@@ -3677,6 +3677,23 @@
     }
   }
 
+  // Bekräftelse nere på sidan, en stund (samma utseende som sparstatusen)
+  function showPageToast(html) {
+    let el = document.getElementById('pageToast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'pageToast';
+      el.className = 'save-status page-toast';
+      el.setAttribute('role', 'status');
+      document.body.appendChild(el);
+    }
+    el.innerHTML = html;
+    lucide.createIcons({ nodes: [el] });
+    requestAnimationFrame(() => el.classList.add('is-visible'));
+    clearTimeout(showPageToast.timer);
+    showPageToast.timer = setTimeout(() => el.classList.remove('is-visible'), 6000);
+  }
+
   function closePublishModal() {
     document.getElementById('publishModal').classList.remove('open');
   }
@@ -3700,11 +3717,9 @@
     try {
       const authorName = profileName(LossiAuth.profileOf(planUser)) || '';
       const id = await LossiData.publishPlan(planKey, marketSnapshot(), { authorName });
-      showPublishMessage(`Publicerat! <a href="upplag.html?market=${id}">Visa på marknadsplatsen</a>`);
-      btn.textContent = 'Publicera igen';
-      publishedEntry = { id };
-      document.getElementById('publishUnpublishBtn').hidden = false;
-      syncPublishButton();
+      // Klart: dialogen stängs och en bekräftelse visas nere på sidan
+      closePublishModal();
+      showPageToast(`<i data-lucide="circle-check"></i>Upplägget är publicerat på marknadsplatsen. <a href="upplag.html?market=${id}">Visa</a>`);
     } catch (e) {
       console.warn('Kunde inte publicera:', e);
       showPublishMessage('Kunde inte publicera upplägget. Kontrollera uppkopplingen och försök igen.', true);
@@ -3718,6 +3733,7 @@
     try {
       await LossiData.unpublishPlan(publishedEntry.id);
       closePublishModal();
+      showPageToast('<i data-lucide="circle-check"></i>Upplägget är borttaget från marknadsplatsen.');
     } catch (e) {
       console.warn('Kunde inte avpublicera:', e);
       showPublishMessage('Kunde inte ta bort upplägget från marknadsplatsen. Försök igen om en stund.', true);

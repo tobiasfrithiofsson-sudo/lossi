@@ -33,14 +33,14 @@ Princip: **Lossi hittar inte på något eget i läroplanen.** Läraren väljer u
 - **Skapa/Fyll i med AI** (2026-10-25): AI:n skriver aldrig läroplanstext som sparas. Instruktionen har fältet `kurs` och ber om ordagranna punkter; Lossi letar upp kursen (`findCourse`) och punkterna (`matchItems`, ordlikhet ≥ 0,6 eller ordagrant utdrag) i curriculum.js och lägger in Skolverkets text. Har upplägget redan en kurs får AI:n i Fyll i kursens punkter med koder (c3, k1) och svarar med koderna. Förhandsvisningen visar "Skolverkets text" för träffar; det som inte hittas är överstruket och sparas bara som egen rad om läraren kryssar i det. Fyll i ersätter de valda Skolverket-punkterna (anteckningar/lektioner följer med på kvarvarande) och lägger egna rader till sist.
 - Möjliga nästa steg: visa kopplade punkter från lektionens håll, AI som föreslår punkter ur katalogen (aldrig egen text).
 
-## SQL (1–5 körda; 6 väntar)
+## SQL (Tobias har kört alla 1–6; 6 bekräftad 2026-10-27)
 Alla filer går att köra om. Ordning: efter `projects.sql`, `notifications.sql`, `feedback-admin.sql`.
 1. `supabase/calendar-shared.sql` – medlemmar ser varandras kalenderhändelser (#9). Tobias testade kalendern men hade inte kollat kollegornas lektioner.
 2. `supabase/project-classes.sql` – klasser tillhör projektet.
 3. `supabase/access-codes.sql` – fristående koder, onboarding. **Utan den går det inte att skapa konto med kod live.**
 4. Om (3) kördes före 2026-10-22 kl ~22: den lilla uppdateringen av `require_invite_code()` (kod krävs av alla, även inbjudna) – den finns redan i filen, så det räcker att köra om hela `access-codes.sql`.
 5. `supabase/personal-private.sql` (2026-10-23) – den egna ytan kan inte delas: spärrar inbjudningar och medlemskap där, tar bort obesvarade inbjudningar och flyttar ut medlemmar som redan var med (deras upplägg flyttas till deras egen yta). Körd 2026-10-23.
-6. `supabase/marketplace.sql` (2026-10-27) – marknadsplatsen: tabellerna market_plans och market_files och regler för filerna under market/<id>/ i hinken plan-files. Kräver files.sql och feedback-admin.sql. **Inte bekräftad körd ännu.**
+6. `supabase/marketplace.sql` (2026-10-27) – marknadsplatsen: tabellerna market_plans och market_files och regler för filerna under market/<id>/ i hinken plan-files. Kräver files.sql och feedback-admin.sql. Körd 2026-10-27.
 Efter (3): skapa en kod på **Admin → Koder** för att testa onboardingen live.
 
 ## Läget

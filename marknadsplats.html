@@ -35,71 +35,128 @@
   <aside class="app-aside"></aside>
 
   <main class="mp-main">
-    <!-- Teaser: Marknadsplatsen finns inte än. Texten till vänster, en påhittad förhandsvisning till höger. -->
-    <section class="mp-teaser" aria-labelledby="mpTitle">
-      <div class="mp-text">
-        <span class="mp-badge">På gång</span>
-        <h1 class="mp-title" id="mpTitle">Vi bygger Marknadsplatsen</h1>
-        <p class="mp-lead">Hämta inspiration från upplägg som andra lärare har publicerat – inte bara från kollegorna i ditt projekt. Lossi arbetar på att ta fram Marknadsplatsen.</p>
-        <button type="button" class="btn btn-solid" onclick="openFeedbackModal()">
-          <i data-lucide="lightbulb"></i>
-          Tipsa oss om vad du vill se
-        </button>
-        <ul class="mp-features">
-          <li><i data-lucide="compass"></i>Utforska upplägg som andra skapare har publicerat</li>
-          <li><i data-lucide="list-filter"></i>Hitta rätt på ämne, årskurs och centralt innehåll</li>
-          <li><i data-lucide="copy"></i>Kopiera ett upplägg till dina egna och gör det till ditt</li>
-          <li><i data-lucide="send"></i>Publicera dina egna upplägg och inspirera andra</li>
-        </ul>
-        <p class="mp-note">Marknadsplatsen är under utveckling. Upplägg och namn i bilden är påhittade exempel.</p>
+    <div class="mp-header">
+      <div>
+        <h1 class="mp-title">Marknadsplats</h1>
+        <p class="mp-lead">Upplägg som lärare i Lossi har publicerat. Förhandsvisa dem och gör en egen kopia med Använd. Publicera dina egna från uppläggets ⋯-meny.</p>
       </div>
+    </div>
 
-      <div class="mp-visual" aria-hidden="true">
-        <span class="mp-visual-badge"><i data-lucide="candy"></i></span>
-        <div class="mp-window">
-          <div class="mp-window-head">
-            <span class="mp-window-title"><i data-lucide="candy"></i>Marknadsplats</span>
-            <span class="mp-window-search"><i data-lucide="search"></i>Sök upplägg</span>
-          </div>
-          <div class="mp-window-filters">
-            <span class="mp-chip is-on">Alla ämnen</span>
-            <span class="mp-chip">Samhällskunskap</span>
-            <span class="mp-chip">Biologi</span>
-            <span class="mp-chip">Matematik</span>
-          </div>
-          <div class="mp-cards" id="mpCards"></div>
-        </div>
+    <div class="filter-bar mp-filters">
+      <div class="choice-search mp-search">
+        <i data-lucide="search"></i>
+        <input type="search" id="mpSearch" placeholder="Sök upplägg, ämne eller författare" oninput="renderMarket()" autocomplete="off" />
       </div>
-    </section>
+      <div class="filter-toggle" id="mpOwnerFilter" role="group" aria-label="Visa">
+        <button type="button" data-owner="all" aria-pressed="true" onclick="setMarketOwner('all')">Alla</button>
+        <button type="button" data-owner="mine" aria-pressed="false" onclick="setMarketOwner('mine')">Mina publicerade</button>
+      </div>
+      <div class="btn btn-subtle filter-select">
+        <i data-lucide="book-open"></i>
+        <select id="mpSubject" onchange="renderMarket()" aria-label="Ämne"><option value="">Alla ämnen</option></select>
+        <i data-lucide="chevron-down" class="filter-select-chevron"></i>
+      </div>
+      <div class="btn btn-subtle filter-select">
+        <i data-lucide="users"></i>
+        <select id="mpGrade" onchange="renderMarket()" aria-label="Årskurs"><option value="">Alla årskurser</option></select>
+        <i data-lucide="chevron-down" class="filter-select-chevron"></i>
+      </div>
+    </div>
+
+    <div class="mp-grid" id="mpGrid" aria-live="polite"></div>
+    <p class="mp-empty" id="mpEmpty" hidden></p>
   </main>
 </div>
 
 <script>
   LossiAuth.requireUser().then(applyUserProfile);
   renderAppShell({ active: 'marketplace' });
-
-  // Påhittade exempel i förhandsvisningen (ingen riktig data)
-  const MP_EXAMPLES = [
-    { title: 'Klimatet och vi', meta: 'Geografi · Åk 8', avatar: 'sunrise', name: 'Sara Lind', face: 'bird' },
-    { title: 'Bråk i vardagen', meta: 'Matematik · Åk 5', avatar: 'cube', name: 'Johan Berg', face: 'squirrel' },
-    { title: 'Argumenterande text', meta: 'Svenska · Åk 9', avatar: 'balance', name: 'Amira Khalil', face: 'cat' },
-    { title: 'Ekosystem i närmiljön', meta: 'Biologi · Åk 7', avatar: 'mushroom', name: 'Erik Holm', face: 'turtle' },
-  ];
-  document.getElementById('mpCards').innerHTML = MP_EXAMPLES.map(e => `
-    <div class="mp-card">
-      <div class="mp-card-icon plan-icon-image">${planAvatarImgHTML(e.avatar)}</div>
-      <div class="mp-card-text">
-        <div class="mp-card-title">${escapeHTML(e.title)}</div>
-        <div class="mp-card-meta">
-          ${escapeHTML(e.meta)} ·
-          <span class="mp-card-face">${userAvatarHTML({ displayName: e.name }, e.face)}</span>
-          ${escapeHTML(e.name)}
-        </div>
-      </div>
-    </div>`).join('');
-
   lucide.createIcons();
   syncThemeIcons();
+
+  // ── Marknadsplatsen ──
+  // Publicerade upplägg (LossiData.listMarketPlans, supabase/marketplace.sql),
+  // senast publicerade först. Sök i titel, ämne och författare; filtrera på
+  // ämne och årskurs. Ett kort öppnar upplägget i läsläge (upplag.html?market=…).
+  let marketPlans = [];
+  let me = null;
+  let ownerFilter = 'all';
+
+  async function loadMarket() {
+    const empty = document.getElementById('mpEmpty');
+    try {
+      [marketPlans, me] = await Promise.all([LossiData.listMarketPlans(), LossiAuth.getUser()]);
+    } catch (e) {
+      console.warn('Kunde inte hämta marknadsplatsen:', e);
+      empty.textContent = e?.code === 'PGRST205' || /market_plans/.test(e?.message || '')
+        ? 'Marknadsplatsen är inte aktiverad i databasen än.'
+        : 'Kunde inte hämta marknadsplatsen. Ladda om sidan för att försöka igen.';
+      empty.hidden = false;
+      return;
+    }
+    fillFilter('mpSubject', 'Alla ämnen', marketPlans.map(p => p.subject));
+    fillFilter('mpGrade', 'Alla årskurser', marketPlans.map(p => gradeLabel(p.grade)));
+    renderMarket();
+  }
+
+  function fillFilter(id, allLabel, values) {
+    const select = document.getElementById(id);
+    const current = select.value;
+    const options = mergeChoices(values.filter(Boolean)).sort((a, b) => a.localeCompare(b, 'sv', { numeric: true }));
+    select.innerHTML = `<option value="">${allLabel}</option>` + options.map(v => `<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`).join('');
+    select.value = options.includes(current) ? current : '';
+  }
+
+  function setMarketOwner(value) {
+    ownerFilter = value;
+    document.querySelectorAll('#mpOwnerFilter button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.owner === value)));
+    renderMarket();
+  }
+
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  function renderMarket() {
+    const q = norm(document.getElementById('mpSearch').value.trim());
+    const subject = document.getElementById('mpSubject').value;
+    const grade = document.getElementById('mpGrade').value;
+    const shown = marketPlans.filter(p =>
+      (ownerFilter === 'all' || p.ownerId === me?.id)
+      && (!subject || sameChoice(p.subject, subject))
+      && (!grade || gradeLabel(p.grade) === grade)
+      && (!q || [p.title, p.subject, p.authorName].some(t => norm(t).includes(q))));
+    document.getElementById('mpGrid').innerHTML = shown.map(p => {
+      const meta = [p.subject, gradeLabel(p.grade)].filter(Boolean).join(' · ');
+      const when = new Date(p.updatedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
+      return `
+      <a class="mp-card" href="upplag.html?market=${p.id}">
+        <div class="mp-card-top">
+          <div class="mp-card-icon plan-icon-image">${planAvatarImgHTML(p.avatar)}</div>
+          ${p.ownerId === me?.id ? '<span class="mp-card-mine">Ditt</span>' : ''}
+        </div>
+        <div class="mp-card-title">${escapeHTML(p.title || 'Namnlöst upplägg')}</div>
+        <div class="mp-card-meta">${escapeHTML(meta || 'Inget ämne')}</div>
+        <div class="mp-card-foot">
+          <span class="mp-card-author">
+            <span class="mp-card-face">${userAvatarHTML({ displayName: p.authorName || '?' })}</span>
+            <span class="mp-card-name">${escapeHTML(p.authorName || 'En lärare')}</span>
+          </span>
+          <span class="mp-card-stats">
+            ${p.fileCount ? `<span title="${p.fileCount} ${p.fileCount === 1 ? 'fil' : 'filer'}"><i data-lucide="paperclip"></i>${p.fileCount}</span>` : ''}
+            ${p.uses ? `<span title="Använt ${p.uses} ${p.uses === 1 ? 'gång' : 'gånger'}"><i data-lucide="copy"></i>${p.uses}</span>` : ''}
+            <span title="Publicerat">${escapeHTML(when)}</span>
+          </span>
+        </div>
+      </a>`;
+    }).join('');
+    const empty = document.getElementById('mpEmpty');
+    empty.hidden = shown.length > 0;
+    empty.textContent = marketPlans.length
+      ? 'Inga upplägg matchar. Prova en annan sökning eller ett annat filter.'
+      : 'Inga upplägg publicerade än. Bli först: öppna ett av dina upplägg och välj Publicera på marknadsplatsen i ⋯-menyn.';
+    lucide.createIcons({ nodes: [document.getElementById('mpGrid')] });
+  }
+
+  loadMarket();
 </script>
 </body>
 </html>

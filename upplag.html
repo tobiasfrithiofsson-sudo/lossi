@@ -147,6 +147,10 @@
             <span class="edit-only">Duplicera upplägg</span>
             <span class="read-only">Duplicera till mina upplägg</span>
           </button>
+          <button class="menu-popover-item edit-only owner-only" onclick="openPublishModal()">
+            <i data-lucide="send"></i>
+            Publicera på marknadsplatsen
+          </button>
           <div class="menu-popover-sep edit-only owner-only"></div>
           <button class="menu-popover-item menu-popover-item-danger edit-only owner-only" onclick="confirmDeletePlan()">
             <i data-lucide="trash-2"></i>
@@ -154,6 +158,26 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Ett publicerat upplägg på marknadsplatsen (upplag.html?market=…, bootMarket) -->
+  <div class="read-banner market-banner" id="marketBanner" hidden>
+    <div class="read-banner-avatar" id="marketBannerAvatar"></div>
+    <div class="read-banner-text" id="marketBannerText"></div>
+    <div class="read-banner-actions">
+      <button type="button" class="btn btn-text read-banner-btn" onclick="reportMarketPlan()">
+        <i data-lucide="flag"></i>
+        Rapportera
+      </button>
+      <button type="button" class="btn btn-outline btn-danger read-banner-btn" id="marketRemoveBtn" onclick="removeMarketPlan()" hidden>
+        <i data-lucide="trash-2"></i>
+        Ta bort från marknadsplatsen
+      </button>
+      <button type="button" class="btn btn-solid read-banner-btn" id="marketUseBtn" onclick="useThisMarketPlan()">
+        <i data-lucide="copy-plus"></i>
+        Använd upplägget
+      </button>
     </div>
   </div>
 
@@ -1033,6 +1057,28 @@
   </div>
 </div>
 
+<!-- ── Modal: Publicera på marknadsplatsen (openPublishModal) ── -->
+<div class="modal-overlay" id="publishModal" onclick="if (event.target === this) closePublishModal()">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="publishTitle">
+    <div class="modal-header">
+      <h3 id="publishTitle">Publicera på marknadsplatsen</h3>
+      <button class="btn btn-text btn-icon modal-close" onclick="closePublishModal()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body publish-body">
+      <p class="publish-lead">Alla med konto i Lossi kan se, förhandsvisa och använda upplägget. Filerna följer med, och ditt namn visas som författare. Det som publiceras är upplägget som det ser ut nu – dina fortsatta ändringar syns inte förrän du publicerar igen.</p>
+      <p class="publish-status" id="publishStatus" hidden></p>
+      <label class="publish-check"><input type="checkbox" id="publishRights" onchange="syncPublishButton()" /><span>Jag har rätt att dela innehållet och filerna, till exempel bilder och texter.</span></label>
+      <label class="publish-check"><input type="checkbox" id="publishNoStudents" onchange="syncPublishButton()" /><span>Upplägget innehåller inga uppgifter om elever, som namn eller omdömen.</span></label>
+      <p class="password-message" id="publishMessage" role="status" hidden></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-danger publish-unpublish" id="publishUnpublishBtn" onclick="unpublishCurrentPlan()" hidden>Avpublicera</button>
+      <button class="btn btn-outline" onclick="closePublishModal()">Avbryt</button>
+      <button class="btn btn-solid" id="publishBtn" onclick="publishCurrentPlan()" disabled>Publicera</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Modal: Ta bort gruppering ── -->
 <div class="modal-overlay" id="deleteLessonModal" onclick="if (event.target === this) closeDeleteLessonModal()">
   <div class="modal modal-sm">
@@ -1098,11 +1144,13 @@
   // Read plan ID from URL
   const params = new URLSearchParams(window.location.search);
   const planId = params.get('id');
+  // Ett publicerat upplägg på marknadsplatsen visas i läsläge (bootMarket)
+  const marketId = params.get('market');
 
   const planKey = planId || '';
 
   LossiAuth.requireUser().then(applyUserProfile);
-  renderAppShell({ active: 'plans', currentPlanId: planKey });
+  renderAppShell({ active: marketId ? 'marketplace' : 'plans', currentPlanId: planKey });
   lucide.createIcons();
   syncThemeIcons();
 
@@ -1327,6 +1375,7 @@
 
   async function duplicatePlan() {
     closeAllMenuPopovers();
+    if (marketId) return useThisMarketPlan();
     if (planActionBusy || !planLoaded) return;
     planActionBusy = true;
     // I läsläge är fälten låsta; kopian ska gå att redigera
@@ -3582,6 +3631,182 @@
   };
 
   // Läroplanen (curriculum.js): Skolverkets punkter, kopplade till lektionerna
+  // ── Marknadsplatsen ──
+  // Publicera: en ögonblicksbild av upplägget (utan klass, status och kalenderns
+  // datum) och kopior av filerna (LossiData.publishPlan). Ett publicerat upplägg
+  // visas i läsläge (upplag.html?market=…); Använd gör en egen kopia med filerna.
+  let publishedEntry = null;
+
+  function marketSnapshot() {
+    const state = collectState();
+    ['klass', 'statusKey', 'statusLabel', 'demoKey'].forEach(k => delete state[k]);
+    const tpl = document.createElement('template');
+    tpl.innerHTML = state.structureHTML || '';
+    tpl.content.querySelectorAll('.lesson-schedule-btn').forEach(el => el.remove());
+    tpl.content.querySelectorAll('.week-row.done').forEach(el => el.classList.remove('done'));
+    state.structureHTML = tpl.innerHTML;
+    return state;
+  }
+
+  async function openPublishModal() {
+    closeAllMenuPopovers();
+    if (!planLoaded || planReadOnly || !planIsOwner) return;
+    ['publishRights', 'publishNoStudents'].forEach(id => { document.getElementById(id).checked = false; });
+    document.getElementById('publishMessage').hidden = true;
+    const status = document.getElementById('publishStatus');
+    status.hidden = true;
+    publishedEntry = null;
+    document.getElementById('publishUnpublishBtn').hidden = true;
+    document.getElementById('publishBtn').textContent = 'Publicera';
+    syncPublishButton();
+    document.getElementById('publishModal').classList.add('open');
+    try {
+      publishedEntry = await LossiData.marketPlanForSource(planKey);
+    } catch (e) {
+      console.warn('Kunde inte läsa marknadsplatsen:', e);
+      showPublishMessage('Marknadsplatsen är inte aktiverad i databasen än (supabase/marketplace.sql).', true);
+      return;
+    }
+    if (publishedEntry) {
+      const when = new Date(publishedEntry.updatedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' });
+      status.innerHTML = `<i data-lucide="circle-check"></i><span>Publicerat ${when}. <a href="upplag.html?market=${publishedEntry.id}">Visa på marknadsplatsen</a></span>`;
+      status.hidden = false;
+      lucide.createIcons({ nodes: [status] });
+      document.getElementById('publishUnpublishBtn').hidden = false;
+      document.getElementById('publishBtn').textContent = 'Publicera igen';
+    }
+  }
+
+  function closePublishModal() {
+    document.getElementById('publishModal').classList.remove('open');
+  }
+
+  function syncPublishButton() {
+    document.getElementById('publishBtn').disabled = !(document.getElementById('publishRights').checked && document.getElementById('publishNoStudents').checked);
+  }
+
+  function showPublishMessage(text, isError = false) {
+    const el = document.getElementById('publishMessage');
+    el.innerHTML = text;
+    el.classList.toggle('is-error', isError);
+    el.hidden = false;
+  }
+
+  async function publishCurrentPlan() {
+    const btn = document.getElementById('publishBtn');
+    btn.disabled = true;
+    const label = btn.textContent;
+    btn.textContent = 'Publicerar…';
+    try {
+      const authorName = profileName(LossiAuth.profileOf(planUser)) || '';
+      const id = await LossiData.publishPlan(planKey, marketSnapshot(), { authorName });
+      showPublishMessage(`Publicerat! <a href="upplag.html?market=${id}">Visa på marknadsplatsen</a>`);
+      btn.textContent = 'Publicera igen';
+      publishedEntry = { id };
+      document.getElementById('publishUnpublishBtn').hidden = false;
+      syncPublishButton();
+    } catch (e) {
+      console.warn('Kunde inte publicera:', e);
+      showPublishMessage('Kunde inte publicera upplägget. Kontrollera uppkopplingen och försök igen.', true);
+      btn.textContent = label;
+      btn.disabled = false;
+    }
+  }
+
+  async function unpublishCurrentPlan() {
+    if (!publishedEntry || !confirm('Ta bort upplägget från marknadsplatsen? Kopior som andra redan gjort finns kvar hos dem.')) return;
+    try {
+      await LossiData.unpublishPlan(publishedEntry.id);
+      closePublishModal();
+    } catch (e) {
+      console.warn('Kunde inte avpublicera:', e);
+      showPublishMessage('Kunde inte ta bort upplägget från marknadsplatsen. Försök igen om en stund.', true);
+    }
+  }
+
+  let marketEntry = null;
+
+  async function bootMarket() {
+    let user;
+    try {
+      [marketEntry, user] = await Promise.all([LossiData.getMarketPlan(marketId), LossiAuth.getUser()]);
+    } catch (e) {
+      console.warn('Kunde inte läsa det publicerade upplägget:', e);
+      document.getElementById('planLoadingText').textContent = 'Kunde inte hämta upplägget.';
+      document.querySelector('#planLoadingView .btn-spinner').hidden = true;
+      return;
+    }
+    if (!marketEntry) { window.location.replace('marknadsplats.html'); return; }
+    planUser = user;
+    planOwnerId = marketEntry.ownerId;
+    planIsOwner = false;
+    applyState(marketEntry.state);
+    setPlanDate('detailCreated', marketEntry.publishedAt);
+    setPlanDate('detailUpdated', marketEntry.updatedAt);
+    document.querySelectorAll('#structureList .file-chip-sm, #structureList .attached-files').forEach(el => el.remove());
+    lucide.createIcons({ nodes: ['goalsList', 'criteriaList', 'structureList'].map(id => document.getElementById(id)) });
+    const title = document.getElementById('planTitle').textContent.trim() || 'Namnlöst upplägg';
+    document.title = title + ' | Marknadsplats | Lossi';
+    document.getElementById('crumbTitle').textContent = title;
+    const crumb = document.querySelector('.breadcrumbs .breadcrumb-link:not(#crumbProject)');
+    crumb.textContent = 'Marknadsplats';
+    crumb.href = 'marknadsplats.html';
+    document.getElementById('sec-panel-people').hidden = true;
+    recalcLessonTimes();
+    enterReadOnly();
+    PlanCurriculum.refreshLessons();
+    document.body.classList.remove('plan-loading');
+    document.body.classList.add('market-mode');
+    planFiles = marketEntry.files;
+    renderPlanFiles();
+    planLoaded = true;
+    renderMarketBanner(user);
+  }
+
+  function renderMarketBanner(user) {
+    const m = marketEntry;
+    const name = escapeHTML(m.authorName || 'En lärare');
+    document.getElementById('marketBannerAvatar').innerHTML = userAvatarHTML({ displayName: m.authorName || '?' });
+    document.getElementById('marketBannerText').innerHTML = `<strong>${name}</strong> har publicerat upplägget på marknadsplatsen${m.uses ? ` · använt ${m.uses} ${m.uses === 1 ? 'gång' : 'gånger'}` : ''}. Du kan läsa och exportera det, och göra en egen kopia med Använd.`;
+    document.getElementById('marketRemoveBtn').hidden = !(user && (user.id === m.ownerId || user.app_metadata?.role === 'admin'));
+    const banner = document.getElementById('marketBanner');
+    banner.hidden = false;
+    lucide.createIcons({ nodes: [banner] });
+  }
+
+  async function useThisMarketPlan() {
+    if (!marketEntry) return;
+    const btn = document.getElementById('marketUseBtn');
+    btn.disabled = true;
+    try {
+      const project = await LossiData.currentProject().catch(() => null);
+      const id = await LossiData.useMarketPlan(marketEntry.id, project?.id);
+      window.location = 'upplag.html?id=' + id;
+    } catch (e) {
+      console.warn('Kunde inte använda upplägget:', e);
+      alert('Kunde inte kopiera upplägget. Kontrollera uppkopplingen och försök igen.');
+      btn.disabled = false;
+    }
+  }
+
+  function reportMarketPlan() {
+    openFeedbackModal();
+    const field = document.getElementById('feedbackMessage');
+    field.value = `Rapport om "${marketEntry?.title || 'upplägget'}" på marknadsplatsen (nr ${marketId}): `;
+    field.focus();
+  }
+
+  async function removeMarketPlan() {
+    if (!marketEntry || !confirm('Ta bort upplägget från marknadsplatsen? Kopior som andra redan gjort finns kvar hos dem.')) return;
+    try {
+      await LossiData.unpublishPlan(marketEntry.id);
+      window.location.replace('marknadsplats.html');
+    } catch (e) {
+      console.warn('Kunde inte ta bort från marknadsplatsen:', e);
+      alert('Kunde inte ta bort upplägget. Försök igen om en stund.');
+    }
+  }
+
   PlanCurriculum.init({
     save: () => saveState(),
     readOnly: () => planReadOnly,
@@ -3604,6 +3829,7 @@
 
   // ── Start: läs in upplägget och initiera sidan ──
   (async function boot() {
+    if (marketId) return bootMarket();
     let state, info, user;
     try {
       [info, user] = await Promise.all([LossiData.loadPlanInfo(planKey), LossiAuth.getUser()]);

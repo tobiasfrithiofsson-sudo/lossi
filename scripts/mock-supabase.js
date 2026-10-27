@@ -76,7 +76,9 @@
       if (q.op === 'insert') {
         // Som databasen: skaparen är den inloggade, projektet det egna om inget anges
         const defaults = table === 'plans' ? { owner_id: user.id, project_id: 1 }
-          : table === 'plan_files' ? { uploaded_by: user.id, created_at: new Date().toISOString() } : {};
+          : table === 'plan_files' ? { uploaded_by: user.id, created_at: new Date().toISOString() }
+          : table === 'market_plans' ? { owner_id: user.id, uses: 0, published_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+          : table === 'market_files' ? { created_at: new Date().toISOString() } : {};
         const first = nextId(); // flera rader på en gång får olika id
         const ins = [].concat(q.p).map((p, i) => ({ id: first + i, ...defaults, ...p }));
         rows().push(...ins); res = ins;
@@ -136,6 +138,13 @@
         return { data: { path }, error: null };
       },
       remove: async paths => { paths.forEach(p => delete stored[p]); persistStorage(); return { data: paths, error: null }; },
+      copy: async (from, to) => {
+        if (!stored[from]) return { data: null, error: { message: 'Object not found' } };
+        stored[to] = { ...stored[from] };
+        if (window.__mockBlobs?.[from]) window.__mockBlobs[to] = window.__mockBlobs[from];
+        persistStorage();
+        return { data: { path: to }, error: null };
+      },
       createSignedUrl: async (path, secs, opts) => stored[path]
         ? { data: { signedUrl: (!opts?.download && window.__mockBlobs?.[path]) || `mock://${bucket}/${path}?download=${encodeURIComponent(opts?.download || '')}` }, error: null }
         : { data: null, error: { message: 'Object not found' } },
@@ -272,6 +281,8 @@
         return { data: p.id, error: null };
       }
       if (name === 'feedback_admin_list') return { data: fb, error: null };
+      // Marknadsplatsen (supabase/marketplace.sql)
+      if (name === 'count_market_use') { const m = (tables.market_plans || []).find(x => String(x.id) === String(params.mid)); if (m) m.uses = (m.uses || 0) + 1; persist(); return { data: null, error: null }; }
       if (name === 'feedback_admin_update') { const f = fb.find(x => x.id === params.p_id); Object.assign(f, { status: params.p_status, note: params.p_note || null }); return { data: null, error: null }; }
       return { data: null, error: { code: 'PGRST202' } };
     },

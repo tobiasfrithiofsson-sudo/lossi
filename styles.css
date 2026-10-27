@@ -4555,3 +4555,19 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
   .lesson-group .lesson-more { margin-left: auto; }
 }
 
+
+/* ============================================================
+   MARKNADSPLATSEN I UPPLÄGGET (upplag.html: Publicera, ?market=…)
+   ============================================================ */
+.publish-body { display: flex; flex-direction: column; gap: 12px; }
+.publish-lead { margin: 0; font-size: var(--font-size-md); line-height: 1.5; color: var(--color-text-secondary); }
+.publish-status { display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 12px; border-radius: var(--radius-md); background: var(--color-primary-light); font-size: var(--font-size-base); }
+.publish-status[hidden] { display: none; }
+.publish-status svg { width: 16px; height: 16px; color: var(--color-primary); flex-shrink: 0; }
+.publish-check { display: flex; align-items: flex-start; gap: 10px; font-size: var(--font-size-md); line-height: 1.45; cursor: pointer; }
+.publish-check input { margin-top: 3px; flex-shrink: 0; }
+#publishMessage a, .publish-status a { color: var(--color-primary); font-weight: 600; }
+#publishMessage.is-error { color: #C2413B; }
+.publish-unpublish { margin-right: auto; }
+.publish-unpublish[hidden] { display: none; }
+body.market-mode #readBanner { display: none !important; }

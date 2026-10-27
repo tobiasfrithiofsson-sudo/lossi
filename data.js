@@ -643,6 +643,110 @@ const LossiData = (() => {
     return data.signedUrl;
   }
 
+  // Kopierar en lagrad fil till en ny sökväg i samma hink (samma ändelse)
+  async function copyStoredFile(fromPath, toFolder) {
+    const ext = (/\.([a-z0-9]+)$/i.exec(fromPath)?.[1] || '').toLowerCase();
+    const random = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+    const path = `${toFolder}/${random}.${ext}`;
+    const { error } = await db().storage.from(FILE_BUCKET).copy(fromPath, path);
+    if (error) throw error;
+    return path;
+  }
+
+  // ── Marknadsplatsen (supabase/marketplace.sql) ──
+  // Ett publicerat upplägg = { id, sourcePlanId, ownerId, authorName, title, subject,
+  // grade, avatar, uses, publishedAt, updatedAt, state? }. Det är en ögonblicksbild:
+  // upplägget och kopior av dess filer (under market/<id>/ i hinken).
+  const MARKET_COLUMNS = 'id, source_plan_id, owner_id, author_name, title, subject, grade, avatar, uses, published_at, updated_at';
+
+  function toMarket(r) {
+    return {
+      id: String(r.id), sourcePlanId: r.source_plan_id != null ? String(r.source_plan_id) : null, ownerId: r.owner_id,
+      authorName: r.author_name || '', title: r.title || '', subject: r.subject || '', grade: r.grade || '', avatar: r.avatar || null,
+      uses: r.uses || 0, publishedAt: r.published_at, updatedAt: r.updated_at, state: r.state || null,
+    };
+  }
+
+  function toMarketFile(r) {
+    return { id: 'm' + r.id, marketId: String(r.market_id), activityId: r.activity_id || null, name: r.name, size: Number(r.size), mime: r.mime, path: r.path };
+  }
+
+  // Alla publicerade upplägg, senast publicerade först, med antal filer
+  async function listMarketPlans() {
+    const [rows, files] = await Promise.all([
+      db().from('market_plans').select(MARKET_COLUMNS).order('updated_at', { ascending: false }),
+      db().from('market_files').select('market_id'),
+    ]);
+    const counts = new Map();
+    (check(files) || []).forEach(f => counts.set(String(f.market_id), (counts.get(String(f.market_id)) || 0) + 1));
+    return check(rows).map(r => ({ ...toMarket(r), fileCount: counts.get(String(r.id)) || 0 }));
+  }
+
+  // Ett publicerat upplägg med state och filer (null om det inte finns)
+  async function getMarketPlan(id) {
+    if (!/^\d+$/.test(String(id))) return null;
+    const row = check(await db().from('market_plans').select('*').eq('id', id).maybeSingle());
+    if (!row) return null;
+    const files = check(await db().from('market_files').select('*').eq('market_id', id).order('created_at'));
+    return { ...toMarket(row), files: files.map(toMarketFile) };
+  }
+
+  // Har upplägget publicerats? { id, publishedAt, updatedAt } eller null
+  async function marketPlanForSource(planId) {
+    const row = check(await db().from('market_plans').select('id, published_at, updated_at').eq('source_plan_id', planId).maybeSingle());
+    return row ? { id: String(row.id), publishedAt: row.published_at, updatedAt: row.updated_at } : null;
+  }
+
+  async function removeMarketFiles(marketId) {
+    const files = check(await db().from('market_files').select('id, path').eq('market_id', marketId));
+    if (!files.length) return;
+    await removeStoredFiles(files.map(f => f.path));
+    check(await db().from('market_files').delete().eq('market_id', marketId));
+  }
+
+  // Publicerar (eller publicerar igen) ett eget upplägg: state + kopior av filerna
+  async function publishPlan(planId, state, { authorName = '' } = {}) {
+    const fields = {
+      author_name: authorName.slice(0, 120), title: (state.title || '').slice(0, 300), subject: (state.subject || '').slice(0, 120),
+      grade: (state.grade || '').slice(0, 60), avatar: state.avatar || null, state,
+    };
+    const existing = await marketPlanForSource(planId);
+    let marketId;
+    if (existing) {
+      check(await db().from('market_plans').update({ ...fields, updated_at: new Date().toISOString() }).eq('id', existing.id));
+      marketId = existing.id;
+      await removeMarketFiles(marketId);
+    } else {
+      marketId = String(check(await db().from('market_plans').insert({ ...fields, source_plan_id: Number(planId) }).select('id').single()).id);
+    }
+    const files = await listPlanFiles(planId);
+    for (const f of files) {
+      const path = await copyStoredFile(f.path, `market/${marketId}`);
+      check(await db().from('market_files').insert({ market_id: Number(marketId), activity_id: f.activityId, name: f.name, size: f.size, mime: f.mime, path }));
+    }
+    return marketId;
+  }
+
+  async function unpublishPlan(marketId) {
+    await removeMarketFiles(marketId);
+    check(await db().from('market_plans').delete().eq('id', marketId));
+  }
+
+  // Använd: en egen kopia (i valt projekt) med kopior av filerna. Returnerar nya id:t.
+  async function useMarketPlan(marketId, projectId) {
+    const market = await getMarketPlan(marketId);
+    if (!market) throw new Error('Upplägget finns inte längre på marknadsplatsen.');
+    const state = { ...market.state, createdAt: new Date().toISOString() };
+    delete state.demoKey;
+    const planId = await createPlan(state, projectId);
+    for (const f of market.files) {
+      const path = await copyStoredFile(f.path, planId);
+      check(await db().from('plan_files').insert({ plan_id: Number(planId), activity_id: f.activityId, name: f.name, size: f.size, mime: f.mime, path }));
+    }
+    await db().rpc('count_market_use', { mid: Number(marketId) });
+    return planId;
+  }
+
   // ── Feedback från testare (tabellen feedback, supabase/feedback.sql) ──
   async function sendFeedback({ kind, message, page, context }) {
     check(await db().from('feedback').insert({ kind, message, page, context }));
@@ -695,5 +799,6 @@ const LossiData = (() => {
     sendFeedback, listAllFeedback, updateFeedback,
     listAccessCodes, createAccessCode, setAccessCodeUntil, closeAccessCode,
     listPlanFiles, uploadPlanFile, deletePlanFiles, fileDownloadUrl, fileViewUrl, fileProblem, FILE_MAX_BYTES,
+    listMarketPlans, getMarketPlan, marketPlanForSource, publishPlan, unpublishPlan, useMarketPlan,
   };
 })();

@@ -1111,7 +1111,7 @@ const PlanCurriculum = (() => {
     body.classList.toggle('is-compact', state === 'results');
     mascot.setThinking(state === 'loading');
     mascot.setLove(state === 'done');
-    mascot.setMood({ intro: 'normal', loading: 'curious', results: 'happy', done: 'happy', none: 'normal', error: 'sad' }[state] || 'normal');
+    mascot.setMood({ intro: 'normal', loading: 'normal', results: 'happy', done: 'happy', none: 'normal', error: 'sad' }[state] || 'normal');
 
     let html = '';
     if (state === 'intro' && !cur) {

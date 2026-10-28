@@ -13,8 +13,7 @@
 //                           (ögonvitorna växer samtidigt från 64 till 70 px,
 //                           munnen blir en öppen wow-mun)
 //   m.blink()
-//   m.setThinking(true/false) – tittar upp åt ena och sedan andra hållet, munnen
-//                    grubblar snett, och siffror och tecken svävar upp ovanför och
+//   m.setThinking(true/false) – tittar upp åt ena och sedan andra hållet, och siffror och tecken svävar upp ovanför och
 //                    bleknar bort. Följer inte pekaren under tiden (lookAt gör
 //                    inget). Tecknen läggs i värdens förälder, som behöver
 //                    position: relative och vara lika stor som maskoten.
@@ -67,8 +66,7 @@ function createMascot(host, { mouthScale = 1 } = {}) {
   };
   // Hjärtläget: en öppen, fylld "wow"-mun (rak överkant, rund underkant) efter Tobias skiss
   const LOVE_MOUTH = 'M 85 100 Q 85 97 88 97 L 112 97 Q 115 97 115 100 C 115 108 108 113 100 113 C 92 113 85 108 85 100 Z';
-  // Tänkande: munnen lutar åt ena eller andra hållet, ögonen tittar snett upp åt samma håll
-  const THINK_MOUTHS = ['M 86 114 Q 98 110 110 106', 'M 90 106 Q 102 110 114 114'];
+  // Tänkande: ögonen tittar snett upp, åt ena och sedan andra hållet
   const THINK_LOOKS = [[-10, -19], [10, -19]];
   const THOUGHTS = ['5', '7', '2', '{4}', 'mc²', '#', 'π', 'x²', '√', '∑', '?', '%', '=', '🔨'];
   const calm = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -104,7 +102,7 @@ function createMascot(host, { mouthScale = 1 } = {}) {
 
   function drawMouth() {
     const mouth = svg.querySelector('.mascot-mouth');
-    mouth.setAttribute('d', love ? LOVE_MOUTH : thinking ? THINK_MOUTHS[thinking.side] : MOUTHS[mood] || MOUTHS.normal);
+    mouth.setAttribute('d', love ? LOVE_MOUTH : MOUTHS[mood] || MOUTHS.normal);
     mouth.setAttribute('fill', love ? '#fff' : 'none');
     mouth.setAttribute('stroke', love ? 'none' : '#fff');
   }
@@ -157,7 +155,6 @@ function createMascot(host, { mouthScale = 1 } = {}) {
       thinking.layer.remove();
       thinking = null;
       center();
-      drawMouth();
       return;
     }
     const layer = document.createElement('div');
@@ -168,7 +165,6 @@ function createMascot(host, { mouthScale = 1 } = {}) {
     const turn = () => {
       const [x, y] = THINK_LOOKS[thinking.side];
       eyes.forEach(eye => { eye.querySelector('.mascot-pupil').style.transform = `translate(${x}px, ${y}px)`; });
-      drawMouth();
     };
     turn();
     if (calm.matches) return;

@@ -3944,6 +3944,7 @@
       subject: document.getElementById('detailSubject').textContent.trim(),
       grade: document.getElementById('detailGrade').textContent.trim(),
       klass: document.getElementById('classPickerTrigger').dataset.klass || '',
+      classes: classItems().map(i => i.name),
       description: document.querySelector('.idea-text').innerText.trim(),
       course: ctx?.course || '',
       contentTitle: ctx?.contentTitle || '',
@@ -3968,6 +3969,7 @@
       curriculum: PlanCurriculum.get(),
       subject: document.getElementById('detailSubject').textContent,
       grade: document.getElementById('detailGrade').textContent,
+      klass: document.getElementById('classPickerTrigger').dataset.klass || '',
     };
     const made = {};   // N1 … → Lossis id för det som skapats i förslaget
     const skipped = [];
@@ -4040,6 +4042,10 @@
         if (w.id === openActivityId) closeActivity(w.id);
         PlanCurriculum.forgetActivities([w.id]);
         w.remove();
+      } else if (c.op === 'set_class') {
+        const klass = classItems().find(i => sameChoice(i.name, c.klass))?.name;
+        if (!klass) { skipped.push(`Klassen "${c.klass}" finns inte i projektet längre.`); continue; }
+        renderClassTag(klass);
       } else if (c.op === 'set_course') {
         // Kursen letades upp i Skolverkets lista när förslaget kom (ai-chat.js, resolveCourses)
         if (!c.resolved) { skipped.push(`Kursen "${c.course}" finns inte i Skolverkets lista. Välj kurs under Centralt innehåll.`); continue; }
@@ -4076,6 +4082,7 @@
     document.getElementById('structureList').innerHTML = chatUndo.before.structureHTML;
     document.getElementById('detailSubject').textContent = chatUndo.before.subject;
     document.getElementById('detailGrade').textContent = chatUndo.before.grade;
+    renderClassTag(chatUndo.before.klass);
     PlanCurriculum.set(chatUndo.before.curriculum);
     chatUndo = null;
     initAllSortables();

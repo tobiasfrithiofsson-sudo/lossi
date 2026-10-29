@@ -301,6 +301,8 @@ const PlanChat = (() => {
         }
         case 'delete_activity':
           return { kind: 'delete', html: `Ta bort <strong>${name(c.activity)}</strong>` };
+        case 'set_class':
+          return { kind: 'add', html: `Sätt klassen <strong>${escapeHTML(c.klass)}</strong>` };
         case 'set_course':
           return c.resolved
             ? { kind: 'add', html: `Välj kursen <strong>${escapeHTML(LossiCurriculum.courseLabel(c.resolved))}</strong>` }

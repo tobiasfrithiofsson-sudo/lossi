@@ -56,6 +56,7 @@ Så svarar du
 - Skriv därför aldrig att något redan är gjort. Skriv kort vad du föreslår, och anropa sedan verktyget. Högst ett förslag per svar.
 - Använd bara id som finns i upplägget (G1, A1 …). Nya grupperingar och aktiviteter får egna id (N1, N2 …) som senare ändringar i samma förslag kan peka på.
 - Föreslå bara att något tas bort om läraren ber om det.
+- Klass: med ändringen set_class kan du sätta uppläggets klass, men bara till en av "Klasser i projektet". Nämner läraren en klass som inte finns där, säg att den först behöver läggas till under Projektinställningar › Klasser (eller skrivas in under Detaljer › Klass).
 - Aktivitetstyper: Genomgång (läraren går igenom), Diskussion (samtal), Aktivitet (övning, lek, skapande, grupparbete), Läsning, Exit ticket (kort avstämning i slutet) och Förberedelse (lärarens egen förberedelse före tillfället; den har ingen tid).
 - Beskrivningar skrivs till läraren: vad som görs och hur, konkret och genomförbart, 1–4 meningar.
 
@@ -124,6 +125,7 @@ const OPS = [
     type: { anyOf: [{ type: 'string', enum: TYPES }, { type: 'null' }] }, title: nullable('string'), minutes: nullable('integer'), description: nullable('string'),
   } },
   { op: 'delete_activity', props: { activity: { type: 'string' } } },
+  { op: 'set_class', props: { klass: { type: 'string', description: 'En av klasserna i projektet, t.ex. "7B"' } } },
   { op: 'set_course', props: { course: { type: 'string', description: 'Kursen med Skolverkets namn, t.ex. "Samhällskunskap, årskurs 7–9"; bara när upplägget saknar kurs' } } },
   { op: 'link_curriculum', props: { activity: { type: 'string', description: 'A1 … eller N2 …' }, item: { type: 'string', description: 'C1 …' } } },
 ];
@@ -155,7 +157,7 @@ const TOOL = {
 type Act = { id: string; type?: string; title?: string; minutes?: number | null; desc?: string; links?: string[] };
 type Plan = {
   title?: string; subject?: string; grade?: string; klass?: string; description?: string; course?: string; contentTitle?: string;
-  chosen?: string[]; ownGoals?: string[];
+  chosen?: string[]; ownGoals?: string[]; classes?: string[];
   groupings?: { id: string; name?: string; minutes?: number | null; activities?: Act[] }[];
   free?: Act[];
   curriculum?: { id: string; heading?: string; text: string }[];
@@ -182,7 +184,8 @@ function planText(plan: Plan) {
     `Titel: ${clip(plan.title, 200)}`,
     plan.subject ? `Ämne: ${clip(plan.subject, 80)}` : '',
     plan.grade ? `Årskurs: ${clip(plan.grade, 40)}` : '',
-    plan.klass ? `Klass: ${clip(plan.klass, 40)}` : '',
+    `Klass: ${clip(plan.klass, 40) || 'ingen vald'}`,
+    `Klasser i projektet: ${(plan.classes || []).slice(0, 200).map(k => clip(k, 40)).join(', ') || 'inga'}`,
     plan.course ? `Kurs: ${clip(plan.course, 200)}` : 'Kurs: ingen vald',
     plan.description ? `Beskrivning: ${clip(plan.description, 2000)}` : '',
     chosen ? `\nValt ur läroplanen (${clip(plan.contentTitle, 60) || 'Centralt innehåll'}) – uppläggets mål:\n${chosen}` : '',
@@ -234,6 +237,12 @@ function cleanChanges(changes: Change[], plan: Plan) {
         return activities.has(String(c.activity)) ? [{ op: c.op, activity: c.activity }] : [];
       case 'set_course':
         return plan.course ? [] : [{ op: c.op, course: clip(c.course, 120) }];
+      case 'set_class': {
+        // Bara en klass som finns i projektet, med projektets stavning
+        const want = clip(c.klass, 40).toLowerCase();
+        const klass = (plan.classes || []).find(k => String(k).toLowerCase() === want);
+        return klass ? [{ op: c.op, klass }] : [];
+      }
       case 'link_curriculum': {
         const a = String(c.activity);
         return (activities.has(a) || newActivities.has(a)) && items.has(String(c.item)) ? [{ op: c.op, activity: a, item: c.item }] : [];

@@ -903,7 +903,7 @@
             <span class="read-field-label">Ämne</span>
             <div class="popover-wrap" onclick="event.stopPropagation()">
               <div class="class-picker-trigger" onclick="openChoiceMenu(this, subjectChoices)" title="Välj eller skriv in ämne">
-                <span class="class-tag" id="detailSubject">Samhällskunskap</span>
+                <span class="class-tag" id="detailSubject" data-empty="Ej angivet">Samhällskunskap</span>
               </div>
               <div class="menu-popover choice-menu" id="subjectMenu">
                 <div class="choice-search">
@@ -1889,7 +1889,8 @@
   // ska inte dyka upp igen för att ett upplägg använder den). Utan: som förut.
   function classItems() {
     const names = projectClassesReady() ? mergeChoices(planProject.classes) : mergeChoices(savedChoices('classes'), classesFromPlans);
-    return names.map(name => ({ name, removable: true }));
+    // Projektets klasser tas bara bort i Projektinställningar › Klasser
+    return names.map(name => ({ name, removable: !projectClassesReady() }));
   }
 
   const classChoices = createChoiceList({
@@ -1897,6 +1898,7 @@
     list: document.getElementById('classOptions'),
     getItems: classItems,
     getCurrent: () => document.getElementById('classPickerTrigger').dataset.klass,
+    onClear: clearClass,
     emptyText: 'Projektet har inga klasser än. Skriv namnet på en klass, t.ex. <strong>7B</strong>, och tryck Enter.',
     onPick: (name, isNew) => {
       selectClass(name);
@@ -1923,12 +1925,17 @@
     project: null,
     getCurrent: () => document.getElementById('detailSubject').textContent.trim(),
     onPick: name => setDetailField('detailSubject', name),
+    onClear: () => setDetailField('detailSubject', ''),
   });
 
   // Årskurs: förslag F–9, men läraren skriver vad som passar (t.ex. 7–9 eller Gy 1)
   const gradeChoices = initGradeChoices(document.getElementById('gradeInput'), document.getElementById('gradeOptions'), {
     project: null,
     getCurrent: () => document.getElementById('detailGrade').textContent.trim(),
+    onClear: () => {
+      setDetailField('detailGrade', '');
+      PlanCurriculum.ensureForGrade(); // en tom förskolekoppling tas bort
+    },
     onPick: name => {
       setDetailField('detailGrade', normalizeGrade(name));
       PlanCurriculum.ensureForGrade(); // Förskola → förskolans läroplan (curriculum.js)

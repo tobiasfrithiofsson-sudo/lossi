@@ -216,11 +216,13 @@ function planFieldValues(field) {
 //   getItems()     – [{ name, removable }]
 //   getCurrent()   – valt värde (markeras med bock)
 //   onPick(name, isNew), onForget(name)
+//   onClear()      – det valda kan väljas bort (× på den markerade raden): uppläggets
+//                    värde blir tomt, men alternativet finns kvar i listan
 //   emptyText      – visas när det inte finns några förslag alls
 //   inline         – listan visas under fältet när det har fokus (Skapa-dialogen);
 //                    annars ligger den i en popover som öppnas på annat sätt
 //   allowAdd       – false: bara befintliga val (inget "Lägg till …"), t.ex. projektets medlemmar
-function createChoiceList({ input, list, getItems, getCurrent = () => '', onPick, onForget, emptyText, inline = false, allowAdd = true }) {
+function createChoiceList({ input, list, getItems, getCurrent = () => '', onPick, onForget, onClear, emptyText, inline = false, allowAdd = true }) {
   let highlight = 0;
 
   function options() {
@@ -247,7 +249,8 @@ function createChoiceList({ input, list, getItems, getCurrent = () => '', onPick
         : `<div class="choice-option${i === highlight ? ' is-active' : ''}${sameChoice(o.name, current) ? ' is-selected' : ''}" role="option" data-index="${i}" aria-selected="${sameChoice(o.name, current)}">
              <span class="choice-option-name">${escapeHTML(o.name)}${o.meta ? `<span class="choice-option-meta">${escapeHTML(o.meta)}</span>` : ''}</span>
              ${sameChoice(o.name, current) ? '<i data-lucide="check" class="choice-option-check"></i>' : ''}
-             ${o.removable ? `<button type="button" class="choice-option-forget" data-forget="${escapeHTML(o.name)}" title="Ta bort ur listan" aria-label="Ta bort ${escapeHTML(o.name)} ur listan"><i data-lucide="x"></i></button>` : ''}
+             ${onClear && sameChoice(o.name, current) ? `<button type="button" class="choice-option-forget choice-option-clear" title="Välj bort" aria-label="Välj bort ${escapeHTML(o.name)}"><i data-lucide="x"></i></button>` : ''}
+             ${o.removable && !sameChoice(o.name, current) ? `<button type="button" class="choice-option-forget" data-forget="${escapeHTML(o.name)}" title="Ta bort ur listan" aria-label="Ta bort ${escapeHTML(o.name)} ur listan"><i data-lucide="x"></i></button>` : ''}
            </div>`).join('')
       : `<div class="choice-empty">${getItems().length ? 'Inget matchar.' : emptyText}</div>`;
     if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [list] });
@@ -308,6 +311,12 @@ function createChoiceList({ input, list, getItems, getCurrent = () => '', onPick
   }
   // mousedown i stället för click, så att fältet inte tappar fokus först
   list.addEventListener('mousedown', async e => {
+    if (e.target.closest('.choice-option-clear')) {
+      e.preventDefault();
+      onClear();
+      render();
+      return;
+    }
     const forget = e.target.closest('.choice-option-forget');
     if (forget) {
       e.preventDefault();
@@ -362,7 +371,8 @@ function choiceItems(key, project = null) {
   return names.map(name => ({
     name,
     meta: key === 'grades' ? GRADE_META[name] : undefined,
-    removable: own || !suggestions.some(s => sameChoice(s, name)),
+    // Projektets listor ändras bara i Projektinställningar, inte i väljaren
+    removable: !own && !suggestions.some(s => sameChoice(s, name)),
   }));
 }
 
@@ -376,13 +386,13 @@ function rememberProjectChoice(key, name, project) {
 
 // project: vilket projekts listor som gäller. Utan värde hämtas det valda
 // projektet; upplag.html sätter uppläggets projekt med setProject().
-function initSavedChoices(key, input, list, { inline = false, getCurrent, onPick, project: fixed }) {
+function initSavedChoices(key, input, list, { inline = false, getCurrent, onPick, onClear, project: fixed }) {
   const kind = CHOICE_KINDS[key];
   let project = null;
   planFieldValues(kind.planField).then(v => { choicesFromPlans[key] = v; });
   if (fixed === undefined) LossiData.currentProject().then(p => { project = p; }).catch(() => {});
   const choices = createChoiceList({
-    input, list, inline, getCurrent,
+    input, list, inline, getCurrent, onClear,
     getItems: () => choiceItems(key, project),
     emptyText: kind.emptyText,
     onPick: (name, isNew) => {

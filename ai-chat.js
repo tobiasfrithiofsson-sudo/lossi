@@ -301,6 +301,10 @@ const PlanChat = (() => {
         }
         case 'delete_activity':
           return { kind: 'delete', html: `Ta bort <strong>${name(c.activity)}</strong>` };
+        case 'set_course':
+          return c.resolved
+            ? { kind: 'add', html: `Välj kursen <strong>${escapeHTML(LossiCurriculum.courseLabel(c.resolved))}</strong>` }
+            : { kind: 'delete', html: `Hittade ingen kurs som heter <strong>${escapeHTML(c.course)}</strong>. Välj kurs under Centralt innehåll.` };
         case 'link_curriculum':
           return { kind: 'link', html: `Koppla <strong>${name(c.activity)}</strong> till <span class="ai-op-meta">${name(c.item)}</span>` };
         default:
@@ -434,6 +438,7 @@ const PlanChat = (() => {
         throw new Error(message);
       }
       await readStream(res.body, reply, snap);
+      if (reply.proposal) await resolveCourses(reply.proposal);
     } catch (e) {
       console.warn('Planera med AI:', e);
       reply.error = e.message || 'Svaret gick inte att hämta. Försök igen om en stund.';
@@ -484,6 +489,14 @@ const PlanChat = (() => {
     }
     if (paint) cancelAnimationFrame(paint);
     if (!reply.text && !reply.proposal && !reply.error) reply.error = 'Svaret blev tomt. Försök igen.';
+  }
+
+  // En kurs som AI:n skrivit med ord letas upp i Skolverkets lista direkt, så att
+  // kortet visar rätt namn (eller att den inte finns)
+  async function resolveCourses(p) {
+    for (const c of p.changes) {
+      if (c.op === 'set_course') c.resolved = (await hooks.findCourse?.(c.course)) || null;
+    }
   }
 
   // Förslaget sparas med id-tabellen från när frågan ställdes (G1 → grupperingens id …)

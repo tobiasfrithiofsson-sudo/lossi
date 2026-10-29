@@ -3963,7 +3963,12 @@
   function applyChatChanges(changes, maps) {
     if (planReadOnly || !planLoaded) return { skipped: ['Upplägget går inte att ändra.'] };
     const list = document.getElementById('structureList');
-    const before = { structureHTML: structureHTMLForSave(), curriculum: PlanCurriculum.get() };
+    const before = {
+      structureHTML: structureHTMLForSave(),
+      curriculum: PlanCurriculum.get(),
+      subject: document.getElementById('detailSubject').textContent,
+      grade: document.getElementById('detailGrade').textContent,
+    };
     const made = {};   // N1 … → Lossis id för det som skapats i förslaget
     const skipped = [];
     const touched = [];
@@ -4035,6 +4040,10 @@
         if (w.id === openActivityId) closeActivity(w.id);
         PlanCurriculum.forgetActivities([w.id]);
         w.remove();
+      } else if (c.op === 'set_course') {
+        // Kursen letades upp i Skolverkets lista när förslaget kom (ai-chat.js, resolveCourses)
+        if (!c.resolved) { skipped.push(`Kursen "${c.course}" finns inte i Skolverkets lista. Välj kurs under Centralt innehåll.`); continue; }
+        if (!PlanCurriculum.setCourse(c.resolved)) skipped.push('Upplägget har redan en kurs med valda punkter, så kursen byttes inte.');
       } else if (c.op === 'link_curriculum') {
         const activityId = maps.A?.[c.activity] || made[c.activity];
         const itemId = maps.C?.[c.item];
@@ -4065,6 +4074,8 @@
     if (!canUndoChat(token)) return;
     if (openActivityId) closeActivity(openActivityId);
     document.getElementById('structureList').innerHTML = chatUndo.before.structureHTML;
+    document.getElementById('detailSubject').textContent = chatUndo.before.subject;
+    document.getElementById('detailGrade').textContent = chatUndo.before.grade;
     PlanCurriculum.set(chatUndo.before.curriculum);
     chatUndo = null;
     initAllSortables();
@@ -4076,6 +4087,8 @@
     planId: planKey,
     readOnly: () => planReadOnly || !planLoaded,
     snapshot: planForChat,
+    // Kursen AI:n skrivit med ord → Skolverkets kurs (eller null)
+    findCourse: text => LossiCurriculum.findCourse({ text, grade: document.getElementById('detailGrade').textContent.trim() }).catch(() => null),
     apply: applyChatChanges,
     undo: undoChatChanges,
     canUndo: canUndoChat,

@@ -1260,6 +1260,25 @@ const PlanCurriculum = (() => {
     return linked;
   }
 
+  // AI-chatten väljer kurs (course som courseOf, t.ex. från findCourse). Bara
+  // när upplägget saknar kurs eller inget är valt i den. Ämnet i Detaljer följer
+  // med som när läraren väljer själv. → true om kursen sattes.
+  function setCourse(course) {
+    if (hooks.readOnly() || !course) return false;
+    if (cur && (cur.content.length || cur.criteria.length)) return false;
+    cur = { ...course, content: [], criteria: [] };
+    catalog = null;
+    catalogKey = '';
+    const subjectEl = document.getElementById('detailSubject');
+    const whole = C.WHOLE_SCHOOL_TYPES[course.schoolType];
+    if (subjectEl && !whole) subjectEl.textContent = course.subjectName;
+    const gradeEl = document.getElementById('detailGrade');
+    if (gradeEl && whole) gradeEl.textContent = whole.grade;
+    changed();
+    loadCatalog();
+    return true;
+  }
+
   // För AI-chatten (ai-chat.js): kursen, dess centrala innehåll och vad varje
   // aktivitet är kopplad till. null = ingen kurs vald (eller texten gick inte att hämta).
   async function chatContext() {
@@ -1282,6 +1301,6 @@ const PlanCurriculum = (() => {
   return {
     init, set, get, refreshLessons, openCoursePicker, pickSchoolType, renderCourseOptions, chooseSubject, backToSubjects,
     chooseLevel, clearCourse, ensureForGrade, applyFromAi, forgetActivities, openPicker, savePicker, closeModal, remove, useNewText, showStep, openLessons, openItem, unlink,
-    suggestLinks, runSuggestions, acceptSuggestions, closeSuggestions, showEarlier, linkActivities, chatContext,
+    suggestLinks, runSuggestions, acceptSuggestions, closeSuggestions, showEarlier, linkActivities, chatContext, setCourse,
   };
 })();

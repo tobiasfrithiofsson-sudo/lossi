@@ -1121,6 +1121,8 @@ function buildInviteModalsHTML() {
         <li>Inga upplägg försvinner: varje upplägg flyttas tillbaka till skaparens första projekt (det man fick när kontot skapades).</li>
         <li>Medskapare förlorar sin redigeringsrätt på uppläggen.</li>
       </ul>
+      <label class="invite-label delete-project-confirm-label" for="deleteProjectConfirm">Skriv <strong id="deleteProjectName"></strong> för att bekräfta</label>
+      <input class="field-input" type="text" id="deleteProjectConfirm" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="onDeleteProjectConfirmInput()" onkeydown="if (event.key === 'Enter') deleteProjectConfirmed()" />
       <p class="password-message is-error" id="deleteProjectMessage" role="status" hidden></p>
     </div>
     <div class="modal-footer">
@@ -1702,8 +1704,10 @@ async function openDeleteProjectModal() {
   document.getElementById('deleteProjectText').textContent = others > 0
     ? `Projektet har ${others} ${others === 1 ? 'medlem' : 'medlemmar'} förutom dig. Det går inte att ångra.`
     : 'Det går inte att ångra.';
+  document.getElementById('deleteProjectName').textContent = project.name;
+  document.getElementById('deleteProjectConfirm').value = '';
   document.getElementById('deleteProjectMessage').hidden = true;
-  document.getElementById('deleteProjectBtn').disabled = false;
+  document.getElementById('deleteProjectBtn').disabled = true;
   document.getElementById('deleteProjectModal').classList.add('open');
   lucide.createIcons({ nodes: [document.getElementById('deleteProjectModal')] });
 }
@@ -1712,8 +1716,18 @@ function closeDeleteProjectModal() {
   document.getElementById('deleteProjectModal').classList.remove('open');
 }
 
+// Ta bort går först att välja när projektets namn skrivits in (stora/små bokstäver spelar ingen roll)
+function deleteProjectNameTyped() {
+  const clean = v => String(v || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  return !!projectToDelete && clean(document.getElementById('deleteProjectConfirm').value) === clean(projectToDelete.name);
+}
+
+function onDeleteProjectConfirmInput() {
+  document.getElementById('deleteProjectBtn').disabled = !deleteProjectNameTyped();
+}
+
 async function deleteProjectConfirmed() {
-  if (!projectToDelete) return;
+  if (!projectToDelete || !deleteProjectNameTyped()) return;
   const btn = document.getElementById('deleteProjectBtn');
   btn.disabled = true;
   try {

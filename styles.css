@@ -468,6 +468,8 @@ body.plan-loading .plan-loading-view {
   line-height: 1.5;
 }
 .delete-project-facts strong { color: var(--color-text-primary); font-weight: 600; }
+.delete-project-confirm-label { display: block; margin: 16px 0 6px; }
+.delete-project-confirm-label strong { color: var(--color-text-primary); font-weight: 600; }
 
 .aside-group + .aside-group { margin-top: 16px; }
 

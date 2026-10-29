@@ -13,7 +13,14 @@ const ACTIVITY_TYPES = {
   'Aktivitet':   { iconClass: 'icon-activity',    icon: 'star' },
   'Exit ticket': { iconClass: 'icon-exit',        icon: 'check-square' },
   'Läsning':     { iconClass: 'icon-reading',     icon: 'book-open' },
+  'Förberedelse': { iconClass: 'icon-prep',        icon: 'clipboard-list' },
 };
+
+// Förberedelse är lärarens (t.ex. FIGA-stilen i Föreslå lektion): den görs
+// före lektionen, visar "Före lektionen" i stället för minuter och räknas
+// inte in i grupperingens tid (parseMinutes ger 0).
+const PREP_TYPE = 'Förberedelse';
+const PREP_TIME_LABEL = 'Före lektionen';
 
 const GOAL_LISTS = {
   goalsList:    { icon: 'list-checks', iconClass: '',                    placeholder: 'Nytt centralt innehåll…' },
@@ -35,7 +42,8 @@ function textToHTML(text) {
 function buildActivityReadFields(type, descHTML, time) {
   const fields = [`<div class="read-field"><span class="read-field-label">Typ</span><span class="read-field-value">${escapeHTML(type)}</span></div>`];
   if (descHTML) fields.push(`<div class="read-field"><span class="read-field-label">Beskrivning</span><span class="read-field-value">${descHTML}</span></div>`);
-  if (time) fields.push(`<div class="read-field"><span class="read-field-label">Tid</span><span class="read-field-value">${escapeHTML(time)} min</span></div>`);
+  if (type === PREP_TYPE) fields.push(`<div class="read-field"><span class="read-field-label">Tid</span><span class="read-field-value">${PREP_TIME_LABEL}</span></div>`);
+  else if (time) fields.push(`<div class="read-field"><span class="read-field-label">Tid</span><span class="read-field-value">${escapeHTML(time)} min</span></div>`);
   return fields.join('\n        ');
 }
 
@@ -44,7 +52,7 @@ function buildActivityMarkup(id, { type = 'Diskussion', title = 'Ny aktivitet', 
   if (!ACTIVITY_TYPES[type]) type = 'Diskussion';
   const { iconClass, icon } = ACTIVITY_TYPES[type];
   const minutes = time == null || time === '' ? null : Math.max(0, Math.round(Number(time)) || 0);
-  const timeLabel = minutes == null ? '– min' : minutes + ' min';
+  const timeLabel = type === PREP_TYPE ? PREP_TIME_LABEL : minutes == null ? '– min' : minutes + ' min';
   const timeValue = minutes == null ? '0' : String(minutes);
   const safeTitle = escapeHTML(title);
   const descHTML = textToHTML(desc);
@@ -80,7 +88,7 @@ function buildActivityMarkup(id, { type = 'Diskussion', title = 'Ny aktivitet', 
           </div>
         </div>
       </div>
-      <div class="activity-form">
+      <div class="activity-form${type === PREP_TYPE ? ' is-prep' : ''}">
         <div class="field-group">
           <label class="field-label">Sammanfattning</label>
           <input class="field-input" type="text" value="${safeTitle}" placeholder="Beskriv aktiviteten kort" />
@@ -91,7 +99,7 @@ function buildActivityMarkup(id, { type = 'Diskussion', title = 'Ny aktivitet', 
             <div class="field-select-icon ${iconClass}">
               <i data-lucide="${icon}"></i>
             </div>
-            <select>
+            <select onchange="this.closest('.activity-form').classList.toggle('is-prep', this.value === PREP_TYPE)">
               ${options}
             </select>
           </div>
@@ -110,7 +118,7 @@ function buildActivityMarkup(id, { type = 'Diskussion', title = 'Ny aktivitet', 
             <div class="inline-editable-body" contenteditable="true" data-placeholder="Glöm inte bort vad som är viktigt">${descHTML}</div>
           </div>
         </div>
-        <div class="field-group">
+        <div class="field-group time-field">
           <label class="field-label">Tidsåtgång</label>
           <div class="time-input-wrap">
             <input class="time-input" type="number" value="${timeValue}" min="0" />

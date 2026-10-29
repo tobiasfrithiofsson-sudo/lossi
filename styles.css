@@ -2615,6 +2615,7 @@ body.edit-mode .activity-more-btn { display: grid; }
 .icon-activity   { background: #eaf2fe; color: #3b82f6; }
 .icon-exit       { background: #fee2e2; color: #dc2626; }
 .icon-reading    { background: #ccfbf1; color: #0d9488; }
+.icon-prep       { background: #e2e8f0; color: #475569; }
 
 /* In dark mode the light-mode pastels (near-white) would glow against
    the dark background, so swap to a low-opacity tint of the same hue
@@ -2625,6 +2626,9 @@ body.edit-mode .activity-more-btn { display: grid; }
 [data-theme="dark"] .icon-activity   { background: rgba(59, 130, 246, 0.18); color: #60a5fa; }
 [data-theme="dark"] .icon-exit       { background: rgba(220, 38, 38, 0.18);  color: #f87171; }
 [data-theme="dark"] .icon-reading    { background: rgba(13, 148, 136, 0.18); color: #2dd4bf; }
+[data-theme="dark"] .icon-prep       { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; }
+/* Förberedelse (lärarens, före lektionen) har ingen tidsåtgång */
+.activity-form.is-prep .time-field { display: none; }
 
 
 /* ============================================================

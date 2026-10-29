@@ -1249,6 +1249,21 @@
           desc: 'Eleverna skriver ner vad de fortfarande är osäkra på eller behöver undersöka vidare. Använd svaren för att planera nästa steg i momentet.' },
       ],
     },
+    figa: {
+      label: 'FIGA',
+      desc: 'Förberedelse, Introduktion, Genomförande och Avslutning.',
+      icon: 'list-ordered',
+      activities: [
+        { type: 'Förberedelse', title: 'Förberedelse inför lektionen',
+          desc: 'Din egen checklista före lektionen, utan lektionstid: material och kopior, teknik, lokal, gruppindelning och vad eleverna behöver ha med sig. Fundera också på vad eleverna redan kan och var det kan bli svårt.' },
+        { type: 'Genomgång', title: 'Introduktion', time: 10,
+          desc: 'Väck intresset och visa vad lektionen ska handla om och varför, till exempel med en fråga, en bild eller ett kort exempel. Berätta vad eleverna ska kunna efteråt och koppla till det de gjort tidigare.' },
+        { type: 'Aktivitet', title: 'Genomförande', time: 25,
+          desc: 'Lektionens tyngdpunkt: eleverna arbetar med innehållet, enskilt, i par eller i grupp. Cirkulera, lyssna och ge stöd där det behövs.' },
+        { type: 'Exit ticket', title: 'Avslutning', time: 10,
+          desc: 'Sammanfatta tillsammans vad ni gjort och lärt er, och knyt an till målet från introduktionen. Avsluta gärna med en kort exit ticket så att du vet var nästa lektion bör börja.' },
+      ],
+    },
   };
 
   // Uppläggsavataren: en bild ur PLAN_AVATARS (theme.js). Valet hör till
@@ -1742,7 +1757,7 @@
       const time = timeInput.value;
       timeInput.setAttribute('value', time);
       const timeEl = row.querySelector('.activity-time');
-      if (timeEl) timeEl.textContent = time + ' min';
+      if (timeEl) timeEl.textContent = typeSelect?.value === PREP_TYPE ? PREP_TIME_LABEL : time + ' min';
     }
 
     if (typeSelect && ACTIVITY_TYPES[typeSelect.value]) {
@@ -2110,6 +2125,7 @@
     'icon-activity':   { fg: '3B82F6', bg: 'EAF2FE' },
     'icon-exit':       { fg: 'DC2626', bg: 'FEE2E2' },
     'icon-reading':    { fg: '0D9488', bg: 'CCFBF1' },
+    'icon-prep':       { fg: '475569', bg: 'E2E8F0' },
   };
   const PPTX_NAVY = '16233F';
   const PPTX_BLUE = '2966CE';

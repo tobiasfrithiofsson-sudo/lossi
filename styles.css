@@ -503,9 +503,13 @@ body.plan-loading .plan-loading-view {
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  padding: 0;
+  border: none; /* Medlemmar är en knapp (öppnar inställningarna), de andra länkar */
   border-radius: var(--radius-xs);
+  background: none;
   color: var(--color-text-tertiary);
   text-decoration: none;
+  cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s, background 0.15s, color 0.15s;
 }

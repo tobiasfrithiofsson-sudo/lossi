@@ -2173,7 +2173,6 @@ function openCreatePlanModal() {
   document.getElementById('createPlanSubject').value = '';
   document.getElementById('createPlanGrade').value = '';
   document.getElementById('createPlanModal').classList.add('open');
-  name.focus();
 }
 
 function closeCreatePlanModal() {

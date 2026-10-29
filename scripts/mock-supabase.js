@@ -250,6 +250,12 @@
         persist();
         return { data: p[params.kind].slice(), error: null };
       }
+      // Administratörer i projekt (supabase/project-admins.sql); sparas bara tills sidan laddas om
+      if (name === 'set_project_member_role') {
+        const m = memberProfiles.find(x => x.project_id === params.pid && x.user_id === params.member);
+        if (m && m.role !== 'owner') m.role = params.new_role;
+        return { data: null, error: null };
+      }
       if (name === 'set_project_avatar') {
         tables.projects.find(x => x.id === Number(params.pid)).avatar = params.avatar_id || null;
         persist();

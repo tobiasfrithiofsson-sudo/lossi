@@ -311,6 +311,13 @@ const LossiData = (() => {
     return setCachedChoices(id, kind, check(await db().rpc('remove_project_choice', { pid: Number(id), kind, choice: value })));
   }
 
+  // Ägaren och administratörer gör en medlem till administratör ('admin') eller tillbaka ('member')
+  // (supabase/project-admins.sql)
+  async function setProjectMemberRole(id, userId, role) {
+    check(await db().rpc('set_project_member_role', { pid: Number(id), member: userId, new_role: role }));
+    projectsPromise = null;
+  }
+
   // Projektets avatar (id ur USER_AVATARS i theme.js; null = första bokstaven). Bara ägaren.
   async function setProjectAvatar(id, avatar) {
     check(await db().rpc('set_project_avatar', { pid: Number(id), avatar_id: avatar || '' }));
@@ -813,7 +820,7 @@ const LossiData = (() => {
   return {
     listPlans, listMyPlans, loadPlanStates, withFullStates, loadPlan, loadPlanInfo, savePlan,
     listProjects, currentProject, setCurrentProject, inviteByEmail, listProjectInvites, cancelInvite, answerInvite, listNotifications, markNotificationsRead,
-    createProject, renameProject, setProjectAvatar, addProjectClass, removeProjectClass, addProjectChoice, removeProjectChoice, removeProjectMember, leaveProject, deleteProject, findMember,
+    createProject, renameProject, setProjectAvatar, addProjectClass, removeProjectClass, addProjectChoice, removeProjectChoice, setProjectMemberRole, removeProjectMember, leaveProject, deleteProject, findMember,
     listPlanEditors, listMyEditRequests, requestPlanEdit, addPlanEditor, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,

@@ -822,6 +822,16 @@ function isProjectOwner(project, user) {
   return project.members.some(m => m.userId === user?.id && m.role === 'owner') || (project.personal && !project.members.length);
 }
 
+// Ägaren eller en administratör i projektet (supabase/project-admins.sql): kan
+// byta namn och avatar, ta bort medlemmar och ändra roller. Gäller bara
+// projektet, inte Lossis admin (app_metadata.role).
+function isProjectManager(project, user) {
+  return isProjectOwner(project, user) || project.members.some(m => m.userId === user?.id && m.role === 'admin');
+}
+
+const PROJECT_ROLE_LABELS = { owner: 'Ägare', admin: 'Administratör', member: 'Medlem' };
+const PROJECT_ROLE_ORDER = { owner: 0, admin: 1, member: 2 };
+
 // Sidans onProjectChange (översikten ritar om i stället för att ladda om), så att namnbytet kan rita om väljaren
 let projectSwitcherOnChange;
 
@@ -1270,13 +1280,13 @@ async function loadSettingsInvites() {
     box.innerHTML = '';
     return;
   }
-  const owner = isProjectOwner(settingsProject, settingsUser);
+  const manager = isProjectManager(settingsProject, settingsUser);
   box.innerHTML = invites.map(i => `
     <div class="pending-invite">
       <i data-lucide="mail" class="project-menu-glyph"></i>
       <span class="pending-invite-email">${escapeHTML(i.email)}</span>
       <span class="pending-invite-status">Väntar på svar</span>
-      ${owner || i.invitedBy === settingsUser?.id ? `<button type="button" class="btn btn-text btn-danger btn-xs" onclick="cancelSettingsInvite('${i.id}')">Ta tillbaka</button>` : ''}
+      ${manager || i.invitedBy === settingsUser?.id ? `<button type="button" class="btn btn-text btn-danger btn-xs" onclick="cancelSettingsInvite('${i.id}')">Ta tillbaka</button>` : ''}
     </div>`).join('');
   lucide.createIcons({ nodes: [box] });
 }
@@ -1294,7 +1304,8 @@ async function cancelSettingsInvite(id) {
 function renderProjectSettings() {
   const p = settingsProject;
   const owner = isProjectOwner(p, settingsUser);
-  const members = p.members.slice().sort((a, b) => (b.role === 'owner') - (a.role === 'owner'));
+  const manager = isProjectManager(p, settingsUser);
+  const members = p.members.slice().sort((a, b) => (PROJECT_ROLE_ORDER[a.role] ?? 2) - (PROJECT_ROLE_ORDER[b.role] ?? 2));
   const tab = settingsTabs().find(t => t.id === settingsTab) || PROJECT_SETTINGS_TABS[0];
   renderSettingsNav();
   const body = document.getElementById('projectSettingsBody');
@@ -1306,10 +1317,10 @@ function renderProjectSettings() {
         <span class="settings-avatar-preview" id="settingsAvatarPreview">${projectAvatarHTML(p, settingsAvatar)}</span>
         <div class="settings-name">
           <label class="invite-label" for="settingsName">Namn</label>
-          <input class="field-input" type="text" id="settingsName" maxlength="60" autocomplete="off" value="${escapeHTML(p.name)}" ${owner ? '' : 'disabled'} oninput="onSettingsNameInput()" />
+          <input class="field-input" type="text" id="settingsName" maxlength="60" autocomplete="off" value="${escapeHTML(p.name)}" ${manager ? '' : 'disabled'} oninput="onSettingsNameInput()" />
         </div>
       </div>
-      ${owner ? `
+      ${manager ? `
       <div class="settings-avatar-grid" role="radiogroup" aria-label="Projektets avatar">
         ${USER_AVATARS.map(a => `
           <button type="button" class="settings-avatar-option${(settingsAvatar || 'initials') === a.id ? ' is-selected' : ''}" role="radio" aria-checked="${(settingsAvatar || 'initials') === a.id}" title="${escapeHTML(a.id === 'initials' ? 'Bokstav' : a.label)}" onclick="pickSettingsAvatar('${a.id}')">
@@ -1319,7 +1330,7 @@ function renderProjectSettings() {
       <div class="settings-actions">
         <p class="password-message" id="settingsMessage" role="status" hidden></p>
         <button type="button" class="btn btn-solid" id="settingsSaveBtn" onclick="saveProjectSettings()" disabled>Spara</button>
-      </div>` : '<p class="settings-note">Bara projektets ägare kan ändra namn och avatar.</p>'}
+      </div>` : '<p class="settings-note">Bara projektets ägare och administratörer kan ändra namn och avatar.</p>'}
     </section>
 
     <section class="settings-section settings-danger">
@@ -1343,11 +1354,16 @@ function renderProjectSettings() {
               <span class="settings-member-name">${escapeHTML(profileName(profile) || 'Okänd')}${me ? ' <span class="settings-you">(du)</span>' : ''}</span>
               <span class="settings-member-email">${escapeHTML(m.email || '')}</span>
             </span>
-            <span class="settings-role">${m.role === 'owner' ? 'Ägare' : 'Medlem'}</span>
-            ${owner && m.role !== 'owner' ? `<button type="button" class="btn btn-text btn-danger btn-xs" onclick="removeMemberFromSettings('${m.userId}')">Ta bort</button>` : ''}
+            <span class="settings-role${m.role === 'admin' ? ' is-admin' : ''}">${PROJECT_ROLE_LABELS[m.role] || 'Medlem'}</span>
+            ${manager && m.role !== 'owner' && !p.personal ? `
+            <span class="settings-member-actions">
+              <button type="button" class="btn btn-text btn-xs" onclick="setMemberRoleFromSettings('${m.userId}', '${m.role === 'admin' ? 'member' : 'admin'}')">${m.role === 'admin' ? (me ? 'Lämna rollen' : 'Ta bort som admin') : 'Gör till admin'}</button>
+              ${me ? '' : `<button type="button" class="btn btn-text btn-danger btn-xs" onclick="removeMemberFromSettings('${m.userId}')">Ta bort</button>`}
+            </span>` : ''}
           </div>`;
         }).join('') || '<p class="settings-note">Inga medlemmar att visa.</p>'}
       </div>
+      ${p.personal ? '' : '<p class="settings-note">Administratörer kan, precis som ägaren, byta namn och avatar, ta bort medlemmar och göra andra till administratörer. Bara ägaren kan ta bort projektet.</p>'}
     </section>
 
     <section class="settings-section">
@@ -1633,6 +1649,22 @@ async function saveProjectSettings() {
   }
 }
 
+async function setMemberRoleFromSettings(userId, role) {
+  const m = settingsProject.members.find(x => x.userId === userId);
+  const name = profileName({ displayName: m?.displayName || '', email: m?.email || '' }) || 'medlemmen';
+  const me = userId === settingsUser?.id;
+  if (role === 'member' && me && !confirm('Lämna administratörsrollen? Du blir vanlig medlem och kan inte längre ändra projektet eller ta bort medlemmar.')) return;
+  try {
+    await LossiData.setProjectMemberRole(settingsProject.id, userId, role);
+    settingsProject = await LossiData.currentProject();
+    renderProjectSettings();
+    renderProjectSwitcher(projectSwitcherOnChange);
+  } catch (e) {
+    console.warn('Kunde inte ändra rollen:', e);
+    alert(`Kunde inte ändra rollen för ${name}. Försök igen om en stund.`);
+  }
+}
+
 async function removeMemberFromSettings(userId) {
   const m = settingsProject.members.find(x => x.userId === userId);
   const name = profileName({ displayName: m?.displayName || '', email: m?.email || '' }) || 'medlemmen';
@@ -1885,13 +1917,13 @@ async function renderAsideMembers() {
   const nameOf = m => profileName({ displayName: m.displayName, email: m.email || '' }) || 'Medlem';
   const others = project.members
     .filter(m => m.userId !== user?.id)
-    .sort((a, b) => (b.role === 'owner') - (a.role === 'owner') || nameOf(a).localeCompare(nameOf(b), 'sv'));
+    .sort((a, b) => (PROJECT_ROLE_ORDER[a.role] ?? 2) - (PROJECT_ROLE_ORDER[b.role] ?? 2) || nameOf(a).localeCompare(nameOf(b), 'sv'));
   // Ensam i projektet: bara Bjud in syns
   list.innerHTML = others.map(m => {
     const profile = { displayName: m.displayName, avatar: m.avatar, email: m.email || '' };
     const name = nameOf(m);
     return `
-      <div class="aside-item aside-member" title="${escapeHTML(name)}${m.role === 'owner' ? ' · Ägare' : ''}">
+      <div class="aside-item aside-member" title="${escapeHTML(name)}${m.role === 'member' ? '' : ' · ' + (PROJECT_ROLE_LABELS[m.role] || '')}">
         <span class="aside-member-avatar">${userAvatarHTML(profile)}</span>
         <span class="aside-item-text">${escapeHTML(name)}</span>
       </div>`;

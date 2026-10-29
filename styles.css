@@ -439,6 +439,15 @@ body.plan-loading .plan-loading-view {
 .settings-you { color: var(--color-text-tertiary); }
 .settings-member-email { font-size: var(--font-size-xs); color: var(--color-text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .settings-role { font-size: var(--font-size-sm); color: var(--color-text-secondary); flex-shrink: 0; }
+.settings-role.is-admin { color: var(--color-primary); font-weight: 600; }
+.settings-member-actions { display: flex; gap: 2px; flex-shrink: 0; }
+/* Mobil: med knappar hamnar roll och knappar på en egen rad under namnet */
+@media (max-width: 760px) {
+  .settings-member:has(.settings-member-actions) { flex-wrap: wrap; row-gap: 2px; padding: 6px 0; }
+  .settings-member:has(.settings-member-actions) .settings-member-text { flex-basis: calc(100% - 38px); }
+  .settings-member:has(.settings-member-actions) .settings-role { margin-left: 38px; }
+  .settings-member-actions { margin-left: auto; }
+}
 .settings-danger-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .settings-danger-row > span { display: flex; flex-direction: column; gap: 2px; font-size: var(--font-size-base); color: var(--color-text-primary); }
 .settings-danger-row strong { font-weight: 600; }

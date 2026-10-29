@@ -463,8 +463,8 @@ body.plan-loading .plan-loading-view {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
   line-height: 1.5;
 }
 .delete-project-facts strong { color: var(--color-text-primary); font-weight: 600; }
@@ -654,11 +654,11 @@ body.is-personal-project .aside-group[data-aside-group="members"] { display: non
 }
 
 /* Bjud in (inviteModal i theme.js) */
-.invite-lead { font-size: var(--font-size-base); color: var(--color-text-secondary); line-height: 1.5; }
+.invite-lead { font-size: var(--font-size-md); color: var(--color-text-primary); line-height: 1.5; }
 .invite-lead strong { color: var(--color-text-primary); font-weight: 600; }
 .invite-field { display: flex; flex-direction: column; gap: 6px; }
 .invite-field[hidden] { display: none; }
-.invite-label { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-text-secondary); }
+.invite-label { font-size: var(--font-size-md); font-weight: 600; color: var(--color-text-primary); }
 .invite-copy-row {
   display: flex;
   align-items: center;
@@ -3619,7 +3619,7 @@ html:has(.modal-overlay.open) { overflow: hidden; }
 
 .modal-body p {
   font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   line-height: 1.6;
 }
 

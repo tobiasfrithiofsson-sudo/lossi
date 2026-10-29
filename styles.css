@@ -134,6 +134,15 @@ body.plan-loading .plan-loading-view {
   width: 100%;
 }
 
+/* Får inte innehållet och Detaljer plats bredvid varandra (smal skärm, eller en
+   panel öppen bredvid sidan) hamnar Detaljer under innehållet, som på mobil.
+   Det styrs av hur bred sidan är (container query), inte av hela fönstret. */
+.page-frame { container: plan-page / inline-size; }
+@container plan-page (max-width: 1040px) {
+  .page-body { flex-direction: column; align-items: stretch; }
+  .page-body > .detail-panel { width: 100%; position: static; height: auto; overflow: visible; padding: 8px 40px 64px; }
+}
+
 
 /* ============================================================
    SIDEBAR
@@ -1920,11 +1929,6 @@ body.edit-mode .inline-editable-plain:focus {
   overflow-y: auto;
 }
 
-/* Its info (subject, grade, creator, dates) matters less than the
-   activity being edited, so make room for that instead while it's open. */
-body.activity-panel-open .detail-panel {
-  display: none;
-}
 
 /* Reuse .plan-section/.section-head/.section-body for collapsible groups */
 .detail-panel .plan-section:first-child { margin-top: 0; }
@@ -4368,7 +4372,7 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
   .plan-actions { margin-left: 0; flex-wrap: wrap; }
   .page-body { flex-direction: column; }
   .page-body > main { padding: 12px 16px 24px; }
-  .detail-panel {
+  .page-body > .detail-panel {
     width: 100%;
     position: static;
     height: auto;
@@ -4648,8 +4652,6 @@ body.market-mode .detail-fields .read-field:has(#classPickerTrigger) { display: 
 .ai-panel-icon { background: #f2eefe; color: #7c3aed; }
 [data-theme="dark"] .ai-panel-icon { background: rgba(124, 58, 237, 0.18); color: #a78bfa; }
 body.ai-panel-open .page-frame { padding-right: calc(var(--ai-panel-w) + 2 * var(--activity-panel-gap)); }
-/* Som när en aktivitet är öppen: Detaljer får ge plats åt uppläggets innehåll */
-body.ai-panel-open .detail-panel { display: none; }
 body.ai-panel-open .activity-panel:not(.ai-panel) {
   right: calc(var(--ai-panel-w) + 2 * var(--activity-panel-gap));
   max-width: calc(100vw - var(--ai-panel-w) - 80px);

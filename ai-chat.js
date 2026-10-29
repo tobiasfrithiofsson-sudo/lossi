@@ -391,6 +391,7 @@ const PlanChat = (() => {
           if (ev.proposal) reply.proposal = withLabels(ev.proposal, snap);
         } else if (ev.t === 'error') {
           reply.error = ev.error;
+          if (ev.detail) console.warn('Planera med AI (plan-chat):', ev.detail);
         }
       }
     }

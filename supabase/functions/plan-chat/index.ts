@@ -74,7 +74,8 @@ const OPS = [
   } },
   { op: 'update_activity', props: {
     activity: { type: 'string', description: 'A1 …' },
-    type: { type: ['string', 'null'], enum: [...TYPES, null] }, title: nullable('string'), minutes: nullable('integer'), description: nullable('string'),
+    // En lista med typer (enum) får inte kombineras med type: [string, null]; därför anyOf
+    type: { anyOf: [{ type: 'string', enum: TYPES }, { type: 'null' }] }, title: nullable('string'), minutes: nullable('integer'), description: nullable('string'),
   } },
   { op: 'delete_activity', props: { activity: { type: 'string' } } },
   { op: 'link_curriculum', props: { activity: { type: 'string', description: 'A1 … eller N2 …' }, item: { type: 'string', description: 'C1 …' } } },
@@ -274,7 +275,12 @@ Deno.serve(async req => {
       } catch (e) {
         console.error('Anthropic:', e);
         const busy = e instanceof Anthropic.RateLimitError || (e instanceof Anthropic.APIError && (e.status ?? 0) >= 500);
-        send({ t: 'error', error: busy ? 'AI-tjänsten är upptagen just nu. Försök igen om en stund.' : 'Svaret gick inte att hämta. Försök igen.' });
+        send({
+          t: 'error',
+          error: busy ? 'AI-tjänsten är upptagen just nu. Försök igen om en stund.' : 'Svaret gick inte att hämta. Försök igen.',
+          // Felet från Anthropic, till webbläsarens konsol (felsökning; innehåller inga hemligheter)
+          detail: e instanceof Anthropic.APIError ? clip(e.message, 500) : undefined,
+        });
       }
       controller.close();
     },

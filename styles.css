@@ -398,6 +398,11 @@ body.plan-loading .plan-loading-view {
 .settings-classes { display: flex; flex-direction: column; }
 .settings-class { display: flex; align-items: center; gap: 10px; min-height: 40px; }
 .settings-class + .settings-class { border-top: 1px solid var(--color-border); }
+.settings-choice-meta { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+.settings-suggestions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.settings-suggestion { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px 4px 8px; border: 1px dashed var(--color-border); border-radius: var(--radius-full); background: none; font: inherit; font-size: var(--font-size-sm); color: var(--color-text-secondary); cursor: pointer; }
+.settings-suggestion:hover { border-style: solid; color: var(--color-text-primary); background: var(--color-bg-hover); }
+.settings-suggestion svg { width: 12px; height: 12px; }
 .settings-class-usage { flex: 1; font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
 @media (max-width: 760px) {
   .modal.settings-modal { flex-direction: column; height: 100%; }

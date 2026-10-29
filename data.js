@@ -196,6 +196,9 @@ const LossiData = (() => {
       avatar: r.avatar || null,
       // Projektets klasser (supabase/project-classes.sql); null = kolumnen finns inte än
       classes: Array.isArray(r.classes) ? r.classes : null,
+      // Projektets ämnen och årskurser (supabase/project-choices.sql); null = kolumnerna finns inte än
+      subjects: Array.isArray(r.subjects) ? r.subjects : null,
+      grades: Array.isArray(r.grades) ? r.grades : null,
       members: members.filter(m => String(m.project_id) === String(r.id)).map(m => ({
         userId: m.user_id, role: m.role, displayName: m.display_name || '', avatar: m.avatar || null, email: m.email || '',
       })),
@@ -289,6 +292,23 @@ const LossiData = (() => {
 
   async function removeProjectClass(id, name) {
     return setCachedClasses(id, check(await db().rpc('remove_project_class', { pid: Number(id), class_name: name })));
+  }
+
+  // ── Projektets ämnen och årskurser (supabase/project-choices.sql) ──
+  // kind = 'subjects' eller 'grades'. Alla medlemmar ändrar. Returnerar projektets nya lista.
+  async function setCachedChoices(id, kind, list) {
+    const projects = await projectsPromise?.catch(() => null);
+    const project = projects?.find(p => p.id === String(id));
+    if (project && Array.isArray(list)) project[kind] = list;
+    return list || [];
+  }
+
+  async function addProjectChoice(id, kind, value) {
+    return setCachedChoices(id, kind, check(await db().rpc('add_project_choice', { pid: Number(id), kind, choice: value })));
+  }
+
+  async function removeProjectChoice(id, kind, value) {
+    return setCachedChoices(id, kind, check(await db().rpc('remove_project_choice', { pid: Number(id), kind, choice: value })));
   }
 
   // Projektets avatar (id ur USER_AVATARS i theme.js; null = första bokstaven). Bara ägaren.
@@ -793,7 +813,7 @@ const LossiData = (() => {
   return {
     listPlans, listMyPlans, loadPlanStates, withFullStates, loadPlan, loadPlanInfo, savePlan,
     listProjects, currentProject, setCurrentProject, inviteByEmail, listProjectInvites, cancelInvite, answerInvite, listNotifications, markNotificationsRead,
-    createProject, renameProject, setProjectAvatar, addProjectClass, removeProjectClass, removeProjectMember, leaveProject, deleteProject, findMember,
+    createProject, renameProject, setProjectAvatar, addProjectClass, removeProjectClass, addProjectChoice, removeProjectChoice, removeProjectMember, leaveProject, deleteProject, findMember,
     listPlanEditors, listMyEditRequests, requestPlanEdit, addPlanEditor, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,

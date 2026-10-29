@@ -331,9 +331,12 @@ function createChoiceList({ input, list, getItems, getCurrent = () => '', onPick
   };
 }
 
-// Ämnen och årskurser: standardförslagen (PLAN_SUBJECTS/PLAN_GRADES), lärarens
-// egna och de som används i upplägg. Ett nytt värde sparas i profilen
-// (user_metadata.subjects/grades) när det väljs.
+// Ämnen och årskurser tillhör projektet (supabase/project-choices.sql): alla
+// medlemmar ser samma listor, ändrar dem i Projektinställningar, och ett nytt
+// värde ("Lägg till 'Historia'") sparas på projektet. Innan SQL:en körts
+// (projektet saknar listan) är förslagen som förut standardförslagen
+// (PLAN_SUBJECTS/PLAN_GRADES), lärarens egna i profilen
+// (user_metadata.subjects/grades) och de som används i upplägg.
 const CHOICE_KINDS = {
   subjects: { suggestions: () => PLAN_SUBJECTS, planField: 'subject', emptyText: 'Skriv namnet på ett ämne och tryck Enter.' },
   grades: { suggestions: () => PLAN_GRADES, planField: 'grade', normalize: v => normalizeGrade(v), emptyText: 'Skriv en årskurs, t.ex. 7 eller Gy 1, och tryck Enter.' },
@@ -346,37 +349,59 @@ function gradeOrder(a, b) {
   return rank(a) - rank(b) || a.localeCompare(b, 'sv', { numeric: true });
 }
 
-function choiceItems(key) {
+function projectHasChoices(project, key) {
+  return Array.isArray(project?.[key]);
+}
+
+function choiceItems(key, project = null) {
+  const own = projectHasChoices(project, key);
   const suggestions = CHOICE_KINDS[key].suggestions();
-  const names = mergeChoices(suggestions, savedChoices(key), choicesFromPlans[key]);
+  // Med projektets lista: bara den (ett värde som tagits bort ska inte dyka upp igen för att ett upplägg använder det)
+  const names = own ? mergeChoices(project[key]) : mergeChoices(suggestions, savedChoices(key), choicesFromPlans[key]);
   if (key === 'grades') names.sort(gradeOrder);
   return names.map(name => ({
     name,
     meta: key === 'grades' ? GRADE_META[name] : undefined,
-    removable: !suggestions.some(s => sameChoice(s, name)),
+    removable: own || !suggestions.some(s => sameChoice(s, name)),
   }));
 }
 
-function subjectItems() { return choiceItems('subjects'); }
-function gradeItems() { return choiceItems('grades'); }
+// Sparar ett nytt värde: på projektet om det har listan, annars i profilen
+function rememberProjectChoice(key, name, project) {
+  if (!name || choiceItems(key, project).some(i => sameChoice(i.name, name))) return;
+  if (!projectHasChoices(project, key)) return rememberChoice(key, name);
+  project[key] = [...project[key], name];
+  return LossiData.addProjectChoice(project.id, key, name).catch(e => console.warn('Kunde inte spara i projektet:', e));
+}
 
-function initSavedChoices(key, input, list, { inline = false, getCurrent, onPick }) {
+// project: vilket projekts listor som gäller. Utan värde hämtas det valda
+// projektet; upplag.html sätter uppläggets projekt med setProject().
+function initSavedChoices(key, input, list, { inline = false, getCurrent, onPick, project: fixed }) {
   const kind = CHOICE_KINDS[key];
+  let project = null;
   planFieldValues(kind.planField).then(v => { choicesFromPlans[key] = v; });
-  return createChoiceList({
+  if (fixed === undefined) LossiData.currentProject().then(p => { project = p; }).catch(() => {});
+  const choices = createChoiceList({
     input, list, inline, getCurrent,
-    getItems: () => choiceItems(key),
+    getItems: () => choiceItems(key, project),
     emptyText: kind.emptyText,
     onPick: (name, isNew) => {
       if (kind.normalize) name = kind.normalize(name);
-      if (isNew && !choiceItems(key).some(i => sameChoice(i.name, name))) rememberChoice(key, name);
+      if (isNew) rememberProjectChoice(key, name, project);
       onPick(name, isNew);
     },
     onForget: async name => {
       choicesFromPlans[key] = choicesFromPlans[key].filter(s => !sameChoice(s, name));
-      await forgetChoice(key, name);
+      if (!projectHasChoices(project, key)) return forgetChoice(key, name);
+      project[key] = project[key].filter(s => !sameChoice(s, name));
+      await LossiData.removeProjectChoice(project.id, key, name).catch(e => console.warn('Kunde inte ta bort ur projektet:', e));
     },
   });
+  return {
+    ...choices,
+    setProject(p) { project = p; choices.render(); },
+    get project() { return project; },
+  };
 }
 
 function initSubjectChoices(input, list, options) {
@@ -548,11 +573,11 @@ function renderAppShell(options = {}) {
     document.getElementById('createPlanModal').addEventListener('click', e => {
       if (e.target.id === 'createPlanModal') closeCreatePlanModal();
     });
-    initSubjectChoices(document.getElementById('createPlanSubject'), document.getElementById('createPlanSubjectList'), {
+    createPlanChoices.subjects = initSubjectChoices(document.getElementById('createPlanSubject'), document.getElementById('createPlanSubjectList'), {
       inline: true,
       onPick: () => {},
     });
-    initGradeChoices(document.getElementById('createPlanGrade'), document.getElementById('createPlanGradeList'), {
+    createPlanChoices.grades = initGradeChoices(document.getElementById('createPlanGrade'), document.getElementById('createPlanGradeList'), {
       inline: true,
       onPick: () => {},
     });
@@ -1173,6 +1198,8 @@ async function sendEmailInvite(inputId, messageId, onDone) {
 //   Medlemmar  – medlemmar (ägaren kan ta bort), bjud in (e-post, kod, länk)
 //   Klasser    – projektets klasser (supabase/project-classes.sql): alla
 //                medlemmar lägger till och tar bort
+//   Ämnen,     – projektets ämnen och årskurser (supabase/project-choices.sql),
+//   Årskurser    som förslagen under Ämne och Årskurs; alla medlemmar ändrar
 let settingsProject = null;
 let settingsUser = null;
 let settingsAvatar = null;
@@ -1182,6 +1209,8 @@ const PROJECT_SETTINGS_TABS = [
   { id: 'general', label: 'Allmänt', icon: 'settings', title: 'Allmänt', lead: 'Projektets namn och avatar, och vad som händer med projektet.' },
   { id: 'members', label: 'Medlemmar', icon: 'users', title: 'Medlemmar', lead: 'Vilka som är med i projektet och hur du bjuder in fler.', shared: true },
   { id: 'classes', label: 'Klasser', icon: 'graduation-cap', title: 'Klasser', lead: 'Klasserna som alla i projektet väljer bland under Detaljer › Klass.' },
+  { id: 'subjects', label: 'Ämnen', icon: 'book-open', title: 'Ämnen', lead: 'Ämnena som alla i projektet väljer bland när de skapar ett upplägg och under Detaljer › Ämne.' },
+  { id: 'grades', label: 'Årskurser', icon: 'layers', title: 'Årskurser', lead: 'Årskurserna som visas när någon i projektet skapar ett upplägg och under Detaljer › Årskurs.' },
 ];
 
 // Delar som bara gäller delade projekt (shared) visas inte för den egna ytan
@@ -1336,6 +1365,8 @@ function renderProjectSettings() {
 
 `,
     classes: () => projectClassesHTML(),
+    subjects: () => projectChoicesHTML('subjects'),
+    grades: () => projectChoicesHTML('grades'),
   };
   body.innerHTML = `
     <header class="settings-page-head">
@@ -1346,6 +1377,117 @@ function renderProjectSettings() {
   lucide.createIcons({ nodes: [body] });
   if (tab.id === 'members') loadSettingsInvites();
   if (tab.id === 'classes') loadSettingsClassUsage();
+  if (tab.id === 'subjects' || tab.id === 'grades') loadSettingsChoiceUsage(tab.id);
+}
+
+// ── Ämnen och årskurser i projektinställningarna ──
+// Samma upplägg som Klasser: lägg till, listan med antal upplägg och Ta bort.
+// Standardförslag som inte finns i listan visas som knappar, så att en
+// borttagen årskurs eller ett ämne går att lägga tillbaka med ett klick.
+const SETTINGS_CHOICES = {
+  subjects: { one: 'ämnet', it: 'det', title: 'Projektets ämnen', add: 'Lägg till ämne', placeholder: 'T.ex. Historia', planField: 'subject',
+    empty: 'Projektet har inga ämnen. Lägg till ett ovan.', removed: 'Ett ämne som tas bort går inte längre att välja, men upplägg som redan har det behåller det.' },
+  grades: { one: 'årskursen', it: 'den', title: 'Årskurser som visas', add: 'Lägg till årskurs', placeholder: 'T.ex. Gy 1 eller 7–9', planField: 'grade',
+    empty: 'Projektet visar inga årskurser. Lägg till en ovan.', removed: 'En årskurs som tas bort visas inte längre som förslag, men upplägg som redan har den behåller den.' },
+};
+let settingsChoiceUsage = new Map(); // värde (gemener) → antal upplägg
+
+function projectChoicesHTML(key) {
+  const p = settingsProject;
+  const c = SETTINGS_CHOICES[key];
+  if (!projectHasChoices(p, key)) {
+    return `<section class="settings-section"><p class="settings-note">${key === 'subjects' ? 'Ämnen' : 'Årskurser'} i projektet är inte påslaget än.</p></section>`;
+  }
+  const items = choiceItems(key, p);
+  const missing = CHOICE_KINDS[key].suggestions().filter(s => !items.some(i => sameChoice(i.name, s)));
+  const label = name => (key === 'grades' ? gradeLabel(name) : name);
+  return `
+    <section class="settings-section">
+      <h4 class="settings-heading">${c.add}</h4>
+      <form class="invite-email-row" onsubmit="event.preventDefault(); addChoiceFromSettings('${key}')">
+        <input class="field-input" type="text" id="settingsChoiceName" maxlength="${CHOICE_MAX_LENGTH}" placeholder="${c.placeholder}" autocomplete="off" aria-label="${c.add}" />
+        <button type="submit" class="btn btn-solid">Lägg till</button>
+      </form>
+      <p class="invite-email-message" id="settingsChoiceMessage" role="status" hidden></p>
+      ${missing.length ? `
+      <div class="settings-suggestions">
+        <span class="settings-note">Förslag:</span>
+        ${missing.map(s => `<button type="button" class="settings-suggestion" data-name="${escapeHTML(s)}" onclick="addChoiceFromSettings('${key}', this.dataset.name)"><i data-lucide="plus"></i>${escapeHTML(label(s))}</button>`).join('')}
+      </div>` : ''}
+    </section>
+    <section class="settings-section">
+      <h4 class="settings-heading">${c.title} <span class="settings-count">${items.length}</span></h4>
+      <div class="settings-classes">
+        ${items.map(i => `
+          <div class="settings-class">
+            <span class="class-tag">${escapeHTML(label(i.name))}</span>
+            ${i.meta ? `<span class="settings-choice-meta">${escapeHTML(i.meta)}</span>` : ''}
+            <span class="settings-class-usage" data-choice-usage="${escapeHTML(i.name.toLowerCase())}"></span>
+            <button type="button" class="btn btn-text btn-danger btn-xs" onclick="removeChoiceFromSettings('${key}', this.dataset.name)" data-name="${escapeHTML(i.name)}"><i data-lucide="trash-2"></i>Ta bort</button>
+          </div>`).join('') || `<p class="settings-note">${c.empty}</p>`}
+      </div>
+      <p class="settings-note">${c.removed}</p>
+    </section>`;
+}
+
+async function loadSettingsChoiceUsage(key) {
+  const field = SETTINGS_CHOICES[key].planField;
+  try {
+    const plans = await LossiData.listPlans({ projectId: settingsProject.id });
+    settingsChoiceUsage = new Map();
+    plans.forEach(pl => {
+      const k = (pl.state?.[field] || '').toLowerCase();
+      if (k) settingsChoiceUsage.set(k, (settingsChoiceUsage.get(k) || 0) + 1);
+    });
+  } catch (e) {
+    return;
+  }
+  document.querySelectorAll('[data-choice-usage]').forEach(el => {
+    const n = settingsChoiceUsage.get(el.dataset.choiceUsage) || 0;
+    el.textContent = n ? (n === 1 ? '1 upplägg' : `${n} upplägg`) : 'Används inte';
+  });
+}
+
+function showSettingsChoiceMessage(text, isError) {
+  const msg = document.getElementById('settingsChoiceMessage');
+  if (!msg) return;
+  msg.textContent = text;
+  msg.classList.toggle('is-error', !!isError);
+  msg.hidden = !text;
+}
+
+// value: ett förslag som klickats; annars det som skrivits i fältet
+async function addChoiceFromSettings(key, value) {
+  const input = document.getElementById('settingsChoiceName');
+  const typed = value === undefined;
+  let name = normalizeChoice(typed ? input.value : value);
+  if (key === 'grades') name = normalizeGrade(name);
+  if (!name) return showSettingsChoiceMessage('Skriv något att lägga till.', true);
+  const shown = key === 'grades' ? gradeLabel(name) : name;
+  if (settingsProject[key].some(s => sameChoice(s, name))) return showSettingsChoiceMessage(`${shown} finns redan i projektet.`, true);
+  try {
+    settingsProject[key] = await LossiData.addProjectChoice(settingsProject.id, key, name);
+    renderProjectSettings();
+    showSettingsChoiceMessage(`${shown} är tillagd.`);
+    if (typed) document.getElementById('settingsChoiceName').focus();
+  } catch (e) {
+    console.warn('Kunde inte lägga till:', e);
+    showSettingsChoiceMessage('Kunde inte lägga till. Försök igen om en stund.', true);
+  }
+}
+
+async function removeChoiceFromSettings(key, name) {
+  const n = settingsChoiceUsage.get(name.toLowerCase()) || 0;
+  const shown = key === 'grades' ? gradeLabel(name) : name;
+  const usage = n ? ` ${n === 1 ? 'Ett upplägg' : n + ' upplägg'} har ${SETTINGS_CHOICES[key].one} och behåller ${SETTINGS_CHOICES[key].it}.` : '';
+  if (!confirm(`Ta bort ${shown} från ${settingsProject.name}? Ingen i projektet kan välja ${SETTINGS_CHOICES[key].one} längre.${usage}`)) return;
+  try {
+    settingsProject[key] = await LossiData.removeProjectChoice(settingsProject.id, key, name);
+    renderProjectSettings();
+  } catch (e) {
+    console.warn('Kunde inte ta bort:', e);
+    alert('Kunde inte ta bort. Försök igen om en stund.');
+  }
 }
 
 // ── Klasser i projektinställningarna ──
@@ -2160,8 +2302,13 @@ function selectAvatarInPicker(btn) {
   if (typeof onPlanAvatarPicked === 'function' && btn.closest('#planAvatarPopover')) onPlanAvatarPicked(btn.dataset.avatar);
 }
 
+// Skapa-dialogens Ämne och Årskurs (initSavedChoices), med det valda projektets listor
+const createPlanChoices = { subjects: null, grades: null };
+
 function openCreatePlanModal() {
   document.getElementById('userMenuDropdown')?.classList.remove('open');
+  // Projektet kan ha bytts eller listorna ändrats sedan sidan laddades
+  LossiData.currentProject().then(p => Object.values(createPlanChoices).forEach(c => c?.setProject(p))).catch(() => {});
   const randomId = PLAN_AVATARS[Math.floor(Math.random() * PLAN_AVATARS.length)].id;
   document.querySelectorAll('#createPlanAvatarPicker .avatar-picker-btn').forEach(b => {
     b.classList.toggle('selected', b.dataset.avatar === randomId);
@@ -2216,12 +2363,13 @@ async function createPlan() {
     return;
   }
 
-  // Ett ämne som skrivits in men inte valts ur listan sparas också bland lärarens ämnen
-  if (state.subject && !subjectItems().some(i => sameChoice(i.name, state.subject))) {
-    rememberChoiceLater('subjects', state.subject);
-  }
-  if (state.grade && !gradeItems().some(i => sameChoice(i.name, state.grade))) {
-    rememberChoiceLater('grades', state.grade);
+  // Ett ämne som skrivits in men inte valts ur listan sparas också, på projektet
+  // (snabbt, väntas in) eller bland lärarens egna (sparas på nästa sida)
+  for (const [key, value] of [['subjects', state.subject], ['grades', state.grade]]) {
+    const project = createPlanChoices[key]?.project;
+    if (!value || choiceItems(key, project).some(i => sameChoice(i.name, value))) continue;
+    if (projectHasChoices(project, key)) await rememberProjectChoice(key, value, project);
+    else rememberChoiceLater(key, value);
   }
 
   window.location = 'upplag.html?id=' + id;

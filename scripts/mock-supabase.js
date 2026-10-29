@@ -19,8 +19,10 @@
       { plan_id: 6, user_id: 'u1', status: 'approved' },
     ],
     projects: [
-      { id: 1, name: 'Sandlådan', personal_owner: 'u1', invite_code: 'SND2PQ7K', created_at: '2026-10-19T10:00:00Z', classes: [] },
-      { id: 2, name: 'Engelska skolan', personal_owner: null, invite_code: 'K7P4M2QX', created_at: '2026-10-19T11:00:00Z', classes: ['8A', '9C'] },
+      { id: 1, name: 'Sandlådan', personal_owner: 'u1', invite_code: 'SND2PQ7K', created_at: '2026-10-19T10:00:00Z', classes: [],
+        subjects: ['Samhällskunskap', 'Svenska', 'Matematik', 'Biologi', 'Fysik', 'Kemi', 'Engelska', 'Idrott', 'Bild'], grades: ['Förskola', 'F', '1', '2', '3', '4', '5', '6', '7', '8', '9', '7–9'] },
+      { id: 2, name: 'Engelska skolan', personal_owner: null, invite_code: 'K7P4M2QX', created_at: '2026-10-19T11:00:00Z', classes: ['8A', '9C'],
+        subjects: ['Engelska', 'Samhällskunskap'], grades: ['7', '8', '9'] },
       // Ett projekt man inte är med i än (för Gå med med kod); filtreras bort tills man gått med
       { id: 3, name: 'Norra skolan', personal_owner: null, invite_code: 'NRSK2026', created_at: '2026-10-19T12:00:00Z', _hidden: true },
     ],
@@ -237,6 +239,16 @@
         if (name === 'add_project_class' && clean) p.classes.push(clean);
         persist();
         return { data: p.classes.slice(), error: null };
+      }
+      // Projektets ämnen och årskurser (supabase/project-choices.sql)
+      if (name === 'add_project_choice' || name === 'remove_project_choice') {
+        const p = tables.projects.find(x => x.id === params.pid);
+        const clean = String(params.choice || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+        const had = (p[params.kind] || []).some(c => c.toLowerCase() === clean.toLowerCase());
+        if (name === 'remove_project_choice') p[params.kind] = p[params.kind].filter(c => c.toLowerCase() !== clean.toLowerCase());
+        else if (clean && !had) p[params.kind].push(clean);
+        persist();
+        return { data: p[params.kind].slice(), error: null };
       }
       if (name === 'set_project_avatar') {
         tables.projects.find(x => x.id === Number(params.pid)).avatar = params.avatar_id || null;

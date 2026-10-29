@@ -1894,13 +1894,16 @@
     },
   });
 
+  // Ämne och årskurs: uppläggets projekts listor (sätts i loadClassesFromPlans)
   const subjectChoices = initSubjectChoices(document.getElementById('subjectInput'), document.getElementById('subjectOptions'), {
+    project: null,
     getCurrent: () => document.getElementById('detailSubject').textContent.trim(),
     onPick: name => setDetailField('detailSubject', name),
   });
 
   // Årskurs: förslag F–9, men läraren skriver vad som passar (t.ex. 7–9 eller Gy 1)
   const gradeChoices = initGradeChoices(document.getElementById('gradeInput'), document.getElementById('gradeOptions'), {
+    project: null,
     getCurrent: () => document.getElementById('detailGrade').textContent.trim(),
     onPick: name => {
       setDetailField('detailGrade', normalizeGrade(name));
@@ -1915,6 +1918,8 @@
       LossiData.listPlans(planProjectId ? { projectId: planProjectId } : {}).catch(() => []),
     ]);
     planProject = projects.find(p => p.id === planProjectId) || null;
+    subjectChoices.setProject(planProject);
+    gradeChoices.setProject(planProject);
     classesFromPlans = plans.map(p => p.state?.klass).filter(Boolean);
   }
 

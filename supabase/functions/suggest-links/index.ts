@@ -79,7 +79,7 @@ Deno.serve(async req => {
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
   const { count, error: countError } = await admin.from('ai_requests')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id).gte('created_at', since);
+    .eq('user_id', user.id).eq('kind', 'suggest-links').gte('created_at', since);
   if (countError) {
     console.error('ai_requests:', countError);
     return json({ error: 'AI-förslagen är inte påslagna än.' }, 503);

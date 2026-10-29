@@ -3482,7 +3482,7 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 html:has(.modal-overlay.open) { overflow: hidden; }
 .modal-overlay, .modal, .activity-panel-body, aside { overscroll-behavior: contain; }
 @media (max-width: 760px) {
-  html:has(body.activity-panel-open), html:has(body.aside-open) { overflow: hidden; }
+  html:has(body.activity-panel-open), html:has(body.aside-open), html:has(body.ai-panel-open) { overflow: hidden; }
 }
 
 .modal {
@@ -4635,3 +4635,135 @@ body.market-mode #readBanner { display: none !important; }
    eget upplägg och följer inte med, så raderna döljs */
 body.market-mode .detail-fields .read-field:has(#statusBtn),
 body.market-mode .detail-fields .read-field:has(#classPickerTrigger) { display: none; }
+
+
+/* ============================================================
+   PLANERA MED AI – chatten i sidopanelen (ai-chat.js)
+   Egen panel till höger med samma utseende som aktivitetspanelen. Medan
+   den är öppen lämnar sidan plats för den, och aktivitetspanelen lägger sig
+   ovanpå sidan till vänster om chatten, så att man ser ändringarna.
+   ============================================================ */
+:root { --ai-panel-w: 420px; }
+.ai-panel { width: var(--ai-panel-w); min-width: 0; z-index: 99; }
+.ai-panel-icon { background: #f2eefe; color: #7c3aed; }
+[data-theme="dark"] .ai-panel-icon { background: rgba(124, 58, 237, 0.18); color: #a78bfa; }
+body.ai-panel-open .page-frame { padding-right: calc(var(--ai-panel-w) + 2 * var(--activity-panel-gap)); }
+/* Som när en aktivitet är öppen: Detaljer får ge plats åt uppläggets innehåll */
+body.ai-panel-open .detail-panel { display: none; }
+body.ai-panel-open .activity-panel:not(.ai-panel) {
+  right: calc(var(--ai-panel-w) + 2 * var(--activity-panel-gap));
+  max-width: calc(100vw - var(--ai-panel-w) - 80px);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+/* Stängd glider den inte över chatten: den döljs direkt och tonas in när den öppnas */
+body.ai-panel-open .activity-panel:not(.ai-panel):not(.open) { opacity: 0; visibility: hidden; transform: translateX(24px); transition: none; }
+
+.ai-chat-list {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+/* Början: maskoten (följer pekaren), en fråga och förslag att börja med */
+.ai-chat-intro { margin: auto 0; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.ai-chat-intro-mascot, .ai-msg-thinking-mascot { position: relative; flex-shrink: 0; }
+.ai-panel .ai-chat-mascot { width: 64px; height: 64px; border-radius: 12px; --face: 47px; }
+.ai-chat-intro-title { margin: 8px 0 0; font-size: var(--font-size-xl); font-weight: 600; color: var(--color-text-primary); }
+.ai-chat-intro-text { margin: 0; max-width: 340px; font-size: var(--font-size-md); line-height: 1.5; color: var(--color-text-primary); }
+.ai-chat-starters { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 12px; }
+.ai-chat-starter {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ai-chat-starter:hover { background: var(--color-bg-hover); }
+.ai-chat-privacy { display: flex; gap: 8px; margin: 12px 0 0; font-size: var(--font-size-md); line-height: 1.5; color: var(--color-text-secondary); text-align: left; }
+.ai-chat-privacy svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; }
+
+/* Meddelanden */
+.ai-msg.is-user { align-self: flex-end; max-width: 85%; }
+.ai-msg-bubble {
+  padding: 8px 12px;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--color-bg-secondary);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.ai-msg.is-ai { display: flex; flex-direction: column; gap: 10px; }
+.ai-msg-text { font-size: var(--font-size-md); line-height: 1.6; color: var(--color-text-primary); overflow-wrap: anywhere; }
+.ai-msg-text > :first-child { margin-top: 0; }
+.ai-msg-text > :last-child { margin-bottom: 0; }
+.ai-msg-text p { margin: 0 0 8px; }
+.ai-msg-text ul, .ai-msg-text ol { margin: 0 0 8px; padding-left: 20px; }
+.ai-msg-text li + li { margin-top: 2px; }
+.ai-msg-thinking { display: flex; align-items: center; gap: 12px; padding-top: 48px; color: var(--color-text-secondary); }
+.ai-panel .ai-msg-thinking .ai-chat-mascot { width: 40px; height: 40px; border-radius: 9px; --face: 30px; }
+.ai-msg-error { display: flex; gap: 8px; margin: 0; font-size: var(--font-size-md); color: #dc2626; }
+.ai-msg-error svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 3px; }
+
+/* Förslagskortet: inget ändras förrän läraren väljer Genomför */
+.ai-proposal { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+.ai-proposal-head { display: flex; align-items: flex-start; gap: 8px; font-size: var(--font-size-md); font-weight: 600; color: var(--color-text-primary); }
+.ai-proposal-head svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; color: #7c3aed; }
+.ai-proposal-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.ai-op { display: flex; gap: 8px; font-size: var(--font-size-md); line-height: 1.45; color: var(--color-text-primary); }
+.ai-op > svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 3px; }
+.ai-op.is-add > svg { color: #16a34a; }
+.ai-op.is-update > svg { color: #d97706; }
+.ai-op.is-delete > svg { color: #dc2626; }
+.ai-op.is-link > svg { color: var(--color-primary); }
+.ai-op-text { display: block; min-width: 0; }
+.ai-op-meta { color: var(--color-text-secondary); }
+.ai-op-detail { margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; color: var(--color-text-secondary); }
+.ai-proposal-skipped { margin: 0; padding-left: 20px; font-size: var(--font-size-md); color: var(--color-text-secondary); }
+.ai-proposal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.ai-proposal-status { display: inline-flex; align-items: center; gap: 4px; margin-right: auto; font-size: var(--font-size-md); color: var(--color-text-secondary); }
+.ai-proposal-status svg { width: 16px; height: 16px; }
+.ai-proposal-status.is-done { color: #16a34a; font-weight: 600; }
+.ai-proposal.is-declined .ai-proposal-list, .ai-proposal.is-undone .ai-proposal-list { opacity: 0.6; }
+
+/* Skrivfältet */
+.ai-chat-composer { display: flex; align-items: flex-end; gap: 8px; padding: 12px 16px 6px; border-top: 1px solid var(--color-border); }
+.ai-chat-input {
+  flex: 1;
+  min-height: 36px;
+  max-height: 160px;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  font: inherit;
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  resize: none;
+}
+.ai-chat-input:focus { outline: none; border-color: var(--color-primary); }
+.ai-chat-send { --btn-h: 36px; flex-shrink: 0; }
+.ai-chat-foot { margin: 0; padding: 0 16px 12px; font-size: var(--font-size-sm); line-height: 1.5; color: var(--color-text-secondary); }
+.ai-chat-link { padding: 0; border: none; background: none; font: inherit; color: var(--color-primary); text-decoration: underline; cursor: pointer; }
+
+/* Det som AI:n just ändrade blinkar till */
+@keyframes ai-touched { from { background: var(--color-primary-light); } }
+.ai-touched { animation: ai-touched 1.8s ease-out; border-radius: var(--radius-md); }
+
+@media (max-width: 760px) {
+  /* Mobil: chatten täcker sidan, och en aktivitet öppnas ovanpå chatten */
+  .ai-panel { width: 100vw; }
+  body.ai-panel-open .page-frame { padding-right: 0; }
+  body.ai-panel-open .activity-panel:not(.ai-panel) { right: 0; max-width: 100vw; }
+}
+

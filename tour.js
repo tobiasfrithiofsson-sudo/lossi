@@ -86,7 +86,7 @@ const PLAN_TIPS = [
   {
     target: ['#aiContinueBtn'], side: 'bottom', icon: 'sparkles',
     title: 'Planera med AI',
-    text: 'Ta med upplägget till din egen AI. Den får allt du skrivit, föreslår hur du kan fortsätta och blir ditt bollplank. Svaret klistrar du in här.',
+    text: 'Prata med AI:n om upplägget. Den ser allt du skrivit och kan föreslå grupperingar och aktiviteter, skriva om beskrivningar och koppla läroplanen. Du bestämmer vad som läggs till.',
   },
   {
     target: ['#structureList .lesson-group > .week-row'], side: 'bottom', icon: 'list-ordered',

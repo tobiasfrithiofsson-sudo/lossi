@@ -29,6 +29,7 @@
   <script src="starter-plans.js"></script>
   <script src="feedback.js"></script>
   <script src="mascot.js"></script>
+  <script src="ai-chat.js"></script>
   <script src="tour.js"></script>
 </head>
 <body class="edit-mode plan-loading">
@@ -95,8 +96,8 @@
     </div>
 
     <div class="plan-actions">
-      <!-- Planera med AI: läraren fortsätter i sin egen AI utifrån upplägget som det ser ut nu (ai-import.js) -->
-      <button type="button" class="btn ai-continue-btn edit-only" id="aiContinueBtn" onclick="openAiFillModal(AI_FILL)">
+      <!-- Planera med AI: chatten i sidopanelen (ai-chat.js); därifrån går det också att använda sin egen AI (ai-import.js) -->
+      <button type="button" class="btn ai-continue-btn edit-only" id="aiContinueBtn" onclick="PlanChat.toggle()">
         <i data-lucide="sparkles"></i>
         Planera med AI
       </button>
@@ -1308,8 +1309,11 @@
     return state;
   }
 
+  let planSaveCount = 0; // räknas upp vid varje sparning (AI-chattens Ångra, canUndoChat)
+
   function saveState() {
     if (!planLoaded || planReadOnly) return;
+    planSaveCount++;
     LossiData.savePlan(planKey, collectState()).catch(e => console.warn('Kunde inte spara upplägget:', e));
   }
 
@@ -1740,6 +1744,15 @@
   function saveActivity(id) {
     const wrapper = document.getElementById(id);
     const form = document.getElementById('activityPanelBody').querySelector('.activity-form');
+    writeActivityForm(wrapper, form);
+    closeActivity(id);
+    recalcLessonTimes();
+    saveState();
+  }
+
+  // Skriver formulärets värden till raden och läsvyn (saveActivity, och
+  // AI-chattens ändringar i applyChatChanges)
+  function writeActivityForm(wrapper, form) {
     const row = wrapper.querySelector('.activity-row');
 
     const titleInput = form.querySelector('.field-input[type="text"]');
@@ -1792,10 +1805,6 @@
       const finalTime = timeInput ? timeInput.value : '';
       readView.innerHTML = buildActivityReadFields(finalType, finalDesc, finalTime);
     }
-
-    closeActivity(id);
-    recalcLessonTimes();
-    saveState();
   }
 
   function toggleThought(card) {
@@ -3874,6 +3883,199 @@
       const free = [...document.querySelectorAll('#structureList > .activity-wrapper')].map(activity);
       return free.length ? [...groups, { id: null, free: true, name: '', activities: free }] : groups;
     },
+  });
+
+  // ── Planera med AI: chatten i sidopanelen (ai-chat.js) ──
+  // snapshot() ger upplägget med korta id (G1 = gruppering, A1 = aktivitet,
+  // C1 = punkt i läroplanen) och tabellen tillbaka till Lossis id.
+  // apply() genomför ett förslag; det som inte går att göra säkert (t.ex. ta
+  // bort något med bifogade filer eller som ligger i kalendern) hoppas över
+  // och läraren får veta varför. Det senaste förslaget går att ångra så länge
+  // upplägget inte ändrats efteråt.
+
+  // Formuläret och beskrivningen kan ligga i aktivitetspanelen om aktiviteten är öppen
+  function activityParts(w) {
+    const scopes = [w, w.id === openActivityId ? document.getElementById('activityPanelBody') : null].filter(Boolean);
+    const find = sel => scopes.map(el => el.querySelector(sel)).find(Boolean);
+    const descField = scopes.flatMap(el => [...el.querySelectorAll('.activity-read .read-field')])
+      .find(f => f.querySelector('.read-field-label')?.textContent.trim() === 'Beskrivning');
+    return {
+      form: find('.activity-form'),
+      desc: descField?.querySelector('.read-field-value')?.innerText.trim() || find('.inline-editable-body')?.innerText.trim() || '',
+    };
+  }
+
+  async function planForChat() {
+    ensureLessonControls();
+    const ctx = await PlanCurriculum.chatContext();
+    const maps = { G: {}, A: {}, C: {} };
+    const labels = {};
+    const itemCode = new Map();
+    (ctx?.items || []).forEach((it, i) => {
+      const code = 'C' + (i + 1);
+      maps.C[code] = it.id;
+      labels[code] = it.label;
+      itemCode.set(it.id, code);
+    });
+    const activity = w => {
+      const code = 'A' + (Object.keys(maps.A).length + 1);
+      maps.A[code] = w.id;
+      const title = w.querySelector('.activity-title')?.textContent.trim() || '';
+      labels[code] = title || 'Namnlös aktivitet';
+      const minutes = parseMinutes(w.querySelector('.activity-time')?.textContent);
+      return {
+        id: code,
+        type: w.querySelector('.activity-icon')?.title || 'Aktivitet',
+        title,
+        minutes: minutes || null,
+        desc: activityParts(w).desc,
+        links: ctx ? ctx.linksOf(w.id).map(id => itemCode.get(id)).filter(Boolean) : [],
+      };
+    };
+    const groupings = [...document.querySelectorAll('#structureList .lesson-group')].map((g, i) => {
+      const code = 'G' + (i + 1);
+      maps.G[code] = g.dataset.lessonId;
+      const name = g.querySelector('.week-pill')?.textContent.trim() || '';
+      labels[code] = name || 'Namnlös gruppering';
+      return { id: code, name, minutes: parseMinutes(g.querySelector('.lesson-time-pill-value')?.textContent) || null, activities: [...g.querySelectorAll('.activity-wrapper')].map(activity) };
+    });
+    const plan = {
+      title: document.getElementById('planTitle').textContent.trim(),
+      subject: document.getElementById('detailSubject').textContent.trim(),
+      grade: document.getElementById('detailGrade').textContent.trim(),
+      klass: document.getElementById('classPickerTrigger').dataset.klass || '',
+      description: document.querySelector('.idea-text').innerText.trim(),
+      course: ctx?.course || '',
+      contentTitle: ctx?.contentTitle || '',
+      groupings,
+      free: [...document.querySelectorAll('#structureList > .activity-wrapper')].map(activity),
+      curriculum: (ctx?.items || []).map((it, i) => ({ id: 'C' + (i + 1), heading: it.heading, text: it.text })),
+    };
+    return { plan, maps, labels };
+  }
+
+  let chatUndo = null; // { token, before, saves } för det senast genomförda förslaget
+
+  function applyChatChanges(changes, maps) {
+    if (planReadOnly || !planLoaded) return { skipped: ['Upplägget går inte att ändra.'] };
+    const list = document.getElementById('structureList');
+    const before = { structureHTML: structureHTMLForSave(), curriculum: PlanCurriculum.get() };
+    const made = {};   // N1 … → Lossis id för det som skapats i förslaget
+    const skipped = [];
+    const touched = [];
+    const pairs = [];
+    const groupOf = code => lessonGroupByCode(maps.G?.[code] || made[code]);
+    const wrapperOf = code => {
+      const id = maps.A?.[code] || made[code];
+      return id ? document.getElementById(id) : null;
+    };
+    const hasFiles = ids => planFiles.some(f => ids.includes(f.activityId));
+    const titleOf = w => w.querySelector('.activity-title')?.textContent.trim() || 'aktiviteten';
+
+    for (const c of changes) {
+      if (c.op === 'add_grouping') {
+        const lessonId = newLessonId();
+        list.insertAdjacentHTML('beforeend', buildLessonGroupHTML({ lessonId, name: c.name, minutes: c.minutes }));
+        const g = list.lastElementChild;
+        initActivitySortable(g.querySelector('.lesson-activities'));
+        made[c.ref] = lessonId;
+        touched.push(g.querySelector('.week-row'));
+      } else if (c.op === 'update_grouping') {
+        const g = groupOf(c.grouping);
+        if (!g) { skipped.push('En gruppering som skulle ändras finns inte längre.'); continue; }
+        if (c.name) g.querySelector('.week-pill').textContent = c.name;
+        if (c.minutes) g.querySelector('.lesson-time-pill-value').textContent = String(c.minutes);
+        touched.push(g.querySelector('.week-row'));
+      } else if (c.op === 'delete_grouping') {
+        const g = groupOf(c.grouping);
+        if (!g) continue;
+        const name = g.querySelector('.week-pill')?.textContent.trim() || 'Grupperingen';
+        const ids = [...g.querySelectorAll('.activity-wrapper')].map(w => w.id);
+        if (planEvents.has(g.dataset.lessonId)) { skipped.push(`"${name}" ligger i kalendern och togs inte bort. Ta bort den själv om du vill.`); continue; }
+        if (hasFiles(ids)) { skipped.push(`"${name}" har bifogade filer och togs inte bort. Ta bort den själv om du vill.`); continue; }
+        if (openActivityId && ids.includes(openActivityId)) closeActivity(openActivityId);
+        PlanCurriculum.forgetActivities(ids);
+        g.remove();
+      } else if (c.op === 'add_activity') {
+        const target = c.grouping ? groupOf(c.grouping)?.querySelector('.lesson-activities') : list;
+        if (!target) { skipped.push(`"${c.title}" lades inte till: grupperingen finns inte längre.`); continue; }
+        const id = nextActivityId();
+        const wrapper = document.createElement('div');
+        wrapper.className = 'activity-wrapper';
+        wrapper.id = id;
+        wrapper.innerHTML = buildActivityMarkup(id, { type: c.type, title: c.title, time: c.minutes, desc: c.description });
+        target.appendChild(wrapper);
+        const g = target.closest('.lesson-group');
+        if (g) setLessonCollapsed(g, false);
+        made[c.ref] = id;
+        touched.push(wrapper.querySelector('.activity-row'));
+      } else if (c.op === 'update_activity') {
+        const w = wrapperOf(c.activity);
+        const form = w && activityParts(w).form;
+        if (!form) { skipped.push('En aktivitet som skulle ändras finns inte längre.'); continue; }
+        if (c.title) form.querySelector('.field-input[type="text"]').value = c.title;
+        if (c.type && ACTIVITY_TYPES[c.type]) {
+          const select = form.querySelector('.field-select select');
+          select.value = c.type;
+          form.classList.toggle('is-prep', c.type === PREP_TYPE);
+        }
+        if (c.minutes) form.querySelector('.time-input').value = String(c.minutes);
+        if (c.description) form.querySelector('.inline-editable-body').innerHTML = textToHTML(c.description);
+        writeActivityForm(w, form);
+        if (w.id === openActivityId) updateActivityPanelHeader(w);
+        touched.push(w.querySelector('.activity-row'));
+      } else if (c.op === 'delete_activity') {
+        const w = wrapperOf(c.activity);
+        if (!w) continue;
+        if (hasFiles([w.id])) { skipped.push(`"${titleOf(w)}" har bifogade filer och togs inte bort. Ta bort den själv om du vill.`); continue; }
+        if (w.id === openActivityId) closeActivity(w.id);
+        PlanCurriculum.forgetActivities([w.id]);
+        w.remove();
+      } else if (c.op === 'link_curriculum') {
+        const activityId = maps.A?.[c.activity] || made[c.activity];
+        const itemId = maps.C?.[c.item];
+        if (activityId && itemId && document.getElementById(activityId)) pairs.push({ activityId, itemId });
+      }
+    }
+    if (pairs.length) PlanCurriculum.linkActivities(pairs);
+    lucide.createIcons({ nodes: [list] });
+    recalcLessonTimes();
+    saveState();
+    // Det som ändrats blinkar till, och det första syns
+    touched.filter(el => el?.isConnected).forEach(el => {
+      el.classList.remove('ai-touched');
+      void el.offsetWidth;
+      el.classList.add('ai-touched');
+    });
+    touched.find(el => el?.isConnected)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Ångra går så länge inget annat sparats efter förslaget
+    chatUndo = { token: String(Date.now()), before, saves: planSaveCount };
+    return { skipped, token: chatUndo.token };
+  }
+
+  function canUndoChat(token) {
+    return !!chatUndo && chatUndo.token === token && planSaveCount === chatUndo.saves;
+  }
+
+  function undoChatChanges(token) {
+    if (!canUndoChat(token)) return;
+    if (openActivityId) closeActivity(openActivityId);
+    document.getElementById('structureList').innerHTML = chatUndo.before.structureHTML;
+    PlanCurriculum.set(chatUndo.before.curriculum);
+    chatUndo = null;
+    initAllSortables();
+    recalcLessonTimes();
+    saveState();
+  }
+
+  PlanChat.init({
+    planId: planKey,
+    readOnly: () => planReadOnly || !planLoaded,
+    snapshot: planForChat,
+    apply: applyChatChanges,
+    undo: undoChatChanges,
+    canUndo: canUndoChat,
+    openOwnAi: () => openAiFillModal(AI_FILL),
   });
 
   // ── Start: läs in upplägget och initiera sidan ──

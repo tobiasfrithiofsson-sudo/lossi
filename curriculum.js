@@ -1055,12 +1055,14 @@ const PlanCurriculum = (() => {
   }
 
   // Öppnas panelen igen visas förslagen som är kvar från förra sökningen direkt
+  async function ensureCatalog() {
+    if (!catalog) { catalog = await C.subject(cur.schoolType, cur.subject); catalogKey = cur.schoolType + '/' + cur.subject; }
+  }
+
   async function showEarlier() {
     if (!ai || !cur) return;
     const mine = ai;
-    try {
-      if (!catalog) { catalog = await C.subject(cur.schoolType, cur.subject); catalogKey = cur.schoolType + '/' + cur.subject; }
-    } catch (_) { return; }
+    try { await ensureCatalog(); } catch (_) { return; }
     const rest = stillOpen(loadSaved());
     if (ai !== mine || !rest.length) return;
     ai.suggestions = rest;
@@ -1193,7 +1195,7 @@ const PlanCurriculum = (() => {
     if (!acts.length) return renderAi('intro');
     renderAi('loading');
     try {
-      if (!catalog) { catalog = await C.subject(cur.schoolType, cur.subject); catalogKey = cur.schoolType + '/' + cur.subject; }
+      await ensureCatalog();
     } catch (e) {
       return renderAi('error', { message: 'Kunde inte hämta Skolverkets text. Kontrollera uppkopplingen.' });
     }
@@ -1226,9 +1228,21 @@ const PlanCurriculum = (() => {
 
   function acceptSuggestions() {
     if (!ai || !cur || !catalog || hooks.readOnly()) return;
-    const items = catalogItems('content');
     const picked = [...ai.body.querySelectorAll('.sv-ai-list input:checked')].map(i => ai.suggestions[Number(i.value)]).filter(Boolean);
-    picked.forEach(s => {
+    linkActivities(picked);
+    const rest = stillOpen(ai.suggestions);
+    storeSaved(rest);
+    renderAi('done', { count: picked.length, rest: rest.length });
+  }
+
+  // Kopplar par { activityId, itemId } (centralt innehåll). Punkter som inte
+  // är valda än läggs till med Skolverkets text. Används av Föreslå
+  // kopplingar och AI-chatten (ai-chat.js). Katalogen måste vara hämtad.
+  function linkActivities(pairs) {
+    if (!cur || !catalog || hooks.readOnly() || !pairs.length) return 0;
+    const items = catalogItems('content');
+    let linked = 0;
+    pairs.forEach(s => {
       let item = find('content', s.itemId);
       if (!item) {
         const fromCatalog = items.find(it => it.id === s.itemId);
@@ -1237,14 +1251,26 @@ const PlanCurriculum = (() => {
         cur.content.push(item);
       }
       item.activities = [...new Set([...(item.activities || []), s.activityId])];
+      linked++;
     });
     // Katalogens ordning, som när man bockar för själv (punkter som inte finns hos Skolverket sist)
     const order = new Map(items.map((it, i) => [it.id, i]));
     cur.content.sort((a, b) => (order.get(a.id) ?? 1e9) - (order.get(b.id) ?? 1e9));
     changed();
-    const rest = stillOpen(ai.suggestions);
-    storeSaved(rest);
-    renderAi('done', { count: picked.length, rest: rest.length });
+    return linked;
+  }
+
+  // För AI-chatten (ai-chat.js): kursen, dess centrala innehåll och vad varje
+  // aktivitet är kopplad till. null = ingen kurs vald (eller texten gick inte att hämta).
+  async function chatContext() {
+    if (!cur) return null;
+    try { await ensureCatalog(); } catch (_) { return null; }
+    return {
+      course: C.courseLabel(cur),
+      contentTitle: C.contentTitle(cur),
+      items: catalogItems('content').map(it => ({ id: it.id, heading: it.heading || '', text: C.plainText((it.lead ? it.lead + ' ' : '') + it.text), label: C.plainText(it.text).slice(0, 120) })),
+      linksOf: activityId => cur.content.filter(it => (it.activities || []).includes(activityId)).map(it => it.id),
+    };
   }
 
   function closeSuggestions() {
@@ -1254,6 +1280,6 @@ const PlanCurriculum = (() => {
   return {
     init, set, get, refreshLessons, openCoursePicker, pickSchoolType, renderCourseOptions, chooseSubject, backToSubjects,
     chooseLevel, clearCourse, ensureForGrade, applyFromAi, forgetActivities, openPicker, savePicker, closeModal, remove, useNewText, showStep, openLessons, openItem, unlink,
-    suggestLinks, runSuggestions, acceptSuggestions, closeSuggestions, showEarlier,
+    suggestLinks, runSuggestions, acceptSuggestions, closeSuggestions, showEarlier, linkActivities, chatContext,
   };
 })();

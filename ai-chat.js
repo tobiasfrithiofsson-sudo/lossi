@@ -11,7 +11,10 @@
 //
 // upplag.html anropar PlanChat.init({ planId, readOnly(), snapshot(),
 // apply(changes, maps), undo(token), canUndo(token), openOwnAi() }).
-// Konversationen sparas per upplägg i webbläsaren (localStorage).
+// Konversationen sparas per upplägg i webbläsaren (localStorage). Varje svar
+// sparas också i Lossi i 90 dagar (ai_chat_logs, supabase/ai-chat-logs.sql)
+// med lärarens tumme upp/ner och vad hen gjorde med förslaget, så att
+// samtalen kan analyseras i Admin › AI-samtal.
 // Panelen går att göra bredare genom att dra i vänsterkanten (bredden sparas i
 // webbläsaren) och att visa i helskärm, som aktivitetspanelen.
 const PlanChat = (() => {
@@ -197,7 +200,7 @@ const PlanChat = (() => {
           <div class="ai-chat-starters">
             ${STARTERS.map(s => `<button type="button" class="ai-chat-starter" data-text="${escapeHTML(s)}" onclick="PlanChat.send(this.dataset.text)">${escapeHTML(s)}</button>`).join('')}
           </div>
-          <p class="ai-chat-privacy"><i data-lucide="info"></i><span>Upplägget och det du skriver skickas till Anthropic (Claude Haiku). Skriv inte elevers namn.</span></p>
+          <p class="ai-chat-privacy"><i data-lucide="info"></i><span>Upplägget och det du skriver skickas till Anthropic (Claude Haiku). Samtalen sparas i 90 dagar så att vi kan förbättra AI:n. Skriv inte elevers namn.</span></p>
         </div>`;
       mascot = createMascot(list.querySelector('.ai-chat-mascot'), { mouthScale: 1.7 });
       document.addEventListener('pointermove', follow);
@@ -216,6 +219,7 @@ const PlanChat = (() => {
       <div class="ai-msg-text">${markdownHTML(m.text)}</div>
       ${m.error ? `<p class="ai-msg-error"><i data-lucide="circle-alert"></i><span>${escapeHTML(m.error)}</span></p>` : ''}
       ${m.proposal ? proposalHTML(m.proposal, i) : ''}
+      ${m.logId ? ratingHTML(m, i) : ''}
     </div>`;
   }
 
@@ -245,6 +249,26 @@ const PlanChat = (() => {
     });
     flushPara(); closeList();
     return out.join('');
+  }
+
+  // Tumme upp/ner på ett svar (sparas i ai_chat_logs)
+  function ratingHTML(m, i) {
+    const thumb = (value, icon, label) => `<button type="button" class="ai-rate${m.rating === value ? ' is-on' : ''}" onclick="PlanChat.rate(${i}, ${value})" title="${label}" aria-label="${label}" aria-pressed="${m.rating === value}"><i data-lucide="${icon}"></i></button>`;
+    return `<div class="ai-rating">${thumb(1, 'thumbs-up', 'Bra svar')}${thumb(-1, 'thumbs-down', 'Dåligt svar')}</div>`;
+  }
+
+  function rate(i, value) {
+    const m = messages[i];
+    if (!m?.logId) return;
+    m.rating = m.rating === value ? null : value;
+    store();
+    render();
+    LossiData.rateAiChat(m.logId, m.rating).catch(e => console.warn('Kunde inte spara omdömet:', e));
+  }
+
+  function reportOutcome(i, value) {
+    const id = messages[i]?.logId;
+    if (id) LossiData.setAiChatOutcome(id, value).catch(e => console.warn('Kunde inte spara utfallet:', e));
   }
 
   // ── Förslagskortet ──
@@ -312,6 +336,7 @@ const PlanChat = (() => {
     p.status = 'applied';
     p.skipped = result.skipped;
     if (result.token) undoTokens.set(i, result.token);
+    reportOutcome(i, 'applied');
     store();
     render();
   }
@@ -320,6 +345,7 @@ const PlanChat = (() => {
     const p = messages[i]?.proposal;
     if (!p || (p.status && p.status !== 'open')) return;
     p.status = 'declined';
+    reportOutcome(i, 'declined');
     store();
     render();
   }
@@ -336,6 +362,7 @@ const PlanChat = (() => {
     hooks.undo(token);
     undoTokens.delete(i);
     p.status = 'undone';
+    reportOutcome(i, 'undone');
     store();
     render();
   }
@@ -399,7 +426,7 @@ const PlanChat = (() => {
           apikey: LOSSI_CONFIG.supabasePublishableKey,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ messages: messages.slice(0, -1).slice(-MAX_SENT).map(wireMessage), plan: snap.plan }),
+        body: JSON.stringify({ messages: messages.slice(0, -1).slice(-MAX_SENT).map(wireMessage), plan: snap.plan, planId: hooks.planId }),
       });
       if (!res.ok || !res.body) {
         let message = 'Svaret gick inte att hämta. Försök igen om en stund.';
@@ -448,6 +475,7 @@ const PlanChat = (() => {
           paint = paint || requestAnimationFrame(draw);
         } else if (ev.t === 'done') {
           if (ev.proposal) reply.proposal = withLabels(ev.proposal, snap);
+          if (ev.logId) reply.logId = ev.logId;
         } else if (ev.t === 'error') {
           reply.error = ev.error;
           if (ev.detail) console.warn('Planera med AI (plan-chat):', ev.detail);
@@ -471,5 +499,5 @@ const PlanChat = (() => {
     return { summary: p.summary, changes: p.changes, maps, labels, status: 'open' };
   }
 
-  return { init, open, close, toggle, toggleFullscreen, reset, send, accept, decline, undo, ownAi };
+  return { init, open, close, toggle, toggleFullscreen, reset, send, accept, decline, undo, rate, ownAi };
 })();

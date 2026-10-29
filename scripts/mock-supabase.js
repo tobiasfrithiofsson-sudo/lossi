@@ -250,6 +250,19 @@
         persist();
         return { data: p[params.kind].slice(), error: null };
       }
+      // Planera med AI: samtalen (supabase/ai-chat-logs.sql)
+      if (name === 'rate_ai_chat' || name === 'set_ai_chat_outcome') {
+        (window.mockAiCalls ||= []).push({ name, params });
+        return { data: null, error: null };
+      }
+      if (name === 'ai_chat_admin_list') {
+        const ago = h => new Date(Date.now() - h * 3600000).toISOString();
+        return { data: [
+          { id: 3, created_at: ago(1), author: 'Lina Berg', email: user.email, plan_id: 1, plan_title: 'Demokrati – grunderna och processerna', question: 'Kan du lägga om upplägget efter FIGA-modellen?', reply: 'Jag är inte helt säker på hur FIGA-modellen är uppbyggd, så jag vill inte gissa. Vad består den av?', proposal: null, outcome: null, rating: -1, error: null },
+          { id: 2, created_at: ago(5), author: 'Kristoffer Ek', email: 'kristoffer@skola.se', plan_id: 2, plan_title: 'Källkritik i det digitala samhället', question: 'Lägg till en avslutning i varje gruppering', reply: 'Här är ett förslag med en kort exit ticket i slutet av varje gruppering.', proposal: { summary: 'Avslutning i varje gruppering', changes: [{ op: 'add_activity' }, { op: 'add_activity' }] }, outcome: 'applied', rating: 1, error: null },
+          { id: 1, created_at: ago(30), author: 'Lina Berg', email: user.email, plan_id: 1, plan_title: 'Demokrati – grunderna och processerna', question: 'Ta bort alla aktiviteter', reply: 'Vill du verkligen ta bort alla? Här är ett förslag.', proposal: { summary: 'Ta bort aktiviteter', changes: [{ op: 'delete_activity' }] }, outcome: 'declined', rating: null, error: null },
+        ], error: null };
+      }
       // Administratörer i projekt (supabase/project-admins.sql); sparas bara tills sidan laddas om
       if (name === 'set_project_member_role') {
         const m = memberProfiles.find(x => x.project_id === params.pid && x.user_id === params.member);

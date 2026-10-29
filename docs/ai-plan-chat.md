@@ -14,6 +14,16 @@ Panelen går att göra bredare genom att dra i vänsterkanten (bredden sparas i 
 
 Det gamla flödet (kopiera en fråga till sin egen AI och klistra in svaret) finns kvar via länken **Använd din egen AI i stället** längst ner i chatten.
 
+## Kunskapsbasen
+AI:n får Lossis kunskapsbas med varje svar (`KNOWLEDGE` i `supabase/functions/plan-chat/index.ts`): vad upplägg, grupperingar och aktivitetstyper är, hur läroplanerna är uppbyggda (Lpfö 18, Lgr22, gymnasiet), FIGA, Lossis lektionsstilar (samma som `LESSON_STYLES` i upplag.html), EPA och exit ticket. Den cachas hos Anthropic, så den kostar nästan inget. Saknar AI:n kunskap om något: lägg till det där och driftsätt funktionen igen. Ändras lektionsstilarna i upplag.html ska kunskapsbasen ändras också.
+
+## Samtalen sparas (Admin › AI-samtal)
+Varje svar sparas i `ai_chat_logs` (`supabase/ai-chat-logs.sql`): lärarens fråga, svaret, förslaget och vad läraren gjorde med det (genomförde, avböjde, ångrade), plus lärarens tumme upp/ner under svaret. Raderna raderas efter 90 dagar (plan-chat städar när den sparar) och försvinner om kontot tas bort. Bara Lossis administratörer kan läsa dem. Lärarna informeras i chattens början.
+
+I **Admin › AI-samtal** (admin.html#ai) syns statistik (svar, förslag, andel genomförda, tummar ner, osäkra) och filter: Tumme ner, Osäkra (svar där AI:n säger att den inte vet), Avböjda och Fel. **Kopiera** ger de samtal som visas som text, till exempel för att be Claude analysera dem och föreslå ändringar i kunskapsbasen eller instruktionen.
+
+Tänk på: samtalen kan innehålla personuppgifter trots uppmaningen. Nämn sparandet i Lossis integritetstext.
+
 ## Filer
 - `supabase/functions/plan-chat/index.ts`: serverfunktionen (Deno). Kontrollerar inloggningen och gränsen på 100 svar per lärare och dygn (`DAILY_LIMIT`), skickar konversationen och upplägget till Claude Haiku med verktyget `propose_changes` (strikt schema), strömmar svaret som rader med JSON och sorterar bort ändringar som pekar på id som inte finns. Loggar tokens i `ai_requests` med `kind = 'plan-chat'`.
 - `ai-chat.js`: panelen, meddelandena, förslagskorten och strömningen (`PlanChat`). Konversationen sparas per upplägg i webbläsaren (localStorage `lossi-ai-chat:<id>`); **Ny konversation** i panelens huvud tömmer den.
@@ -24,7 +34,8 @@ Det gamla flödet (kopiera en fråga till sin egen AI och klistra in svaret) fin
 ## Driftsättning (görs en gång)
 Hemligheten `ANTHROPIC_API_KEY` och tabellen `ai_requests` finns redan sedan Föreslå kopplingar (`docs/ai-suggest-links.md`).
 1. **Ny funktion:** Edge Functions (https://supabase.com/dashboard/project/mqzmtndjfgeujaqzqpeb/functions) › Deploy a new function › Via Editor. Döp den till `plan-chat` (exakt), klistra in hela `supabase/functions/plan-chat/index.ts` i stället för exempelkoden och välj Deploy. Låt "Verify JWT" vara påslaget.
-2. **Uppdatera suggest-links:** öppna funktionen `suggest-links`, klistra in den nya `supabase/functions/suggest-links/index.ts` och välj Deploy. (Ändringen: dess gräns räknar bara sina egna förslag, så att chatten inte tar av dem.)
+2. **Tabellen för samtalen:** kör `supabase/ai-chat-logs.sql` i SQL Editor (https://supabase.com/dashboard/project/mqzmtndjfgeujaqzqpeb/sql/new). Utan den fungerar chatten, men inget sparas.
+3. **Uppdatera suggest-links:** öppna funktionen `suggest-links`, klistra in den nya `supabase/functions/suggest-links/index.ts` och välj Deploy. (Ändringen: dess gräns räknar bara sina egna förslag, så att chatten inte tar av dem.)
 
 Kopiera koden med `LANG=en_US.UTF-8 pbcopy < fil`, annars blir åäö fel.
 

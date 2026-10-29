@@ -275,3 +275,18 @@
   .fb-card-head { flex-wrap: wrap; }
   .fb-status { margin-left: auto; }
 }
+
+/* ── AI-samtal (admin.html) ── */
+#adminChats .fb-header { flex-wrap: wrap; }
+#adminChats .fb-header > div:first-child { flex: 1 1 280px; }
+.chat-head-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.chat-card.is-down { border-left-color: #DC2626; }
+.chat-question { margin: 0; font-size: var(--font-size-md); font-weight: 600; line-height: 1.5; color: var(--color-text-primary); white-space: pre-wrap; }
+.chat-reply { font-size: var(--font-size-md); line-height: 1.6; color: var(--color-text-primary); white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.chat-reply.is-open { display: block; }
+.chat-rating { display: grid; place-items: center; width: 28px; height: 28px; margin-left: auto; border-radius: var(--radius-sm); }
+.chat-rating svg { width: 16px; height: 16px; }
+.chat-rating.is-up { color: #1F9D6B; }
+.chat-rating.is-down { color: #DC2626; }
+.chat-error { color: #DC2626; }
+

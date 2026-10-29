@@ -40,6 +40,7 @@
      <div class="settings-nav-label">Admin</div>
      <button type="button" class="settings-nav-item" data-admin-section="feedback" onclick="showAdminSection('feedback')"><i data-lucide="message-square-heart"></i><span>Feedback</span></button>
      <button type="button" class="settings-nav-item" data-admin-section="codes" onclick="showAdminSection('codes')"><i data-lucide="ticket"></i><span>Koder</span></button>
+     <button type="button" class="settings-nav-item" data-admin-section="chats" onclick="showAdminSection('chats')"><i data-lucide="sparkles"></i><span>AI-samtal</span></button>
    </nav>
 
    <div class="admin-content">
@@ -95,6 +96,36 @@
 
     <div class="code-list" id="codeList">
       <div class="fb-empty">Hämtar koder…</div>
+    </div>
+   </section>
+
+   <!-- Samtalen i Planera med AI (supabase/ai-chat-logs.sql), de senaste 90 dagarna -->
+   <section class="admin-section" id="adminChats" data-section="chats" hidden>
+    <div class="fb-header">
+      <div>
+        <h1 class="fb-title">AI-samtal</h1>
+        <p class="fb-lead">Svaren från Planera med AI de senaste 90 dagarna, nyast först. Leta efter det AI:n inte kunde, avböjda förslag och tummar ner.</p>
+      </div>
+      <div class="chat-head-actions">
+        <button class="btn btn-outline" onclick="copyChats(this)" title="Kopiera de samtal som visas, t.ex. för att analysera dem med Claude"><i data-lucide="copy"></i>Kopiera</button>
+        <button class="btn btn-outline" onclick="loadChats()" title="Hämta på nytt"><i data-lucide="refresh-cw"></i>Uppdatera</button>
+      </div>
+    </div>
+
+    <div class="fb-stats" id="chatStats"></div>
+
+    <div class="fb-filters">
+      <div class="fb-segment" id="chatFilter" role="tablist" aria-label="Visa">
+        <button type="button" class="fb-seg is-active" data-filter="">Alla</button>
+        <button type="button" class="fb-seg" data-filter="down"><i data-lucide="thumbs-down"></i>Tumme ner</button>
+        <button type="button" class="fb-seg" data-filter="unsure"><i data-lucide="circle-help"></i>Osäkra</button>
+        <button type="button" class="fb-seg" data-filter="declined"><i data-lucide="x"></i>Avböjda</button>
+        <button type="button" class="fb-seg" data-filter="error"><i data-lucide="circle-alert"></i>Fel</button>
+      </div>
+    </div>
+
+    <div class="fb-list" id="chatList">
+      <div class="fb-empty">Hämtar samtal…</div>
     </div>
    </section>
    </div>
@@ -274,7 +305,7 @@
     const btn = e.target.closest('.fb-seg');
     if (!btn) return;
     kindFilter = btn.dataset.kind;
-    document.querySelectorAll('.fb-seg').forEach(b => b.classList.toggle('is-active', b === btn));
+    btn.parentElement.querySelectorAll('.fb-seg').forEach(b => b.classList.toggle('is-active', b === btn));
     renderList();
   });
 
@@ -312,9 +343,10 @@
       b.classList.toggle('is-active', on);
       if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
-    history.replaceState(null, '', id === 'codes' ? '#koder' : '#feedback');
-    document.title = (id === 'codes' ? 'Koder' : 'Feedback') + ' | Admin | Lossi';
+    history.replaceState(null, '', { codes: '#koder', chats: '#ai' }[id] || '#feedback');
+    document.title = ({ codes: 'Koder', chats: 'AI-samtal' }[id] || 'Feedback') + ' | Admin | Lossi';
     if (id === 'codes' && !codesLoaded) loadCodes();
+    if (id === 'chats' && !chatsLoaded) loadChats();
   }
 
   // ── Koder ──
@@ -474,8 +506,126 @@
   // Standard för nya koder: gäller 30 dagar
   document.getElementById('codeUntil').value = toDateValue(new Date(Date.now() + 30 * 86400000));
 
+  // ── AI-samtal ──
+  // Varje rad är ett svar från Planera med AI (LossiData.listAiChatLogs). "Osäkra"
+  // är svar där AI:n säger att den inte vet: de visar oftast vad kunskapsbasen saknar.
+  let chats = [];
+  let chatsLoaded = false;
+  let chatFilter = '';
+  const UNSURE = /inte (helt )?säker|vet inte|känner inte till|osäker på|har ingen information/i;
+  const OUTCOMES = { applied: 'Genomfört', declined: 'Avböjt', undone: 'Ångrat' };
+
+  function chatMatches(c) {
+    if (chatFilter === 'down') return c.rating === -1;
+    if (chatFilter === 'unsure') return UNSURE.test(c.reply || '');
+    if (chatFilter === 'declined') return c.outcome === 'declined' || c.outcome === 'undone';
+    if (chatFilter === 'error') return !!c.error;
+    return true;
+  }
+
+  function renderChatStats() {
+    const proposals = chats.filter(c => c.proposal);
+    const applied = proposals.filter(c => c.outcome === 'applied').length;
+    const stat = (num, label, cls = '') => `<div class="fb-stat ${cls}"><span class="fb-stat-num">${num}</span><span>${label}</span></div>`;
+    document.getElementById('chatStats').innerHTML =
+      stat(chats.length, 'svar')
+      + stat(proposals.length, 'förslag')
+      + stat(proposals.length ? Math.round(applied / proposals.length * 100) + ' %' : '–', 'genomförda', 'is-done')
+      + stat(chats.filter(c => c.rating === -1).length, 'tumme ner', 'is-new')
+      + stat(chats.filter(c => UNSURE.test(c.reply || '')).length, 'osäkra');
+  }
+
+  function proposalLine(p) {
+    const n = Array.isArray(p?.changes) ? p.changes.length : 0;
+    return `${escapeHTML(p?.summary || 'Förslag')} (${n} ${n === 1 ? 'ändring' : 'ändringar'})`;
+  }
+
+  function renderChats() {
+    const list = document.getElementById('chatList');
+    const shown = chats.filter(chatMatches);
+    if (!chats.length) {
+      list.innerHTML = '<div class="fb-empty"><i data-lucide="inbox"></i>Inga samtal ännu. De dyker upp här när lärarna använder Planera med AI.</div>';
+    } else if (!shown.length) {
+      list.innerHTML = '<div class="fb-empty">Inga samtal matchar filtret.</div>';
+    } else {
+      list.innerHTML = shown.map(c => {
+        const when = new Date(c.created_at);
+        return `
+        <article class="fb-card chat-card${c.rating === -1 ? ' is-down' : ''}">
+          <div class="fb-card-head">
+            <div class="fb-avatar" style="background:${personColor(c.author)}">${escapeHTML(initials(c.author))}</div>
+            <div class="fb-who">
+              <span class="fb-author">${escapeHTML(c.author || 'Okänd')}</span>
+              <span class="fb-when" title="${when.toLocaleString('sv-SE')}">${relativeTime(when)}${c.plan_id ? ` · <a href="upplag.html?id=${encodeURIComponent(c.plan_id)}">${escapeHTML(c.plan_title || 'Upplägg')}</a>` : ''}</span>
+            </div>
+            ${c.rating ? `<span class="chat-rating ${c.rating === 1 ? 'is-up' : 'is-down'}" title="${c.rating === 1 ? 'Tumme upp' : 'Tumme ner'}"><i data-lucide="${c.rating === 1 ? 'thumbs-up' : 'thumbs-down'}"></i></span>` : ''}
+          </div>
+          <p class="chat-question">${escapeHTML(c.question)}</p>
+          <div class="chat-reply" onclick="this.classList.toggle('is-open')" title="Visa hela svaret">${escapeHTML(c.reply || '(inget svar)')}</div>
+          ${c.proposal || c.error ? `<div class="fb-meta">
+            ${c.proposal ? `<span class="fb-meta-item"><i data-lucide="wand-sparkles"></i>${proposalLine(c.proposal)}${c.outcome ? ` · <strong>${OUTCOMES[c.outcome]}</strong>` : ' · inget svar'}</span>` : ''}
+            ${c.error ? `<span class="fb-meta-item chat-error"><i data-lucide="circle-alert"></i>${escapeHTML(c.error === 'refusal' ? 'AI:n avböjde' : c.error === 'max_tokens' ? 'Svaret blev för långt' : c.error)}</span>` : ''}
+          </div>` : ''}
+        </article>`;
+      }).join('');
+    }
+    lucide.createIcons({ nodes: [list] });
+  }
+
+  async function loadChats() {
+    const list = document.getElementById('chatList');
+    try {
+      chats = await LossiData.listAiChatLogs();
+      chatsLoaded = true;
+    } catch (e) {
+      console.warn('Kunde inte hämta AI-samtalen:', e);
+      chats = [];
+      list.innerHTML = `<div class="fb-empty"><i data-lucide="lock"></i>${
+        e?.code === 'PGRST202'
+          ? 'AI-samtalen sparas inte än. Kör supabase/ai-chat-logs.sql i Supabase.'
+          : e?.code === '42501' || /not allowed/i.test(e?.message || '')
+            ? 'Den här sidan är bara för administratörer.'
+            : 'Kunde inte hämta samtalen. Ladda om sidan för att försöka igen.'
+      }</div>`;
+      lucide.createIcons({ nodes: [list] });
+      document.getElementById('chatStats').innerHTML = '';
+      return;
+    }
+    renderChatStats();
+    renderChats();
+  }
+
+  // Samtalen som visas, som text att klistra in i en analys
+  async function copyChats(btn) {
+    const text = chats.filter(chatMatches).map(c => [
+      `### ${new Date(c.created_at).toLocaleString('sv-SE')} – ${c.plan_title || 'Upplägg'}`,
+      `Lärare: ${c.question}`,
+      `AI: ${c.reply}`,
+      c.proposal ? `Förslag: ${c.proposal.summary} (${(c.proposal.changes || []).length} ändringar) – ${OUTCOMES[c.outcome] || 'inget svar'}` : '',
+      c.rating ? `Omdöme: ${c.rating === 1 ? 'tumme upp' : 'tumme ner'}` : '',
+      c.error ? `Fel: ${c.error}` : '',
+    ].filter(Boolean).join('\n')).join('\n\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      const label = btn.innerHTML;
+      btn.innerHTML = '<i data-lucide="check"></i>Kopierat';
+      lucide.createIcons({ nodes: [btn] });
+      setTimeout(() => { btn.innerHTML = label; lucide.createIcons({ nodes: [btn] }); }, 1500);
+    } catch (e) {
+      prompt('Kopiera:', text);
+    }
+  }
+
+  document.getElementById('chatFilter').addEventListener('click', e => {
+    const btn = e.target.closest('.fb-seg');
+    if (!btn) return;
+    chatFilter = btn.dataset.filter;
+    btn.parentElement.querySelectorAll('.fb-seg').forEach(b => b.classList.toggle('is-active', b === btn));
+    renderChats();
+  });
+
   loadFeedback();
-  showAdminSection(location.hash === '#koder' ? 'codes' : 'feedback');
+  showAdminSection({ '#koder': 'codes', '#ai': 'chats' }[location.hash] || 'feedback');
 </script>
 </body>
 </html>

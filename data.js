@@ -318,6 +318,21 @@ const LossiData = (() => {
     projectsPromise = null;
   }
 
+  // ── Planera med AI: samtalen (supabase/ai-chat-logs.sql) ──
+  // Lärarens tumme (1, -1 eller null) och vad hen gjorde med förslaget, på ett eget svar
+  async function rateAiChat(logId, value) {
+    check(await db().rpc('rate_ai_chat', { log_id: Number(logId), value }));
+  }
+
+  async function setAiChatOutcome(logId, value) {
+    check(await db().rpc('set_ai_chat_outcome', { log_id: Number(logId), value }));
+  }
+
+  // Admin › AI-samtal: de senaste 90 dagarna (bara Lossis administratörer)
+  async function listAiChatLogs() {
+    return check(await db().rpc('ai_chat_admin_list')) || [];
+  }
+
   // Projektets avatar (id ur USER_AVATARS i theme.js; null = första bokstaven). Bara ägaren.
   async function setProjectAvatar(id, avatar) {
     check(await db().rpc('set_project_avatar', { pid: Number(id), avatar_id: avatar || '' }));
@@ -820,7 +835,7 @@ const LossiData = (() => {
   return {
     listPlans, listMyPlans, loadPlanStates, withFullStates, loadPlan, loadPlanInfo, savePlan,
     listProjects, currentProject, setCurrentProject, inviteByEmail, listProjectInvites, cancelInvite, answerInvite, listNotifications, markNotificationsRead,
-    createProject, renameProject, setProjectAvatar, addProjectClass, removeProjectClass, addProjectChoice, removeProjectChoice, setProjectMemberRole, removeProjectMember, leaveProject, deleteProject, findMember,
+    createProject, renameProject, setProjectAvatar, addProjectClass, removeProjectClass, addProjectChoice, removeProjectChoice, rateAiChat, setAiChatOutcome, listAiChatLogs, setProjectMemberRole, removeProjectMember, leaveProject, deleteProject, findMember,
     listPlanEditors, listMyEditRequests, requestPlanEdit, addPlanEditor, decidePlanEdit, removePlanEditor, createPlan, deletePlan, flushOnLeave, onSaveStatus,
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,

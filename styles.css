@@ -1778,8 +1778,8 @@ body.is-personal-project .aside-group[data-aside-group="members"] { display: non
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
   text-align: left;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -1790,7 +1790,8 @@ body.is-personal-project .aside-group[data-aside-group="members"] { display: non
 }
 
 .menu-popover-item:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
-.menu-popover-item svg { width: 14px; height: 14px; flex-shrink: 0; }
+.menu-popover-item svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--color-text-secondary); }
+.menu-popover-item-danger svg { color: inherit; }
 
 /* ============================================================
    INLINE EDITABLE

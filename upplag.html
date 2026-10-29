@@ -3947,6 +3947,10 @@
       description: document.querySelector('.idea-text').innerText.trim(),
       course: ctx?.course || '',
       contentTitle: ctx?.contentTitle || '',
+      // Det läraren valt ur läroplanen (som C-koder; punkter som inte finns i kursens lista längre som text)
+      chosen: (ctx?.chosen || []).map(it => itemCode.get(it.id) || it.text),
+      // Egna rader (inte Skolverkets text)
+      ownGoals: [...document.querySelectorAll('#goalsList .goal-text')].map(el => el.innerText.trim()).filter(Boolean),
       groupings,
       free: [...document.querySelectorAll('#structureList > .activity-wrapper')].map(activity),
       curriculum: (ctx?.items || []).map((it, i) => ({ id: 'C' + (i + 1), heading: it.heading, text: it.text })),

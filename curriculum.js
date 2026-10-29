@@ -1270,6 +1270,8 @@ const PlanCurriculum = (() => {
       contentTitle: C.contentTitle(cur),
       items: catalogItems('content').map(it => ({ id: it.id, heading: it.heading || '', text: C.plainText((it.lead ? it.lead + ' ' : '') + it.text), label: C.plainText(it.text).slice(0, 120) })),
       linksOf: activityId => cur.content.filter(it => (it.activities || []).includes(activityId)).map(it => it.id),
+      // Det läraren valt under Centralt innehåll / Mål ur läroplanen (med Skolverkets text)
+      chosen: cur.content.map(it => ({ id: it.id, text: C.plainText((it.lead ? it.lead + ' ' : '') + it.text) })),
     };
   }
 

@@ -37,7 +37,7 @@ Princip: **Lossi hittar inte på något eget i läroplanen.** Läraren väljer u
 - **Föreslå kopplingar med AI** (2026-10-27): första gången Lossi själv anropar en AI (Claude Haiku via Supabase Edge Function `suggest-links`). Sidopanelen med maskoten frågar först, och läraren godkänner förslagen där. Allt om filer, driftsättning och kostnad står i `docs/ai-suggest-links.md`.
 - Möjliga nästa steg: visa kopplade punkter från lektionens håll.
 
-## SQL (Tobias har kört alla 1–7; 7 bekräftad 2026-10-29)
+## SQL (Tobias har kört alla 1–8; 8 bekräftad 2026-10-29)
 Alla filer går att köra om. Ordning: efter `projects.sql`, `notifications.sql`, `feedback-admin.sql`.
 1. `supabase/calendar-shared.sql` – medlemmar ser varandras kalenderhändelser (#9). Tobias testade kalendern men hade inte kollat kollegornas lektioner.
 2. `supabase/project-classes.sql` – klasser tillhör projektet.
@@ -46,7 +46,7 @@ Alla filer går att köra om. Ordning: efter `projects.sql`, `notifications.sql`
 5. `supabase/personal-private.sql` (2026-10-23) – den egna ytan kan inte delas: spärrar inbjudningar och medlemskap där, tar bort obesvarade inbjudningar och flyttar ut medlemmar som redan var med (deras upplägg flyttas till deras egen yta). Körd 2026-10-23.
 6. `supabase/marketplace.sql` (2026-10-27) – marknadsplatsen: tabellerna market_plans och market_files och regler för filerna under market/<id>/ i hinken plan-files. Kräver files.sql och feedback-admin.sql. Körd 2026-10-27.
 7. `supabase/project-choices.sql` (2026-10-29) – ämnen och årskurser tillhör projektet (Projektinställningar › Ämnen / Årskurser). Kräver project-classes.sql. Körd 2026-10-29. Utan den fungerar Ämne och Årskurs som förut (standardlistan + lärarens egna).
-8. `supabase/project-admins.sql` (2026-10-29) – rollen administratör i projekt (Projektinställningar › Medlemmar). Gäller bara projektet, inte Lossis admin. Skriver om rename_project, set_project_avatar, remove_project_member (projects.sql), cancel_invite och notify_member_joined (notifications.sql): **kör den igen om projects.sql eller notifications.sql körs om**. **Inte körd än.**
+8. `supabase/project-admins.sql` (2026-10-29) – rollen administratör i projekt (Projektinställningar › Medlemmar). Gäller bara projektet, inte Lossis admin. Skriver om rename_project, set_project_avatar, remove_project_member (projects.sql), cancel_invite och notify_member_joined (notifications.sql): **kör den igen om projects.sql eller notifications.sql körs om**. Körd 2026-10-29.
 Efter (3): skapa en kod på **Admin → Koder** för att testa onboardingen live.
 
 ## Läget

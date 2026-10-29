@@ -2234,3 +2234,13 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeCreatePlanModal();
   if (e.key === 'Enter' && e.target.id === 'createPlanName') createPlan();
 });
+
+// iPhone och iPad zoomar in när man trycker i ett fält med text under 16 px,
+// och sidan blir då bredare än skärmen. maximum-scale=1 stoppar det, och Safari
+// på iOS låter ändå användaren nypa för att zooma. Bara iOS: på Android stänger
+// samma inställning av nypzoomen.
+(function () {
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const meta = document.querySelector('meta[name="viewport"]');
+  if (ios && meta && !/maximum-scale/.test(meta.content)) meta.content += ', maximum-scale=1';
+})();

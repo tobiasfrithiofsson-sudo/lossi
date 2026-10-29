@@ -3452,6 +3452,14 @@ body.is-coeditor .lesson-schedule-btn { display: none !important; }
 
 .modal-overlay.open { display: flex; }
 
+/* Bakgrunden står still medan en dialog är öppen (och på mobil sidopanelen
+   eller menyn), och en scroll i panelen fortsätter inte ut i sidan bakom */
+html:has(.modal-overlay.open) { overflow: hidden; }
+.modal-overlay, .modal, .activity-panel-body, aside { overscroll-behavior: contain; }
+@media (max-width: 760px) {
+  html:has(body.activity-panel-open), html:has(body.aside-open) { overflow: hidden; }
+}
+
 .modal {
   width: 800px;
   max-width: 100%;

@@ -10,7 +10,7 @@ Vill AI:n ändra något visas det som ett **förslagskort** i chatten. Inget än
 
 Principen gäller: **AI:n skriver ingen läroplanstext.** Den får bara välja punkter (C1, C2 …) ur kursens lista, och Lossi lägger in Skolverkets text.
 
-Medan chatten är öppen lämnar sidan plats för den. Öppnas en aktivitet lägger sig aktivitetspanelen ovanpå sidan till vänster om chatten, så att läraren ser ändringen. På mobil täcker chatten skärmen och aktiviteten öppnas ovanpå.
+Panelen går att göra bredare genom att dra i vänsterkanten (bredden sparas i webbläsaren) och att visa i helskärm. Medan chatten är öppen lämnar sidan plats för den. Öppnas en aktivitet lägger sig aktivitetspanelen ovanpå sidan till vänster om chatten, så att läraren ser ändringen. På mobil täcker chatten skärmen och aktiviteten öppnas ovanpå.
 
 Det gamla flödet (kopiera en fråga till sin egen AI och klistra in svaret) finns kvar via länken **Använd din egen AI i stället** längst ner i chatten.
 

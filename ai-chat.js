@@ -12,10 +12,14 @@
 // upplag.html anropar PlanChat.init({ planId, readOnly(), snapshot(),
 // apply(changes, maps), undo(token), canUndo(token), openOwnAi() }).
 // Konversationen sparas per upplägg i webbläsaren (localStorage).
+// Panelen går att göra bredare genom att dra i vänsterkanten (bredden sparas i
+// webbläsaren) och att visa i helskärm, som aktivitetspanelen.
 const PlanChat = (() => {
   const FUNCTION_URL = LOSSI_CONFIG.supabaseUrl + '/functions/v1/plan-chat';
   const MAX_SENT = 30;     // meddelanden som skickas med (serverns MAX_MESSAGES)
   const MAX_STORED = 60;
+  const WIDTH_KEY = 'lossi-ai-panel-w';
+  const MIN_WIDTH = 360;
   const STARTERS = [
     'Föreslå aktiviteter som passar upplägget',
     'Koppla läroplanen till mina aktiviteter',
@@ -52,6 +56,7 @@ const PlanChat = (() => {
     panel.id = 'aiPanel';
     panel.setAttribute('aria-label', 'Planera med AI');
     panel.innerHTML = `
+      <div class="activity-panel-resize-handle" id="aiPanelResizeHandle"></div>
       <div class="activity-panel-header">
         <div class="activity-panel-header-main">
           <div class="activity-panel-icon ai-panel-icon"><i data-lucide="sparkles"></i></div>
@@ -59,6 +64,7 @@ const PlanChat = (() => {
         </div>
         <div class="activity-panel-header-actions">
           <button type="button" class="btn btn-text btn-icon" onclick="PlanChat.reset()" title="Ny konversation" aria-label="Ny konversation"><i data-lucide="square-pen"></i></button>
+          <button type="button" class="btn btn-text btn-icon ai-panel-expand" id="aiPanelExpandBtn" onclick="PlanChat.toggleFullscreen()" title="Expandera till helskärm" aria-label="Expandera till helskärm"><i data-lucide="maximize-2"></i></button>
           <button type="button" class="btn btn-text btn-icon" onclick="PlanChat.close()" title="Stäng" aria-label="Stäng"><i data-lucide="x"></i></button>
         </div>
       </div>
@@ -69,6 +75,7 @@ const PlanChat = (() => {
       </form>
       <p class="ai-chat-foot">AI kan ha fel, så läs förslagen innan du genomför dem. <button type="button" class="ai-chat-link" onclick="PlanChat.ownAi()">Använd din egen AI i stället</button></p>`;
     document.body.appendChild(panel);
+    setupResize();
     const input = panel.querySelector('#aiChatInput');
     input.addEventListener('input', autosize);
     input.addEventListener('keydown', e => {
@@ -76,6 +83,57 @@ const PlanChat = (() => {
       if (e.key === 'Escape') close();
     });
     lucide.createIcons({ nodes: [panel] });
+  }
+
+  // ── Bredd och helskärm ──
+  // Bredden är --ai-panel-w, så att sidan och aktivitetspanelen flyttar med (styles.css)
+  function setWidth(px) {
+    const width = Math.min(Math.max(px, MIN_WIDTH), window.innerWidth - 80);
+    document.documentElement.style.setProperty('--ai-panel-w', width + 'px');
+    return width;
+  }
+
+  function setupResize() {
+    try {
+      const saved = Number(localStorage.getItem(WIDTH_KEY));
+      if (saved) setWidth(saved);
+    } catch (_) { /* ingen sparad bredd */ }
+    const handle = panel.querySelector('#aiPanelResizeHandle');
+    let startX = 0;
+    let startWidth = 0;
+    let width = 0;
+    const move = e => { width = setWidth(startWidth + startX - e.clientX); }; // åt vänster = bredare
+    const up = () => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      panel.classList.remove('resizing');
+      document.body.classList.remove('activity-panel-resizing');
+      document.body.style.userSelect = '';
+      try { if (width) localStorage.setItem(WIDTH_KEY, String(Math.round(width))); } catch (_) { /* sparas inte */ }
+    };
+    handle.addEventListener('pointerdown', e => {
+      if (panel.classList.contains('fullscreen')) return;
+      e.preventDefault();
+      startX = e.clientX;
+      startWidth = panel.getBoundingClientRect().width;
+      panel.classList.add('resizing');
+      document.body.classList.add('activity-panel-resizing'); // sidan följer med utan fördröjning
+      document.body.style.userSelect = 'none';
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up);
+    });
+  }
+
+  function toggleFullscreen(force) {
+    if (!panel) return;
+    const full = panel.classList.toggle('fullscreen', force);
+    document.body.classList.toggle('ai-panel-fullscreen', full);
+    const btn = panel.querySelector('#aiPanelExpandBtn');
+    const label = full ? 'Återställ storlek' : 'Expandera till helskärm';
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.innerHTML = `<i data-lucide="${full ? 'minimize-2' : 'maximize-2'}"></i>`;
+    lucide.createIcons({ nodes: [btn] });
   }
 
   function autosize() {
@@ -97,6 +155,7 @@ const PlanChat = (() => {
 
   function close() {
     if (!panel) return;
+    toggleFullscreen(false);
     panel.classList.remove('open');
     document.body.classList.remove('ai-panel-open');
     clearInterval(blinkTimer);
@@ -412,5 +471,5 @@ const PlanChat = (() => {
     return { summary: p.summary, changes: p.changes, maps, labels, status: 'open' };
   }
 
-  return { init, open, close, toggle, reset, send, accept, decline, undo, ownAi };
+  return { init, open, close, toggle, toggleFullscreen, reset, send, accept, decline, undo, ownAi };
 })();

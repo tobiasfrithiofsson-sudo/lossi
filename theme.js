@@ -33,9 +33,12 @@ function setTheme(pref) {
   syncThemeIcons();
 }
 
-// Knappen på login-/landningssidan: växlar till motsatsen av det som syns
+// Knappen på login-/landningssidan: växlar till motsatsen av det som syns.
+// Hamnar man på samma läge som systemet sparas System, så att sidan fortsätter
+// följa datorn i stället för att låsas vid ett fast val.
 function toggleTheme() {
-  setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  setTheme(next === (darkQuery.matches ? 'dark' : 'light') ? 'system' : next);
 }
 
 const THEME_CHOICES = [

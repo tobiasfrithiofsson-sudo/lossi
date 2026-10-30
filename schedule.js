@@ -273,7 +273,7 @@ function openScheduleModal(ctx) {
   document.getElementById('scheduleTarget').hidden = picking;
   document.getElementById('scheduleTarget').innerHTML = picking ? '' : `
     <span class="schedule-target-lesson">${escapeHTML(ctx.lessonName || 'Gruppering')}</span>
-    <span class="schedule-target-plan">${escapeHTML(ctx.planTitle || '')}</span>`;
+    ${ctx.planTitle ? `<span class="schedule-target-plan">${escapeHTML(ctx.planTitle)}</span>` : ''}`;
   document.getElementById('schedulePlanGroup').hidden = !picking;
   document.getElementById('scheduleLessonGroup').hidden = !picking;
   document.getElementById('scheduleDate').value = toDateInputValue(start);
@@ -304,7 +304,7 @@ function nextRoundedHour() {
 }
 
 // Kalenderläget: lektionerna i valt upplägg, med info om de redan ligger inne,
-// och sist hela upplägget (det enda valet när upplägget saknar grupperingar)
+// och sist upplägget självt (det enda valet när det saknar grupperingar)
 function fillScheduleLessons() {
   const plan = scheduleCtx.plans.find(p => p.id === document.getElementById('schedulePlan').value);
   const lessons = lessonsFromState(plan?.state);
@@ -315,7 +315,7 @@ function fillScheduleLessons() {
     const existing = l.id && booked.get(plan.id + ':' + l.id);
     const note = existing ? ` (inlagd ${formatDay(existing.start)} ${formatTime(existing.start)})` : '';
     return `<option value="${i}">${escapeHTML(l.name + note)}</option>`;
-  }).join('') + (plan ? `<option value="${WHOLE_PLAN_ID}">Hela upplägget</option>` : '');
+  }).join('') + (plan ? `<option value="${WHOLE_PLAN_ID}">${escapeHTML(getPlanSummary(plan.id, plan.state).title)}</option>` : '');
   select.disabled = !plan;
   hint.hidden = true;
   syncScheduleDuration();

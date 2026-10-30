@@ -1374,8 +1374,7 @@
     openScheduleModal({
       planId: planKey,
       lessonId: WHOLE_PLAN_ID,
-      planTitle: document.getElementById('planTitle').textContent.trim(),
-      lessonName: 'Hela upplägget',
+      lessonName: document.getElementById('planTitle').textContent.trim(),
       event: planEvents.get(WHOLE_PLAN_ID),
       durationMin: plannedMinutes(),
       onSaved: event => { planEvents.set(WHOLE_PLAN_ID, event); done(); },

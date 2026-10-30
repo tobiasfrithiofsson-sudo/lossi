@@ -422,7 +422,8 @@
     const pop = document.getElementById('calPopover');
     document.getElementById('calPopIcon').innerHTML = planAvatarImgHTML(selected.plan.avatar);
     document.getElementById('calPopLesson').textContent = selected.lessonName;
-    document.getElementById('calPopPlan').textContent = selected.wholePlan ? 'Hela upplägget' : selected.plan.title;
+    document.getElementById('calPopPlan').textContent = selected.wholePlan ? '' : selected.plan.title;
+    document.getElementById('calPopPlan').hidden = selected.wholePlan;
     document.getElementById('calPopWhen').textContent = formatEventWhen(selected, { long: true });
     document.getElementById('calPopOpen').href = 'upplag.html?id=' + selected.planId;
     // Andras lektioner går bara att titta på
@@ -451,7 +452,7 @@
     const e = selected;
     closePopover();
     openScheduleModal({
-      planId: e.planId, lessonId: e.lessonId, planTitle: e.plan.title, lessonName: e.wholePlan ? 'Hela upplägget' : e.lessonName,
+      planId: e.planId, lessonId: e.lessonId, planTitle: e.wholePlan ? '' : e.plan.title, lessonName: e.lessonName,
       event: e, onSaved: afterChange, onRemoved: afterChange,
     });
   }

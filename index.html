@@ -184,7 +184,7 @@
         <a class="upcoming-card" href="upplag.html?id=${e.planId}" data-plan-id="${e.planId}">
           <div class="upcoming-card-icon plan-icon-image">${planAvatarImgHTML(e.plan.avatar)}</div>
           <div class="upcoming-card-title">${escapeHTML(e.lessonName)}</div>
-          <div class="upcoming-card-plan">${escapeHTML(e.wholePlan ? 'Hela upplägget' : e.plan.title)}</div>
+          ${e.wholePlan ? '' : `<div class="upcoming-card-plan">${escapeHTML(e.plan.title)}</div>`}
           <div class="upcoming-card-step"><i data-lucide="calendar-days"></i>${escapeHTML(formatEventWhen(e))}</div>
         </a>`).join('')
       : `<div class="upcoming-empty">

@@ -9,7 +9,7 @@
 // AI:n skriver aldrig läroplanstext: den får bara välja punkter (C1 …) ur
 // listan, och Lossi lägger in Skolverkets text.
 //
-// Samma uppsättning som suggest-links: nyckeln ANTHROPIC_API_KEY bara här,
+// Nyckeln ANTHROPIC_API_KEY finns bara här,
 // inloggningen kontrolleras och varje svar loggas i ai_requests (supabase/ai.sql)
 // med en egen gräns per dygn (DAILY_LIMIT). Driftsättning: docs/ai-plan-chat.md.
 //

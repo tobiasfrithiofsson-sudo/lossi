@@ -28,14 +28,15 @@ Tänk på: samtalen kan innehålla personuppgifter trots uppmaningen. Nämn spar
 - `supabase/functions/plan-chat/index.ts`: serverfunktionen (Deno). Kontrollerar inloggningen och gränsen på 100 svar per lärare och dygn (`DAILY_LIMIT`), skickar konversationen och upplägget till Claude Haiku med verktyget `propose_changes` (strikt schema), strömmar svaret som rader med JSON och sorterar bort ändringar som pekar på id som inte finns. Loggar tokens i `ai_requests` med `kind = 'plan-chat'`.
 - `ai-chat.js`: panelen, meddelandena, förslagskorten och strömningen (`PlanChat`). Konversationen sparas per upplägg i webbläsaren (localStorage `lossi-ai-chat:<id>`); **Ny konversation** i panelens huvud tömmer den.
 - `upplag.html`: `planForChat()` (upplägget med korta id: G1 gruppering, A1 aktivitet, C1 punkt) och `applyChatChanges()` / `undoChatChanges()`. Aktiviteter ändras via samma `writeActivityForm()` som Spara.
-- `curriculum.js`: `chatContext()` (kursens punkter och kopplingar) och `linkActivities()` (delas med Föreslå kopplingar).
+- `curriculum.js`: `chatContext()` (kursens punkter och kopplingar) och `linkActivities()`.
+- `supabase/ai.sql`: tabellen `ai_requests`. RLS är på utan regler, så bara funktionen kommer åt den.
 - `styles.css`: avsnittet "PLANERA MED AI – chatten i sidopanelen".
 
 ## Driftsättning (görs en gång)
-Hemligheten `ANTHROPIC_API_KEY` och tabellen `ai_requests` finns redan sedan Föreslå kopplingar (`docs/ai-suggest-links.md`).
-1. **Ny funktion:** Edge Functions (https://supabase.com/dashboard/project/mqzmtndjfgeujaqzqpeb/functions) › Deploy a new function › Via Editor. Döp den till `plan-chat` (exakt), klistra in hela `supabase/functions/plan-chat/index.ts` i stället för exempelkoden och välj Deploy. Låt "Verify JWT" vara påslaget.
-2. **Tabellen för samtalen:** kör `supabase/ai-chat-logs.sql` i SQL Editor (https://supabase.com/dashboard/project/mqzmtndjfgeujaqzqpeb/sql/new). Utan den fungerar chatten, men inget sparas.
-3. **Uppdatera suggest-links:** öppna funktionen `suggest-links`, klistra in den nya `supabase/functions/suggest-links/index.ts` och välj Deploy. (Ändringen: dess gräns räknar bara sina egna förslag, så att chatten inte tar av dem.)
+1. **Anthropic:** skapa ett konto på https://console.anthropic.com, lägg in betalkort och sätt en månadsgräns under Billing › Limits. Skapa en API-nyckel under API Keys och kopiera den.
+2. **Hemligheten:** i Supabase, gå till Edge Functions › Secrets (https://supabase.com/dashboard/project/mqzmtndjfgeujaqzqpeb/functions/secrets). Lägg till `ANTHROPIC_API_KEY` med nyckeln som värde. Nyckeln ska bara finnas där, aldrig i koden.
+3. **Tabellerna:** kör `supabase/ai.sql` och `supabase/ai-chat-logs.sql` i SQL Editor (https://supabase.com/dashboard/project/mqzmtndjfgeujaqzqpeb/sql/new). Utan `ai-chat-logs` fungerar chatten, men inget sparas.
+4. **Funktionen:** Edge Functions (https://supabase.com/dashboard/project/mqzmtndjfgeujaqzqpeb/functions) › Deploy a new function › Via Editor. Döp den till `plan-chat` (exakt), klistra in hela `supabase/functions/plan-chat/index.ts` i stället för exempelkoden och välj Deploy. Låt "Verify JWT" vara påslaget.
 
 Kopiera koden med `LANG=en_US.UTF-8 pbcopy < fil`, annars blir åäö fel.
 
@@ -47,8 +48,8 @@ from ai_requests group by kind, user_id order by svar desc;
 ```
 
 ## Felmeddelanden i chatten
-- "AI-chatten är inte påslagen än." betyder att tabellen `ai_requests` saknas (`supabase/ai.sql`).
-- "Svaret gick inte att hämta." betyder oftast att funktionen saknas (steg 1). Läs loggen under Edge Functions › plan-chat › Logs.
+- "AI-chatten är inte påslagen än." betyder att tabellen `ai_requests` saknas (steg 3).
+- "Svaret gick inte att hämta." betyder oftast att funktionen saknas (steg 4). Läs loggen under Edge Functions › plan-chat › Logs.
 - "Du har använt dagens 100 svar." visas när gränsen är nådd. Ändra `DAILY_LIMIT` om det behövs.
 
 ## Inte byggt än

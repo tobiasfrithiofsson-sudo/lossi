@@ -1,4 +1,4 @@
--- ── AI-förslag: en rad per anrop till Claude (supabase/functions/suggest-links) ──
+-- ── AI-förslag: en rad per anrop till Claude (supabase/functions/plan-chat) ──
 -- Används för gränsen per lärare och dygn och för att se vad AI:n kostar.
 -- Bara serverfunktionen (service role) läser och skriver: RLS är på och det
 -- finns inga regler, så ingen inloggad användare kommer åt tabellen.

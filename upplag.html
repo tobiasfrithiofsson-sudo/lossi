@@ -937,6 +937,13 @@
               </div>
             </div>
           </div>
+          <!-- Hela upplägget i kalendern, t.ex. när aktiviteterna inte ligger i grupperingar (schedule.js) -->
+          <div class="read-field" id="planScheduleField">
+            <span class="read-field-label">Kalender</span>
+            <div class="class-picker-trigger" id="planScheduleTrigger" onclick="openPlanSchedule()" title="Lägg in hela upplägget i kalendern">
+              <span class="class-tag is-empty">Lägg in i kalendern</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1339,7 +1346,45 @@
     renderLessonSchedules();
   }
 
+  // Hela upplägget i kalendern (Detaljer). Bara skaparen lägger in; andra ser tiden om den finns.
+  function renderPlanSchedule() {
+    const field = document.getElementById('planScheduleField');
+    const event = planEvents.get(WHOLE_PLAN_ID);
+    const canEdit = planLoaded && !planReadOnly && planIsOwner;
+    field.hidden = !event && !canEdit;
+    const trigger = document.getElementById('planScheduleTrigger');
+    trigger.title = event ? 'Ändra tid i kalendern' : 'Lägg in hela upplägget i kalendern';
+    trigger.classList.toggle('is-readonly', !canEdit);
+    trigger.innerHTML = `<span class="class-tag${event ? '' : ' is-empty'}">${
+      event ? escapeHTML(`${formatDay(event.start, { long: true })} ${formatTime(event.start)}`) : 'Lägg in i kalendern'}</span>`;
+  }
+
+  // Föreslagen längd: aktiviteternas tid tillsammans, annars kalenderns standard
+  function plannedMinutes() {
+    const sum = [...document.querySelectorAll('#structureList .activity-time')].reduce((s, el) => s + parseMinutes(el.textContent), 0);
+    return sum ? Math.max(5, Math.min(sum, 600)) : undefined;
+  }
+
+  function openPlanSchedule() {
+    if (!planLoaded || planReadOnly || !planIsOwner) return;
+    const done = () => {
+      renderPlanSchedule();
+      if (typeof renderAsideEvents === 'function') renderAsideEvents();
+    };
+    openScheduleModal({
+      planId: planKey,
+      lessonId: WHOLE_PLAN_ID,
+      planTitle: document.getElementById('planTitle').textContent.trim(),
+      lessonName: 'Hela upplägget',
+      event: planEvents.get(WHOLE_PLAN_ID),
+      durationMin: plannedMinutes(),
+      onSaved: event => { planEvents.set(WHOLE_PLAN_ID, event); done(); },
+      onRemoved: () => { planEvents.delete(WHOLE_PLAN_ID); done(); },
+    });
+  }
+
   function renderLessonSchedules() {
+    renderPlanSchedule();
     document.querySelectorAll('#structureList .lesson-group').forEach(group => {
       const btn = group.querySelector('.lesson-schedule-btn');
       if (!btn) return;

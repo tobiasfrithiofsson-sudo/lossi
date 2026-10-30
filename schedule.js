@@ -7,6 +7,11 @@
 
 const SCHEDULE_DEFAULT_DURATION = 60;
 
+// Hela upplägget i kalendern (Detaljer i upplag.html, t.ex. när aktiviteterna
+// inte ligger i grupperingar): en vanlig händelse med det här reserverade
+// lesson_id i stället för en grupperings id. Ett upplägg ligger inne en gång.
+const WHOLE_PLAN_ID = 'plan';
+
 // ── Lektioner i ett upplägg ──
 // Lektionerna ligger i state.structureHTML som .lesson-group med ett fast
 // id (data-lesson-id). Äldre upplägg saknar id tills de öppnas eller schemaläggs.
@@ -112,16 +117,18 @@ function resolveEvents(events, plans) {
   return events.flatMap(e => {
     const plan = byId.get(e.planId);
     if (!plan) return [];
+    const wholePlan = e.lessonId === WHOLE_PLAN_ID;
     const lessons = lessonsFromState(plan.state);
     const lesson = lessons.find(l => l.id === e.lessonId);
-    if (plan.state?.structureHTML && !lesson) return [];
+    if (plan.state?.structureHTML && !lesson && !wholePlan) return [];
     const summary = getPlanSummary(plan.id, plan.state);
     return [{
       ...e,
       durationMin: lesson?.durationMin || e.durationMin,
       plan: summary,
       klass: plan.state?.klass || '',
-      lessonName: lesson?.name || 'Gruppering',
+      wholePlan,
+      lessonName: wholePlan ? summary.title : lesson?.name || 'Gruppering',
       assessment: lesson?.assessment || null,
     }];
   });
@@ -296,7 +303,8 @@ function nextRoundedHour() {
   return d;
 }
 
-// Kalenderläget: lektionerna i valt upplägg, med info om de redan ligger inne
+// Kalenderläget: lektionerna i valt upplägg, med info om de redan ligger inne,
+// och sist hela upplägget (det enda valet när upplägget saknar grupperingar)
 function fillScheduleLessons() {
   const plan = scheduleCtx.plans.find(p => p.id === document.getElementById('schedulePlan').value);
   const lessons = lessonsFromState(plan?.state);
@@ -307,26 +315,24 @@ function fillScheduleLessons() {
     const existing = l.id && booked.get(plan.id + ':' + l.id);
     const note = existing ? ` (inlagd ${formatDay(existing.start)} ${formatTime(existing.start)})` : '';
     return `<option value="${i}">${escapeHTML(l.name + note)}</option>`;
-  }).join('');
-  select.disabled = !lessons.length;
-  hint.hidden = !!lessons.length;
-  hint.textContent = plan?.state?.demo
-    ? 'Öppna upplägget en gång så blir dess grupperingar valbara här.'
-    : 'Upplägget har inga grupperingar än.';
+  }).join('') + (plan ? `<option value="${WHOLE_PLAN_ID}">Hela upplägget</option>` : '');
+  select.disabled = !plan;
+  hint.hidden = true;
   syncScheduleDuration();
 }
 
 function syncScheduleDuration() {
   if (!scheduleCtx?.plans) return;
   const plan = scheduleCtx.plans.find(p => p.id === document.getElementById('schedulePlan').value);
-  const lesson = lessonsFromState(plan?.state)[Number(document.getElementById('scheduleLesson').value)];
+  const choice = document.getElementById('scheduleLesson').value;
+  const whole = choice === WHOLE_PLAN_ID;
+  const lesson = whole ? null : lessonsFromState(plan?.state)[Number(choice)];
   if (lesson?.durationMin) setScheduleLength(lesson.durationMin);
-  const booked = lesson?.id && scheduleCtx.eventsByKey?.get(plan.id + ':' + lesson.id);
+  const key = whole ? WHOLE_PLAN_ID : lesson?.id;
+  const booked = key && scheduleCtx.eventsByKey?.get(plan.id + ':' + key);
   const hint = document.getElementById('scheduleLessonHint');
-  if (lesson) {
-    hint.hidden = !booked;
-    hint.textContent = booked ? 'Grupperingen ligger redan i kalendern och flyttas till den nya tiden.' : '';
-  }
+  hint.hidden = !booked;
+  hint.textContent = booked ? `${whole ? 'Upplägget' : 'Grupperingen'} ligger redan i kalendern och flyttas till den nya tiden.` : '';
 }
 
 // ── Start- och sluttid ──
@@ -353,7 +359,7 @@ function updateScheduleLengthHint() {
   const start = timeToMinutes(document.getElementById('scheduleTime').value);
   const end = timeToMinutes(document.getElementById('scheduleEnd').value);
   document.getElementById('scheduleLengthHint').textContent =
-    start !== null && end !== null && end > start ? `Grupperingen blir ${formatLength(end - start)}` : '';
+    start !== null && end !== null && end > start ? `Längd: ${formatLength(end - start)}` : '';
 }
 
 function setScheduleLength(min) {
@@ -381,7 +387,7 @@ function readScheduleForm() {
   if (!date || start === null || end === null) return { error: 'Välj datum, starttid och sluttid.' };
   if (end <= start) return { error: 'Sluttiden behöver vara efter starttiden.' };
   const durationMin = end - start;
-  if (durationMin < 5 || durationMin > 600) return { error: 'Grupperingen behöver vara mellan 5 minuter och 10 timmar.' };
+  if (durationMin < 5 || durationMin > 600) return { error: 'Tiden behöver vara mellan 5 minuter och 10 timmar.' };
   const [y, mo, d] = date.split('-').map(Number);
   return { start: new Date(y, mo - 1, d, Math.floor(start / 60), start % 60), durationMin };
 }
@@ -397,14 +403,20 @@ async function saveSchedule() {
     if (scheduleCtx.plans) {
       // Från kalendern: lektionen behöver ett fast id och rätt längd i upplägget
       const plan = scheduleCtx.plans.find(p => p.id === document.getElementById('schedulePlan').value);
-      const index = Number(document.getElementById('scheduleLesson').value);
-      if (!plan || !lessonsFromState(plan.state)[index]) throw new Error('Välj en gruppering.');
-      let { state } = withLessonIds(plan.state);
-      lessonId = lessonsFromState(state)[index].id;
-      state = withLessonDuration(state, lessonId, form.durationMin);
-      if (state !== plan.state) {
-        await LossiData.savePlan(plan.id, state);
-        plan.state = state;
+      const choice = document.getElementById('scheduleLesson').value;
+      if (!plan) throw new Error('Välj en gruppering.');
+      if (choice === WHOLE_PLAN_ID) {
+        lessonId = WHOLE_PLAN_ID;
+      } else {
+        const index = Number(choice);
+        if (!lessonsFromState(plan.state)[index]) throw new Error('Välj en gruppering.');
+        let { state } = withLessonIds(plan.state);
+        lessonId = lessonsFromState(state)[index].id;
+        state = withLessonDuration(state, lessonId, form.durationMin);
+        if (state !== plan.state) {
+          await LossiData.savePlan(plan.id, state);
+          plan.state = state;
+        }
       }
       planId = plan.id;
     }

@@ -2484,6 +2484,8 @@ body.edit-mode .activity-more-btn { display: grid; }
    bakgrund vid hover visar att värdet går att klicka på. (.class-tag-stilarna
    ovan är taggvarianten; den här blocket skriver över dem i panelen.) */
 .detail-panel .class-picker-trigger { margin-left: -8px; border-radius: var(--radius-sm); }
+.detail-panel .class-picker-trigger.is-readonly { cursor: default; pointer-events: none; }
+.read-field[hidden] { display: none; }
 .detail-panel .class-tag,
 .detail-panel .class-tag.is-empty {
   padding: 4px 8px;

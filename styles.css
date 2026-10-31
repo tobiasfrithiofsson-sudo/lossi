@@ -3250,7 +3250,6 @@ a.upcoming-card { text-decoration: none; color: inherit; }
 }
 
 .upcoming-empty svg { width: 18px; height: 18px; color: var(--color-text-tertiary); flex-shrink: 0; }
-.upcoming-empty a { color: var(--color-primary); font-weight: 500; }
 
 /* "Upplägg" list */
 .plan-list {

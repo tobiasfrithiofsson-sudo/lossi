@@ -167,8 +167,7 @@
     filterPlans();
   }
 
-  // Kommande: de närmaste inlagda lektionerna (kalendern, schedule.js). Utan
-  // inlagda lektioner visas en hänvisning till kalendern.
+  // Kommande: de närmaste inlagda lektionerna (kalendern, schedule.js).
   async function renderUpcoming() {
     const panel = document.getElementById('upcomingPanel');
     const list = document.getElementById('upcomingList');
@@ -189,7 +188,7 @@
         </a>`).join('')
       : `<div class="upcoming-empty">
           <i data-lucide="calendar-plus"></i>
-          <span>Inga grupperingar inlagda än. Lägg in dem från ett upplägg eller i <a href="calendar.html">kalendern</a>.</span>
+          <span>Inga kommande händelser</span>
         </div>`;
     lucide.createIcons({ nodes: [list] });
     panel.hidden = false;

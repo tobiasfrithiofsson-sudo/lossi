@@ -621,6 +621,11 @@ const LossiData = (() => {
     return FILE_TYPES[ext] || null;
   }
 
+  // Filändelsen för en filtyp (Drive-filer saknar ofta ändelse i namnet)
+  function fileExtension(mime) {
+    return Object.keys(FILE_TYPES).find(ext => FILE_TYPES[ext] === mime) || '';
+  }
+
   // Varför en fil inte går att ladda upp, eller null
   function fileProblem(file) {
     if (!fileType(file)) return `${file.name}: den filtypen går inte att ladda upp. Tillåtna är PDF, Word, PowerPoint, Excel, OpenDocument, text och bilder.`;
@@ -840,7 +845,7 @@ const LossiData = (() => {
     listEvents, listPlanEvents, upcomingEvents, scheduleLesson, unscheduleLesson,
     sendFeedback, listAllFeedback, updateFeedback,
     listAccessCodes, createAccessCode, setAccessCodeUntil, closeAccessCode,
-    listPlanFiles, uploadPlanFile, deletePlanFiles, fileDownloadUrl, fileViewUrl, fileProblem, FILE_MAX_BYTES,
+    listPlanFiles, uploadPlanFile, deletePlanFiles, fileDownloadUrl, fileViewUrl, fileProblem, fileExtension, FILE_MAX_BYTES,
     listMarketPlans, getMarketPlan, marketPlanForSource, publishPlan, unpublishPlan, useMarketPlan,
   };
 })();

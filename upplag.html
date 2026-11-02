@@ -22,6 +22,7 @@
   <script src="auth.js"></script>
   <script src="theme.js"></script>
   <script src="data.js"></script>
+  <script src="google-drive.js"></script>
   <script src="schedule.js"></script>
   <script src="plan-markup.js"></script>
   <script src="curriculum.js"></script>
@@ -1609,7 +1610,7 @@
     const wrapper = document.getElementById(id);
     const panelBody = document.getElementById('activityPanelBody');
     // Fillistan visas bara i panelen och ska inte sparas med aktiviteten
-    panelBody.querySelectorAll('.activity-files').forEach(el => el.remove());
+    panelBody.querySelectorAll('.activity-files, .drive-btn').forEach(el => el.remove());
     const content = panelBody.firstElementChild;
     if (wrapper && content) {
       wrapper.insertBefore(content, wrapper.querySelector('.activity-read'));
@@ -3304,6 +3305,19 @@
     lucide.createIcons({ nodes: [list] });
     fillFileThumbs(list);
     if (openActivityId) renderActivityFiles(openActivityId);
+    addDriveButtons();
+  }
+
+  // Knappen Google Drive bredvid Bläddra (google-drive.js). Läggs in här och
+  // tas bort när aktiviteten sparas, så att den aldrig sparas med uppläggets HTML.
+  function addDriveButtons() {
+    if (!LossiDrive.enabled() || !canEditFiles()) return;
+    LossiDrive.preload().catch(e => console.warn('Kunde inte hämta Google Drive:', e));
+    document.querySelectorAll('.file-drop .browse-btn').forEach(btn => {
+      if (!btn.nextElementSibling?.matches('.drive-btn')) {
+        btn.insertAdjacentHTML('afterend', '<button type="button" class="btn btn-outline btn-xs drive-btn">Google Drive</button>');
+      }
+    });
   }
 
   function renderActivityFiles(activityId) {
@@ -3366,6 +3380,34 @@
       uploadingFiles.splice(uploadingFiles.indexOf(job), 1);
       renderPlanFiles();
     }
+  }
+
+  async function pickFromDrive(activityId) {
+    if (!canEditFiles()) return;
+    showFileMessage('');
+    const problems = [];
+    let docs = [];
+    try {
+      docs = await LossiDrive.pick();
+    } catch (e) {
+      console.warn('Kunde inte öppna Google Drive:', e);
+      problems.push('Google Drive gick inte att öppna. Försök igen om en stund.');
+    }
+    for (const doc of docs) {
+      const job = { key: Math.random(), name: doc.name, activityId };
+      uploadingFiles.push(job);
+      renderPlanFiles();
+      let file = null;
+      try {
+        file = await LossiDrive.download(doc);
+      } catch (e) {
+        problems.push(e.message);
+      }
+      uploadingFiles.splice(uploadingFiles.indexOf(job), 1);
+      renderPlanFiles();
+      if (file) await uploadFiles([file], activityId);
+    }
+    if (problems.length) showFileMessage(problems.join(' '));
   }
 
   // ── Förhandsvisning av en fil (klick på filkortet) ──
@@ -3481,6 +3523,12 @@
       if (!canEditFiles()) return;
       fileInputActivity = dropActivityId(browse.closest('.file-drop'));
       fileInput.click();
+      return;
+    }
+    const drive = e.target.closest('.file-drop .drive-btn');
+    if (drive) {
+      e.preventDefault();
+      pickFromDrive(dropActivityId(drive.closest('.file-drop')));
       return;
     }
     const del = e.target.closest('[data-delete-file]');

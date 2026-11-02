@@ -1,5 +1,7 @@
 # Välj filer från Google Drive
 
+**Avstängd sedan 2026-11-02.** Tobias vill arbeta med Lossis säkerhet innan Lossi kopplas till lärares Drive. Koden finns kvar, men knappen visas inte eftersom Google-uppgifterna i `config.js` är tomma. Kopplingen har aldrig testats mot riktiga Drive (inloggningen stoppades med 403: access_denied).
+
 Under Filer, både på upplägget och i en aktivitet, finns knappen **Google Drive** bredvid Bläddra. Den öppnar Googles egen filväljare. Valda filer laddas ner i webbläsaren och läggs in i Lossi som kopior, med samma regler som en vanlig uppladdning (högst 25 MB och samma filtyper).
 
 - Google Dokument, Presentationer, Kalkylark och Teckningar sparas som Word, PowerPoint, Excel och PDF. Google gör inte om filer som blir större än 10 MB.

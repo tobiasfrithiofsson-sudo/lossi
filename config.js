@@ -8,7 +8,7 @@
 const LOSSI_CONFIG = {
   supabaseUrl: 'https://mqzmtndjfgeujaqzqpeb.supabase.co',
   supabasePublishableKey: 'sb_publishable__AjC-8yqjsBivM-xgN4DHQ__zZQ2sNa',
-  googleClientId: '344318887994-6orcbdm06nt0igukr5r0ie2lrqmt3s0v.apps.googleusercontent.com',
-  googleApiKey: 'AIzaSyAXb_Wp-QZAjnM5VHoo1h56xanTuRg37Kw',
-  googleProjectNumber: '344318887994',
+  googleClientId: '',
+  googleApiKey: '',
+  googleProjectNumber: '',
 };

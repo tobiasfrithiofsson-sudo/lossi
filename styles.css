@@ -4305,7 +4305,8 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
     left: 0;
     height: calc(100dvh - 56px);
     width: min(300px, 85vw);
-    z-index: 45;
+    /* Över aktivitets- och AI-panelen (100 och 99), under topbaren (150) */
+    z-index: 130;
     transform: translateX(-100%);
     transition: transform 0.22s ease, box-shadow 0.22s ease;
   }
@@ -4318,7 +4319,7 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
     position: fixed;
     inset: 56px 0 0 0;
     background: rgba(0, 0, 0, 0.35);
-    z-index: 44;
+    z-index: 129;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.22s ease;

@@ -54,7 +54,7 @@ Alla filer går att köra om. Ordning: efter `projects.sql`, `notifications.sql`
 Efter (3): skapa en kod på **Admin → Koder** för att testa onboardingen live.
 
 ## Läget
-- **Live:** https://lossi.tobias-frithiofsson.workers.dev/ (app), `/landing`, `/login`, `/admin`. Repo: `tobiasfrithiofsson-sudo/lossi` (privat).
+- **Live:** https://lossi.se/ (egen domän sedan 2026-11-08; den gamla adressen https://lossi.tobias-frithiofsson.workers.dev/ fungerar också) – app, `/landing`, `/login`, `/admin`. Kontrollera att en push är live med curl mot https://lossi.se/. Repo: `tobiasfrithiofsson-sudo/lossi` (privat).
 - **Stack:** statisk HTML/CSS/JS utan byggsteg (lucide 1.61.0, SortableJS, pptxgenjs vid export, supabase-js från CDN). Supabase för data/inloggning/fillagring, Cloudflare Workers (static assets) för hosting.
 - **Konton:** Skapa konto är en onboarding i tre steg (`onboarding.js`, login.html; prickar visar steget):
   1. **Ange kod** – 6 rutor (större text, hopp till nästa ruta, klistra in, `login.html?kod=ABC123` fyller i). **Alla behöver en kod**, även den som bjudits in via e-post.

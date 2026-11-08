@@ -5,7 +5,7 @@ Working checklist. Start every session by reading this file, picking the next un
 ## Progress
 - [x] Step 0: Plan into repo
 - [x] Step 1: Git + GitHub (private repo `tobiasfrithiofsson-sudo/lossi`)
-- [x] Step 2: Deploy today's app to Cloudflare (live: https://lossi.tobias-frithiofsson.workers.dev/)
+- [x] Step 2: Deploy today's app to Cloudflare (live: https://lossi.se/, egen domän sedan 2026-11-08; förut https://lossi.tobias-frithiofsson.workers.dev/)
 - [x] Step 3: Introduce `data.js` (still localStorage)
 - [x] Step 4: Supabase project + table (project `lossi`, ref `mqzmtndjfgeujaqzqpeb`)
 - [x] Step 5: Login (`auth.js`; email + password since 2026-10-16)

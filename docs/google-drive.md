@@ -20,8 +20,8 @@ Under Filer, både på upplägget och i en aktivitet, finns knappen **Google Dri
 3. Under **Google Auth Platform** (https://console.cloud.google.com/auth/overview): fyll i appens namn och din e-post, och välj målgruppen External.
 4. Under **Audience**: låt appen vara i läget Testing och lägg till din Gmail som testanvändare.
 5. Under **Data Access**: lägg till behörigheten `.../auth/drive.file`.
-6. Under **Clients**: skapa en OAuth-klient av typen Web application. Lägg till `https://lossi.tobias-frithiofsson.workers.dev` under Authorized JavaScript origins. Kopiera klient-id:t.
-7. Under **APIs & Services › Credentials** (https://console.cloud.google.com/apis/credentials): skapa en API-nyckel. Begränsa den till webbadresserna `https://lossi.tobias-frithiofsson.workers.dev/*` och `https://docs.google.com/*`, och till Google Picker API.
+6. Under **Clients**: skapa en OAuth-klient av typen Web application. Lägg till `https://lossi.se` (och gärna `https://lossi.tobias-frithiofsson.workers.dev`) under Authorized JavaScript origins. Kopiera klient-id:t.
+7. Under **APIs & Services › Credentials** (https://console.cloud.google.com/apis/credentials): skapa en API-nyckel. Begränsa den till webbadresserna `https://lossi.se/*`, `https://lossi.tobias-frithiofsson.workers.dev/*` och `https://docs.google.com/*`, och till Google Picker API.
 8. Hämta **Project number** på projektets startsida (https://console.cloud.google.com/home/dashboard).
 9. Klistra in de tre värdena i `config.js`, spara och pusha till `main`.
 

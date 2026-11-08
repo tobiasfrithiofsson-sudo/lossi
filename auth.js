@@ -9,7 +9,8 @@
 //
 // Skyddade sidor har class="auth-pending" på <html> (döljer sidan) och anropar
 // LossiAuth.requireUser() först: utloggade skickas till login.html, inloggade
-// får sidan visad.
+// får sidan visad. Startsidan (lossi.se/) är ett undantag: utloggade besökare
+// hamnar på landningssidan, inloggade på översikten som vanligt.
 const LossiAuth = (() => {
   const client = window.supabase.createClient(
     LOSSI_CONFIG.supabaseUrl,
@@ -119,7 +120,12 @@ const LossiAuth = (() => {
   async function requireUser() {
     const user = await getUser();
     if (!user) {
-      const next = window.location.pathname + window.location.search;
+      const path = window.location.pathname;
+      if (/^\/(index(\.html)?)?$/.test(path) && !window.location.search) {
+        window.location.replace('landing.html');
+        return new Promise(() => {});
+      }
+      const next = path + window.location.search;
       window.location.replace('login.html?next=' + encodeURIComponent(next));
       return new Promise(() => {}); // sidan lämnas; inget mer ska köras
     }

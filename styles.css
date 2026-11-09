@@ -4295,7 +4295,7 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
   .logo-text,
   .topnav-link.is-soon { display: none; }
   .topnav { margin-left: 0; }
-  .feedback-btn, .onboarding-btn { width: var(--btn-height); padding: 0; margin-right: 0; }
+  .feedback-btn, .onboarding-btn { width: var(--btn-height); padding-inline: 0; margin-right: 0; }
   .feedback-btn-label, .onboarding-btn-label { display: none; }
 
   /* Sidopanelen som utdragbar meny */
@@ -4741,7 +4741,7 @@ body.ai-panel-open .activity-panel:not(.ai-panel):not(.open) { opacity: 0; visib
   resize: none;
 }
 .ai-chat-input:focus { outline: none; border-color: var(--color-primary); }
-.ai-chat-send { --btn-h: 36px; flex-shrink: 0; }
+.ai-chat-send { --btn-pad-icon: 9px; flex-shrink: 0; } /* 16 + 9 + 9 + 2 = 36px */
 .ai-chat-foot { margin: 0; padding: 0 16px 12px; font-size: var(--font-size-sm); line-height: 1.5; color: var(--color-text-secondary); }
 .ai-chat-link { padding: 0; border: none; background: none; font: inherit; color: var(--color-primary); text-decoration: underline; cursor: pointer; }
 

@@ -11,8 +11,16 @@
      storlek  .btn-lg 40px · (standard, sm) 32px · .btn-xs 24px
      ton      .btn-danger   röd version av vilken variant som helst
      form     .btn-icon     bara en ikon: kvadratisk
+   Höjden kommer från innehållet och padding, inte från en fast höjd
+   (samma uppbyggnad som i designfilen):
+     höjd = radhöjd + padding upp och ner + 1px ram upp och ner
+     standard 18 + 6 + 6 + 2 = 32 · lg 18 + 10 + 10 + 2 = 40 · xs 16 + 3 + 3 + 2 = 24
+   Ikonknappar (.btn-icon): ikon + samma padding på alla sidor
+     standard 16 + 7 + 7 + 2 = 32 · lg 18 + 10 + 10 + 2 = 40 · xs 14 + 4 + 4 + 2 = 24
    Alla varianter har en 1px ram (genomskinlig när den inte syns), så att
-   de är exakt lika höga sida vid sida. */
+   de är exakt lika höga sida vid sida.
+   --btn-height finns kvar som referens för annat som ska vara lika högt
+   som en knapp (statusknappen, filter, datumfält). */
 :root {
   --btn-height: 32px;
   --btn-icon: 16px;
@@ -23,17 +31,18 @@
 [data-theme="dark"] { --btn-danger: #f87171; --btn-danger-dark: #dc2626; --btn-danger-tint: rgba(248, 113, 113, 0.14); }
 
 .btn {
-  --btn-h: var(--btn-height);
+  --btn-pad-y: 6px;
   --btn-pad: 8px;
+  --btn-pad-icon: 7px;
+  --btn-lh: 18px;
   --btn-gap: 6px;
   --btn-svg: var(--btn-icon);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--btn-gap);
-  height: var(--btn-h);
   box-sizing: border-box;
-  padding: 0 var(--btn-pad);
+  padding: var(--btn-pad-y) var(--btn-pad);
   border: 1px solid transparent;
   border-radius: var(--radius-xs);
   background: none;
@@ -41,22 +50,25 @@
   font-family: inherit;
   font-size: var(--font-size-md);
   font-weight: 500;
-  line-height: 18px;
+  line-height: var(--btn-lh);
   white-space: nowrap;
   text-decoration: none;
   flex-shrink: 0;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.btn svg { width: var(--btn-svg); height: var(--btn-svg); flex-shrink: 0; }
+/* Ikonen tar lika mycket plats på höjden som en textrad, så att en knapp
+   med bara en ikon (utan .btn-icon) blir lika hög som en med text. */
+.btn svg { width: var(--btn-svg); height: var(--btn-svg); flex-shrink: 0; margin-block: calc((var(--btn-lh) - var(--btn-svg)) / 2); }
 .btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .btn:disabled { opacity: 0.6; cursor: default; }
 .btn.is-loading { cursor: progress; opacity: 0.9; }
 
 /* Storlekar */
-.btn-lg { --btn-h: 40px; --btn-pad: 12px; --btn-gap: 8px; --btn-svg: 18px; }
-.btn-xs { --btn-h: 24px; --btn-pad: 6px; --btn-gap: 4px; --btn-svg: 14px; font-size: var(--font-size-sm); line-height: 16px; }
-.btn-icon { width: var(--btn-h); padding: 0; }
+.btn-lg { --btn-pad-y: 10px; --btn-pad: 12px; --btn-pad-icon: 10px; --btn-gap: 8px; --btn-svg: 18px; }
+.btn-xs { --btn-pad-y: 3px; --btn-pad: 6px; --btn-pad-icon: 4px; --btn-lh: 16px; --btn-gap: 4px; --btn-svg: 14px; font-size: var(--font-size-sm); }
+.btn-icon { padding: var(--btn-pad-icon); }
+.btn-icon svg { margin-block: 0; }
 
 /* Varianter */
 .btn-solid { background: var(--color-primary); color: #fff; }

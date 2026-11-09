@@ -1,4 +1,4 @@
-# Lossi – överlämning (2026-10-27)
+# Lossi – överlämning (2026-11-09)
 
 Läs den här filen först i en ny session. Detaljer (databas, projekt, filer, notiser, AI) finns i `docs/migration-plan.md`; minnesanteckningarna (MEMORY.md m.fl.) laddas automatiskt.
 
@@ -10,7 +10,17 @@ Läs den här filen först i en ny session. Detaljer (databas, projekt, filer, n
 - **Committa och pusha till `main`** när en ändring är testad; Cloudflare deployar (~40–60 s). **Kontrollera alltid att ändringen faktiskt är live** (curl på en ny sträng i filen) innan du säger att den är klar. 2026-10-22 missade Cloudflare en push helt (ingen bock på commiten i GitHub); en tom commit (`git commit --allow-empty`) satte igång bygget igen.
 - Feedback från testare: `bash scripts/feedback.sh list` (se minnet lossi-feedback).
 
-## Senaste sessionen (2026-10-22 – 2026-10-27), i korthet
+## Domänen lossi.se (2026-11-08 – 2026-11-09)
+- Lossi ligger på **https://lossi.se** (Cloudflare: `lossi.se` är en Worker-domän kopplad till workern `lossi`). Koden har inga fasta adresser; länkar med kod från Admin › Koder följer adressen man står på.
+- **Startsidan:** utloggade besökare på `lossi.se/` skickas till `/landing` (`requireUser` i auth.js); inloggade får översikten; andra sidor skickar utloggade till inloggningen som förut.
+- **Inte klart (Tobias gör i Cloudflare/Supabase), kontrollera med curl:**
+  1. **www.lossi.se ger 522.** DNS-posten finns (CNAME `www` → `lossi.se`, Proxied) men det saknas en **Redirect Rule** (Rules › Create rule › Redirect Rule, mallen "Redirect from WWW to root", eller Hostname equals `www.lossi.se` → Dynamic `concat("https://lossi.se", http.request.uri.path)`, 301, Preserve query string). Instruktionen är skickad till Tobias 2026-11-09.
+  2. **http://lossi.se svarar 200 utan att skicka vidare till https** → slå på SSL/TLS › Edge Certificates › **Always Use HTTPS**.
+  3. **Supabase › Authentication › URL Configuration:** Site URL `https://lossi.se`, Redirect URLs `https://lossi.se/**` (behåll workers.dev). Behövs när Lossi börjar skicka mejl.
+  4. Google Drive-väljaren (avstängd i config.js): lägg till `https://lossi.se` i Google Cloud (se docs/google-drive.md) innan den slås på.
+  Kontroll: `curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' https://www.lossi.se/` och `http://lossi.se/` ska båda ge 301 till `https://lossi.se/…`.
+
+## Sessionen 2026-10-22 – 2026-10-27, i korthet
 Välkomst + rundtur + tips i upplägget, Kom igång-knappen, startupplägg med en gruppering i kalendern, maskoten (armar vid lösenordet, hjärtögon + wow-mun vid förnamnet, ögon 64/42/24 px), egna ytan privat (personal-private.sql), tema Ljust/Mörkt/System, sidopanelen Team → Medlemmar, projektmenyn som sidopanelen, kalendervyer Arbetsvecka/Vecka/Månad, läroplanspunkter öppnar sidopanelen, gemensam placering av menyer (`placePopover`), **Aktivitet + grupperingar** (fria aktiviteter, feedback #10) och **Marknadsplatsen med filer**. All feedback (#1–#10) är markerad klar. Detaljer nedan.
 
 ## Välkomst och rundtur i appen (2026-10-23, efter Tobias skisser)

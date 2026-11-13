@@ -530,7 +530,7 @@ function showAiModal(mode, prompt) {
   }
   aiPromptText = prompt;
   document.getElementById('aiPrompt').value = prompt;
-  document.getElementById('aiModalTitle').textContent = mode === 'fill' ? 'Planera med AI' : 'Skapa med AI';
+  document.getElementById('aiModalTitle').textContent = mode === 'fill' ? 'Planera med din egen AI' : 'Skapa med AI';
   document.getElementById('aiHelp').innerHTML = AI_HELP[mode];
   toggleAiPrompt(false);
   document.getElementById('createPlanModal')?.classList.remove('open');

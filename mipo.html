@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mipo – hjälpredan som har koll på din planering</title>
+  <meta name="description" content="Mipo är AI-hjälpredan i Lossi. Mipo ser upplägget du jobbar med, föreslår aktiviteter och kopplar läroplanen – och du bestämmer vad som blir kvar." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&family=Pacifico&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="buttons.css" />
+  <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="landing.css" />
+  <link rel="stylesheet" href="mascot.css" />
+  <link rel="stylesheet" href="mipo.css" />
+  <script src="https://unpkg.com/lucide@1.61.0/dist/umd/lucide.min.js"></script>
+  <script src="theme.js"></script>
+  <script src="mascot.js"></script>
+</head>
+<body>
+
+<!-- ── Navigering (samma som landing.html, med Mipo markerad) ── -->
+<header class="lp-nav">
+  <div class="lp-wrap lp-nav-inner">
+    <a href="landing.html" class="lp-brand" aria-label="Lossi – startsidan">
+      <img src="lossi-logo-sm.svg" alt="" width="32" height="32" />
+      <span class="lp-wordmark">lossi</span>
+    </a>
+    <nav class="lp-nav-links" aria-label="Sidor">
+      <a href="landing.html#funktioner">Funktioner</a>
+      <a href="mipo.html" aria-current="page">Mipo</a>
+      <a href="landing.html#testperiod">Testperioden</a>
+    </nav>
+    <div class="lp-nav-actions">
+      <button class="btn btn-text btn-icon btn-lg theme-toggle" onclick="toggleTheme()" title="Byt till mörkt läge"><i data-lucide="moon"></i></button>
+      <a href="login.html" class="btn btn-solid btn-lg">Logga in</a>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Hero: Mipo själv, som tittar efter pekaren ── -->
+  <section class="lp-hero mipo-hero">
+    <div class="lp-wrap lp-hero-text">
+      <div class="mipo-hero-face">
+        <div class="mipo-tile mipo-tile-xl" id="mipoHero" aria-hidden="true"></div>
+      </div>
+      <span class="lp-eyebrow"><span class="lp-dot"></span>Ny i Lossi · AI-hjälpreda</span>
+      <h1 class="lp-headline">
+        Möt <span class="mipo-name">Mipo</span> – hjälpredan som har koll på din planering.
+      </h1>
+      <p class="lp-section-lead mipo-hero-lead">Mipo ser upplägget du jobbar med, föreslår lektioner och aktiviteter och kopplar dem till läroplanen. Du bestämmer vad som blir kvar.</p>
+      <div class="lp-cta-row">
+        <a href="login.html" class="btn btn-solid btn-lg mipo-cta">Prova Mipo</a>
+        <a href="#sa-funkar-det" class="btn btn-subtle btn-lg">Se hur Mipo jobbar</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Så funkar det: tre steg och ett exempel på ett samtal ── -->
+  <section class="lp-section" id="sa-funkar-det">
+    <div class="lp-wrap mipo-how">
+      <div class="mipo-how-text">
+        <h2 class="lp-h2">Du frågar.<br class="lp-br" /> Mipo föreslår.<br class="lp-br" /> Du bestämmer.</h2>
+        <ol class="mipo-steps">
+          <li>
+            <span class="mipo-step-num">1</span>
+            <div>
+              <h3>Be om det du behöver</h3>
+              <p>Öppna Mipo i ett upplägg och skriv som till en kollega: fler aktiviteter, en tydligare beskrivning, en avslutning på varje lektion.</p>
+            </div>
+          </li>
+          <li>
+            <span class="mipo-step-num">2</span>
+            <div>
+              <h3>Mipo läser hela upplägget</h3>
+              <p>Svaret bygger på det du redan skrivit: lektionerna, tiderna, centralt innehåll och betygskriterierna.</p>
+            </div>
+          </li>
+          <li>
+            <span class="mipo-step-num">3</span>
+            <div>
+              <h3>Du väljer vad som läggs till</h3>
+              <p>Ändringarna kommer som ett förslag. Inget händer förrän du väljer Genomför – och det går att ångra.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+
+      <!-- Ett påhittat exempel, byggt som Mipo-panelen i appen (ai-chat.js) -->
+      <figure class="mipo-demo" aria-label="Exempel på ett samtal med Mipo">
+        <div class="mipo-demo-head">
+          <div class="mipo-tile mipo-tile-sm" id="mipoDemo" aria-hidden="true"></div>
+          <span class="mipo-demo-title">Mipo</span>
+          <span class="mipo-demo-context"><i data-lucide="notebook-text"></i>Demokrati – grunderna och processerna</span>
+        </div>
+        <div class="mipo-demo-body">
+          <div class="mipo-msg is-user">Lägg till en avslutning i lektion 3 som kollar att de förstått maktdelningen.</div>
+          <div class="mipo-msg is-ai">
+            <p>Lektion 3 slutar i dag med grupparbetet, så en kort exit ticket passar bra. Jag kopplar den också till det centrala innehållet om demokratins grunder.</p>
+            <div class="mipo-proposal">
+              <div class="mipo-proposal-head"><i data-lucide="wand-sparkles"></i><span>En ny aktivitet i lektion 3</span></div>
+              <ul class="mipo-proposal-list">
+                <li class="is-add"><i data-lucide="plus"></i><span><strong>Vem bestämmer vad?</strong> <span class="mipo-meta">Exit ticket · 10 min</span><span class="mipo-detail">Eleverna placerar riksdag, regering och domstolar i rätt ruta och motiverar ett val.</span></span></li>
+                <li class="is-link"><i data-lucide="link"></i><span>Koppla till <span class="mipo-meta">Demokratins grunder och maktdelning</span></span></li>
+              </ul>
+              <div class="mipo-proposal-actions">
+                <span class="btn btn-outline" aria-hidden="true">Nej tack</span>
+                <span class="btn btn-solid" aria-hidden="true">Genomför</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <figcaption class="mipo-demo-caption">Ett exempel på hur ett förslag från Mipo ser ut.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ── Fyra saker Mipo är bra på ── -->
+  <section class="lp-section">
+    <div class="lp-wrap">
+      <h2 class="lp-h2">En kollega som alltid<br class="lp-br" /> har läst upplägget.</h2>
+      <div class="mipo-grid">
+        <article class="mipo-card">
+          <span class="lp-point-icon" style="--c: #7C4FE0"><i data-lucide="scan-eye"></i></span>
+          <h3>Ser helheten</h3>
+          <p>Mipo vet hur lektionerna hänger ihop, hur lång tid de tar och vad som saknas – innan du hunnit fråga.</p>
+        </article>
+        <article class="mipo-card">
+          <span class="lp-point-icon" style="--c: #2F6FED"><i data-lucide="book-open-check"></i></span>
+          <h3>Kan läroplanen</h3>
+          <p>Mipo kopplar aktiviteterna till ämnesplanens centrala innehåll och betygskriterier, så att du ser vad eleverna får träna på.</p>
+        </article>
+        <article class="mipo-card">
+          <span class="lp-point-icon" style="--c: #E8650C"><i data-lucide="pen-line"></i></span>
+          <h3>Skriver med dig</h3>
+          <p>Föreslår aktiviteter, gör beskrivningar tydligare och ger dig ett utkast när du kör fast. Du ändrar så mycket du vill.</p>
+        </article>
+        <article class="mipo-card">
+          <span class="lp-point-icon" style="--c: #1F9D6B"><i data-lucide="circle-check-big"></i></span>
+          <h3>Du har sista ordet</h3>
+          <p>Varje ändring visas som ett förslag som du genomför eller säger nej tack till. Ångrade du dig går det senaste att ta tillbaka.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Koll på allt: vad Mipo ser i dag och vad som kommer ── -->
+  <section class="lp-section" id="koll-pa-allt">
+    <div class="lp-wrap">
+      <h2 class="lp-h2">Koll på allt som rör<br class="lp-br" /> din planering.</h2>
+      <p class="lp-section-lead">Mipo börjar i upplägget och växer med Lossi. Så här långt har vi kommit.</p>
+      <div class="mipo-scope">
+        <article class="mipo-scope-item is-now">
+          <span class="mipo-chip is-now"><i data-lucide="check"></i>Finns nu</span>
+          <span class="mipo-scope-icon"><i data-lucide="notebook-text"></i></span>
+          <h3>Upplägget du har öppet</h3>
+          <p>Lektioner, aktiviteter, tider, beskrivningar, centralt innehåll och betygskriterier.</p>
+        </article>
+        <article class="mipo-scope-item">
+          <span class="mipo-chip"><i data-lucide="clock"></i>På väg</span>
+          <span class="mipo-scope-icon"><i data-lucide="calendar-days"></i></span>
+          <h3>Kalendern och ditt schema</h3>
+          <p>Mipo ska se när lektionerna ligger och hjälpa dig få veckan att gå ihop.</p>
+        </article>
+        <article class="mipo-scope-item">
+          <span class="mipo-chip"><i data-lucide="clock"></i>På väg</span>
+          <span class="mipo-scope-icon"><i data-lucide="library"></i></span>
+          <h3>Alla dina upplägg</h3>
+          <p>Hitta det du gjort förut och bygg vidare på det som fungerade.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Där du jobbar: Mipo i Lossi i dag, i fler verktyg senare ── -->
+  <section class="lp-section">
+    <div class="lp-wrap">
+      <div class="mipo-places">
+        <div class="mipo-places-text">
+          <h2 class="lp-h2">Mipo följer med dig.</h2>
+          <p class="lp-section-lead">Lossi är det första verktyget i en familj av verktyg för skolan. Mipo finns i alla, så att du har samma hjälpreda vart du än går.</p>
+        </div>
+        <div class="mipo-tools">
+          <div class="mipo-tool">
+            <img src="lossi-logo-sm.svg" alt="" width="44" height="44" />
+            <div>
+              <span class="mipo-tool-name">Lossi</span>
+              <span class="mipo-tool-desc">Upplägg, kalender och läroplan</span>
+            </div>
+            <span class="mipo-chip is-now"><i data-lucide="check"></i>Finns nu</span>
+          </div>
+          <div class="mipo-tool is-future">
+            <span class="mipo-tool-plus"><i data-lucide="plus"></i></span>
+            <div>
+              <span class="mipo-tool-name">Fler verktyg för skolan</span>
+              <span class="mipo-tool-desc">Mipo följer med när de kommer</span>
+            </div>
+            <span class="mipo-chip"><i data-lucide="clock"></i>På väg</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Tryggt att använda ── -->
+  <section class="lp-section lp-section-tight">
+    <div class="lp-wrap">
+      <h2 class="lp-h2 mipo-trust-title">Tryggt att använda.</h2>
+      <div class="lp-points">
+        <div class="lp-point">
+          <span class="lp-point-icon" style="--c: #1F9D6B"><i data-lucide="hand"></i></span>
+          <h3>Inget ändras utan ditt OK</h3>
+          <p>Mipo kan bara föreslå. Det är du som genomför, och du ser exakt vad som ändras innan du gör det.</p>
+        </div>
+        <div class="lp-point">
+          <span class="lp-point-icon" style="--c: #2F6FED"><i data-lucide="user-x"></i></span>
+          <h3>Ingen elevdata</h3>
+          <p>Mipo behöver bara det du skrivit i upplägget. Skriv inte elevers namn i samtalet.</p>
+        </div>
+        <div class="lp-point">
+          <span class="lp-point-icon" style="--c: #7C4FE0"><i data-lucide="eye"></i></span>
+          <h3>Öppet med var det tar vägen</h3>
+          <p>Mipo bygger på Claude från Anthropic. Samtalen sparas i 90 dagar så att vi kan göra Mipo bättre.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Vanliga frågor ── -->
+  <section class="lp-section" id="fragor">
+    <div class="lp-wrap mipo-faq-wrap">
+      <h2 class="lp-h2">Vanliga frågor</h2>
+      <div class="mipo-faq">
+        <details>
+          <summary>Vem kan använda Mipo?<i data-lucide="chevron-down"></i></summary>
+          <p>Alla som är med i Lossis testperiod. Öppna ett upplägg och välj Fråga Mipo uppe till höger.</p>
+        </details>
+        <details>
+          <summary>Kan Mipo ha fel?<i data-lucide="chevron-down"></i></summary>
+          <p>Ja. Mipo är en AI och kan missförstå eller hitta på. Läs därför förslagen innan du genomför dem, och justera upplägget innan du använder det med eleverna.</p>
+        </details>
+        <details>
+          <summary>Vad händer med det jag skriver?<i data-lucide="chevron-down"></i></summary>
+          <p>Upplägget och det du skriver skickas till Anthropic (Claude) för att Mipo ska kunna svara. Samtalen sparas i Lossi i 90 dagar, tillsammans med om du tyckte att svaret var bra, så att vi kan förbättra Mipo.</p>
+        </details>
+        <details>
+          <summary>Kan jag använda min egen AI i stället?<i data-lucide="chevron-down"></i></summary>
+          <p>Ja. Längst ner i Mipo finns Använd din egen AI i stället. Då får du en färdig instruktion att klistra in i till exempel ChatGPT eller Copilot, och kan klistra in svaret i Lossi.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Avslutning ── -->
+  <section class="lp-section">
+    <div class="lp-wrap">
+      <div class="lp-cta-band mipo-cta-band">
+        <div class="mipo-tile mipo-tile-md" id="mipoOutro" aria-hidden="true"></div>
+        <h2 class="lp-h2">Prova Mipo i ditt nästa upplägg.</h2>
+        <p class="lp-section-lead">Mipo finns i alla upplägg under testperioden. Har du fått en inbjudan loggar du in med e-postadressen och lösenordet du fått.</p>
+        <a href="login.html" class="btn btn-solid btn-lg mipo-cta">Logga in</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="lp-footer">
+  <div class="lp-wrap lp-footer-inner">
+    <a href="landing.html" class="lp-brand lp-brand-sm">
+      <img src="lossi-logo-sm.svg" alt="" width="24" height="24" />
+      <span class="lp-wordmark">lossi</span>
+    </a>
+    <span>Planering för lärare · Sluten testperiod 2026</span>
+  </div>
+</footer>
+
+<script>
+  lucide.createIcons();
+  syncThemeIcons();
+
+  // Mipo tittar efter pekaren, blinkar då och då och blir glad vid knapparna
+  (function () {
+    const faces = ['mipoHero', 'mipoDemo', 'mipoOutro']
+      .map(id => document.getElementById(id))
+      .filter(Boolean)
+      .map(el => createMascot(el, { mouthScale: el.id === 'mipoHero' ? 1 : 1.7 }));
+    faces.forEach(m => blinkNowAndThen(m, () => true));
+    document.addEventListener('pointermove', e => faces.forEach(m => m.lookAt(e.clientX, e.clientY)));
+    document.documentElement.addEventListener('mouseleave', () => faces.forEach(m => m.center()));
+    document.querySelectorAll('.mipo-cta').forEach(btn => {
+      btn.addEventListener('pointerenter', () => faces.forEach(m => m.setMood('happy')));
+      btn.addEventListener('pointerleave', () => faces.forEach(m => m.setMood('normal')));
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,4 +1,5 @@
-// ── Planera med AI: en chatt med Claude Haiku i en egen sidopanel ──
+// ── Mipo: Lossis AI-hjälpreda, en chatt med Claude Haiku i en egen sidopanel ──
+// (Hette tidigare Planera med AI. Mipo är också maskoten i mascot.js.)
 // Panelen ligger till höger på uppläggssidan. Öppnas en aktivitet samtidigt
 // lägger sig aktivitetspanelen ovanpå sidan, till vänster om chatten
 // (styles.css, body.ai-panel-open), så att läraren ser ändringarna.
@@ -57,13 +58,13 @@ const PlanChat = (() => {
     panel = document.createElement('aside');
     panel.className = 'activity-panel ai-panel';
     panel.id = 'aiPanel';
-    panel.setAttribute('aria-label', 'Planera med AI');
+    panel.setAttribute('aria-label', 'Mipo');
     panel.innerHTML = `
       <div class="activity-panel-resize-handle" id="aiPanelResizeHandle"></div>
       <div class="activity-panel-header">
         <div class="activity-panel-header-main">
           <div class="activity-panel-icon ai-panel-icon"><i data-lucide="sparkles"></i></div>
-          <span class="activity-panel-title">Planera med AI</span>
+          <span class="activity-panel-title">Mipo</span>
         </div>
         <div class="activity-panel-header-actions">
           <button type="button" class="btn btn-text btn-icon" onclick="PlanChat.reset()" title="Ny konversation" aria-label="Ny konversation"><i data-lucide="square-pen"></i></button>
@@ -73,10 +74,10 @@ const PlanChat = (() => {
       </div>
       <div class="ai-chat-list" id="aiChatList" aria-live="polite"></div>
       <form class="ai-chat-composer" onsubmit="event.preventDefault(); PlanChat.send()">
-        <textarea class="ai-chat-input" id="aiChatInput" rows="1" placeholder="Skriv vad du vill planera…" aria-label="Meddelande till AI:n"></textarea>
+        <textarea class="ai-chat-input" id="aiChatInput" rows="1" placeholder="Skriv vad du vill planera…" aria-label="Meddelande till Mipo"></textarea>
         <button type="submit" class="btn btn-solid btn-icon ai-chat-send" id="aiChatSend" title="Skicka" aria-label="Skicka"><i data-lucide="arrow-up"></i></button>
       </form>
-      <p class="ai-chat-foot">AI kan ha fel, så läs förslagen innan du genomför dem. <button type="button" class="ai-chat-link" onclick="PlanChat.ownAi()">Använd din egen AI i stället</button></p>`;
+      <p class="ai-chat-foot">Mipo kan ha fel, så läs förslagen innan du genomför dem. <button type="button" class="ai-chat-link" onclick="PlanChat.ownAi()">Använd din egen AI i stället</button></p>`;
     document.body.appendChild(panel);
     setupResize();
     const input = panel.querySelector('#aiChatInput');
@@ -195,12 +196,12 @@ const PlanChat = (() => {
       list.innerHTML = `
         <div class="ai-chat-intro">
           <div class="ai-chat-intro-mascot"><div class="ai-chat-mascot" aria-hidden="true"></div></div>
-          <h3 class="ai-chat-intro-title">Vad vill du planera?</h3>
+          <h3 class="ai-chat-intro-title">Hej, jag är Mipo! Vad vill du planera?</h3>
           <p class="ai-chat-intro-text">Jag ser hela upplägget och kan föreslå grupperingar och aktiviteter, skriva om beskrivningar och koppla läroplanen. Du bestämmer vad som läggs till.</p>
           <div class="ai-chat-starters">
             ${STARTERS.map(s => `<button type="button" class="ai-chat-starter" data-text="${escapeHTML(s)}" onclick="PlanChat.send(this.dataset.text)">${escapeHTML(s)}</button>`).join('')}
           </div>
-          <p class="ai-chat-privacy"><i data-lucide="info"></i><span>Upplägget och det du skriver skickas till Anthropic (Claude Haiku). Samtalen sparas i 90 dagar så att vi kan förbättra AI:n. Skriv inte elevers namn.</span></p>
+          <p class="ai-chat-privacy"><i data-lucide="info"></i><span>Upplägget och det du skriver skickas till Anthropic (Claude Haiku). Samtalen sparas i 90 dagar så att vi kan förbättra Mipo. Skriv inte elevers namn.</span></p>
         </div>`;
       mascot = createMascot(list.querySelector('.ai-chat-mascot'), { mouthScale: 1.7 });
       document.addEventListener('pointermove', follow);
@@ -442,7 +443,7 @@ const PlanChat = (() => {
       await readStream(res.body, reply, snap);
       if (reply.proposal) await resolveCourses(reply.proposal);
     } catch (e) {
-      console.warn('Planera med AI:', e);
+      console.warn('Mipo:', e);
       reply.error = e.message || 'Svaret gick inte att hämta. Försök igen om en stund.';
     }
     busy = false;
@@ -485,7 +486,7 @@ const PlanChat = (() => {
           if (ev.logId) reply.logId = ev.logId;
         } else if (ev.t === 'error') {
           reply.error = ev.error;
-          if (ev.detail) console.warn('Planera med AI (plan-chat):', ev.detail);
+          if (ev.detail) console.warn('Mipo (plan-chat):', ev.detail);
         }
       }
     }

@@ -99,12 +99,12 @@
     </div>
    </section>
 
-   <!-- Samtalen i Planera med AI (supabase/ai-chat-logs.sql), de senaste 90 dagarna -->
+   <!-- Samtalen med Mipo (supabase/ai-chat-logs.sql), de senaste 90 dagarna -->
    <section class="admin-section" id="adminChats" data-section="chats" hidden>
     <div class="fb-header">
       <div>
         <h1 class="fb-title">AI-samtal</h1>
-        <p class="fb-lead">Svaren från Planera med AI de senaste 90 dagarna, nyast först. Leta efter det AI:n inte kunde, avböjda förslag och tummar ner.</p>
+        <p class="fb-lead">Svaren från Mipo de senaste 90 dagarna, nyast först. Leta efter det Mipo inte kunde, avböjda förslag och tummar ner.</p>
       </div>
       <div class="chat-head-actions">
         <button class="btn btn-outline" onclick="copyChats(this)" title="Kopiera de samtal som visas, t.ex. för att analysera dem med Claude"><i data-lucide="copy"></i>Kopiera</button>
@@ -544,7 +544,7 @@
     const list = document.getElementById('chatList');
     const shown = chats.filter(chatMatches);
     if (!chats.length) {
-      list.innerHTML = '<div class="fb-empty"><i data-lucide="inbox"></i>Inga samtal ännu. De dyker upp här när lärarna använder Planera med AI.</div>';
+      list.innerHTML = '<div class="fb-empty"><i data-lucide="inbox"></i>Inga samtal ännu. De dyker upp här när lärarna använder Mipo.</div>';
     } else if (!shown.length) {
       list.innerHTML = '<div class="fb-empty">Inga samtal matchar filtret.</div>';
     } else {

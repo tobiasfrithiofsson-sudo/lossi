@@ -1,4 +1,5 @@
-// ── Lossis maskot ──
+// ── Mipo – Lossis maskot och AI-hjälpreda ──
+// Ansiktet syns i Mipo-chatten (ai-chat.js) och på hemsidan (landing.html, mipo.html).
 // En SVG med två ögon (vita + pupiller) och en mun. Pupillerna flyttas mot
 // det den tittar på, men stannar inom ögonvitorna (som klipper dem). Kan
 // hålla för ögonen, blinka och byta min. Används i onboardingen (onboarding.js) och i
@@ -31,7 +32,7 @@ function createMascot(host, { mouthScale = 1 } = {}) {
   const id = 'mascot' + (++mascotCount);
   host.classList.add('mascot');
   host.insertAdjacentHTML('beforeend', `
-    <svg class="mascot-face" viewBox="0 0 200 130" role="img" aria-label="Lossis maskot">
+    <svg class="mascot-face" viewBox="0 0 200 130" role="img" aria-label="Mipo">
       <defs>
         <clipPath id="${id}L"><circle cx="45" cy="52" r="40" /></clipPath>
         <clipPath id="${id}R"><circle cx="155" cy="52" r="40" /></clipPath>

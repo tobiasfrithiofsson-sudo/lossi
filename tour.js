@@ -85,8 +85,8 @@ function continueTourInPlan(row) {
 const PLAN_TIPS = [
   {
     target: ['#aiContinueBtn'], side: 'bottom', icon: 'sparkles',
-    title: 'Planera med AI',
-    text: 'Prata med AI:n om upplägget. Den ser allt du skrivit och kan föreslå grupperingar och aktiviteter, skriva om beskrivningar och koppla läroplanen. Du bestämmer vad som läggs till.',
+    title: 'Fråga Mipo',
+    text: 'Mipo är Lossis AI-hjälpreda. Mipo ser allt du skrivit i upplägget och kan föreslå grupperingar och aktiviteter, skriva om beskrivningar och koppla läroplanen. Du bestämmer vad som läggs till.',
   },
   {
     target: ['#structureList .lesson-group > .week-row'], side: 'bottom', icon: 'list-ordered',

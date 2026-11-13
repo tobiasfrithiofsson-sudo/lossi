@@ -15,8 +15,10 @@
   <link rel="stylesheet" href="buttons.css" />
   <link rel="stylesheet" href="theme.css" />
   <link rel="stylesheet" href="landing.css" />
+  <link rel="stylesheet" href="mascot.css" />
   <script src="https://unpkg.com/lucide@1.61.0/dist/umd/lucide.min.js"></script>
   <script src="theme.js"></script>
+  <script src="mascot.js"></script>
 </head>
 <body>
 
@@ -29,6 +31,7 @@
     </a>
     <nav class="lp-nav-links" aria-label="Sidans innehåll">
       <a href="#funktioner">Funktioner</a>
+      <a href="mipo.html">Mipo</a>
       <a href="#testperiod">Testperioden</a>
     </nav>
     <div class="lp-nav-actions">
@@ -130,6 +133,23 @@
     </div>
   </section>
 
+  <!-- ── Mipo: AI-hjälpredan har en egen sida (mipo.html) ── -->
+  <section class="lp-section" id="mipo">
+    <div class="lp-wrap">
+      <a href="mipo.html" class="lp-mipo">
+        <div class="lp-mipo-face">
+          <div class="lp-mipo-tile" id="lpMipo" aria-hidden="true"></div>
+        </div>
+        <div class="lp-mipo-text">
+          <span class="lp-card-eyebrow"><i data-lucide="sparkles"></i>Ny i Lossi</span>
+          <h2 class="lp-h2">Möt Mipo – hjälpredan som har koll på din planering.</h2>
+          <p class="lp-section-lead">Mipo läser upplägget med dig, föreslår lektioner och aktiviteter och kopplar dem till läroplanen. Du bestämmer vad som blir kvar.</p>
+          <span class="btn btn-solid btn-lg lp-mipo-btn">Läs mer om Mipo<i data-lucide="arrow-right"></i></span>
+        </div>
+      </a>
+    </div>
+  </section>
+
   <!-- ── Byggd för lärare ── -->
   <section class="lp-section lp-section-tight">
     <div class="lp-wrap">
@@ -183,6 +203,14 @@
 <script>
   lucide.createIcons();
   syncThemeIcons();
+
+  // Mipo i bandet tittar efter pekaren och blinkar då och då
+  (function () {
+    const mipo = createMascot(document.getElementById('lpMipo'));
+    blinkNowAndThen(mipo, () => true);
+    document.addEventListener('pointermove', e => mipo.lookAt(e.clientX, e.clientY));
+    document.documentElement.addEventListener('mouseleave', mipo.center);
+  })();
 </script>
 </body>
 </html>

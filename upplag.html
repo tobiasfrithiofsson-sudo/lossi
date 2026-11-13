@@ -97,10 +97,10 @@
     </div>
 
     <div class="plan-actions">
-      <!-- Planera med AI: chatten i sidopanelen (ai-chat.js); därifrån går det också att använda sin egen AI (ai-import.js) -->
+      <!-- Fråga Mipo: AI-hjälpredan i sidopanelen (ai-chat.js); därifrån går det också att använda sin egen AI (ai-import.js) -->
       <button type="button" class="btn ai-continue-btn edit-only" id="aiContinueBtn" onclick="PlanChat.toggle()">
         <i data-lucide="sparkles"></i>
-        Planera med AI
+        Fråga Mipo
       </button>
       <div class="popover-wrap" onclick="event.stopPropagation()">
         <button class="btn btn-outline btn-icon" onclick="toggleAppPopover(this)" title="Dela">
@@ -3975,7 +3975,7 @@
     },
   });
 
-  // ── Planera med AI: chatten i sidopanelen (ai-chat.js) ──
+  // ── Mipo: chatten i sidopanelen (ai-chat.js) ──
   // snapshot() ger upplägget med korta id (G1 = gruppering, A1 = aktivitet,
   // C1 = punkt i läroplanen) och tabellen tillbaka till Lossis id.
   // apply() genomför ett förslag; det som inte går att göra säkert (t.ex. ta

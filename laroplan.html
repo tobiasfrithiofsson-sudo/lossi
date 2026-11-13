@@ -261,7 +261,7 @@
       ${preschool ? '' : `<div class="cov-block">
         <div class="cov-block-head">
           <h3>Betygskriterier</h3>
-          ${hasSteps ? `<div class="filter-toggle sv-steps" role="group" aria-label="Visa betygssteg">
+          ${hasSteps ? `<div class="filter-toggle sv-steps ctl-xs" role="group" aria-label="Visa betygssteg">
             ${['E', 'C', 'A'].map(s => `<button type="button" aria-pressed="${s === criteriaStep}" onclick="setCriteriaStep('${s}')">${s}</button>`).join('')}
           </div>` : ''}
         </div>

@@ -15,7 +15,7 @@
 .mp-lead { margin: 6px 0 0; max-width: 680px; font-size: var(--font-size-md); line-height: 1.5; color: var(--color-text-secondary); }
 
 .mp-filters { flex-wrap: wrap; margin-bottom: 20px; }
-.mp-search { flex: 1 1 260px; max-width: 360px; }
+.mp-search { flex: 1 1 260px; max-width: 360px; margin: 0; }
 
 .mp-grid {
   display: grid;

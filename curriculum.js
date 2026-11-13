@@ -403,7 +403,7 @@ const PlanCurriculum = (() => {
     if (kind === 'criteria' && !item.text) {
       const step = shownStep.get(item.id) || 'E';
       return `
-        <div class="sv-steps filter-toggle" role="group" aria-label="Visa betygssteg">
+        <div class="sv-steps filter-toggle ctl-xs" role="group" aria-label="Visa betygssteg">
           ${['E', 'C', 'A'].map(s => `<button type="button" aria-pressed="${s === step}" onclick="PlanCurriculum.showStep('${item.id}', '${s}')">${s}</button>`).join('')}
         </div>
         <div class="goal-text sv-text">${C.textHTML(item[step])}</div>`;

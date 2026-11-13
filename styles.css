@@ -2506,11 +2506,12 @@ body.edit-mode .activity-more-btn { display: grid; }
    createChoiceList i theme.js) */
 .choice-menu { width: 260px; padding: 6px; }
 
+/* Höjd från storleksgrunden i buttons.css: 32px, .ctl-lg 40px, .ctl-xs 24px */
 .choice-search {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 10px;
+  padding: var(--ctl-pad-y) 10px;
   margin-bottom: 4px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -2523,12 +2524,14 @@ body.edit-mode .activity-more-btn { display: grid; }
 .choice-search input {
   flex: 1;
   min-width: 0;
-  height: 34px;
+  height: var(--ctl-lh);
+  padding: 0;
   border: none;
   outline: none;
   background: none;
   font: inherit;
-  font-size: var(--font-size-md);
+  font-size: var(--ctl-fs);
+  line-height: var(--ctl-lh);
   color: var(--color-text-primary);
 }
 
@@ -3329,6 +3332,7 @@ a.upcoming-card { text-decoration: none; color: inherit; }
 /* Filter bar (Ämne / Årskurs) above the plan list */
 .filter-bar {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
   margin-bottom: var(--space-3);
 }
@@ -3914,8 +3918,8 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
 .sv-text strong { font-weight: 700; }
 .sv-lead { color: var(--color-text-tertiary); }
 .sv-picker-lead { display: block; margin-top: 2px; font-weight: 400; font-style: italic; }
-.sv-steps { align-self: flex-start; height: 24px; }
-.sv-steps button { padding: 0 7px; font-size: var(--font-size-sm); font-weight: 600; }
+.sv-steps { align-self: flex-start; }
+.sv-steps button { padding-inline: 7px; font-weight: 600; }
 
 .sv-note {
   font-size: var(--font-size-base);
@@ -4223,8 +4227,9 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
 .filter-select select {
   appearance: none;
   -webkit-appearance: none;
-  height: 100%;
+  height: var(--ctl-lh);
   padding: 0 22px 0 0;
+  line-height: inherit;
   margin-right: -22px; /* pilen ligger ovanpå selectens högra kant, så hela ytan är klickbar */
   border: none;
   outline: none;
@@ -4235,10 +4240,11 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
 }
 .filter-select .filter-select-chevron { pointer-events: none; }
 
-/* Alla / Bara mina: segmenterad knapp, 32px som de andra */
+/* Alla / Bara mina: segmenterad knapp. Höjd från storleksgrunden i
+   buttons.css (32px, .ctl-lg 40px, .ctl-xs 24px): 1px ram + 2px luft runt
+   knapparna, så knapparnas egen padding är --ctl-pad-y minus 2px. */
 .filter-toggle {
   display: flex;
-  height: var(--btn-height);
   box-sizing: border-box;
   padding: 2px;
   gap: 2px;
@@ -4247,15 +4253,14 @@ body:not(.edit-mode) .plan-section:not(.has-course) .goals-list:not(.sv-list):em
 }
 .filter-toggle[hidden] { display: none; }
 .filter-toggle button {
-  height: 100%;
-  padding: 0 8px;
+  padding: calc(var(--ctl-pad-y) - 2px) 8px;
   border: none;
   border-radius: 2px;
   background: none;
   font-family: inherit;
-  font-size: var(--font-size-md);
+  font-size: var(--ctl-fs);
   font-weight: 500;
-  line-height: 18px;
+  line-height: var(--ctl-lh);
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
